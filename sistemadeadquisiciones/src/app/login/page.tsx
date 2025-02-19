@@ -20,7 +20,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex flex-col justify-between bg-gray-100">
       <Menu />
-<br />
+    <br />
       <main className="flex items-center justify-center flex-1">
         <div className="flex w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Sección de formulario */}
@@ -31,19 +31,19 @@ const LoginPage = () => {
 
             <form onSubmit={handleLogin}>
               <div className="mb-4">
-                <label className="block font-medium" htmlFor="email">Email:</label>
+                <label className="block font-medium text-black" htmlFor="email">Email:</label>
                 <input
                   type="email"
                   id="email"
-                  className="w-full p-2 border border-gray-300 rounded"
+                  className="w-full p-2 border border-gray-300 rounded text-black"
                 />
               </div>
               <div className="mb-6">
-                <label className="block font-medium" htmlFor="password">Contraseña:</label>
+                <label className="block font-medium text-black" htmlFor="password">Contraseña:</label>
                 <input
                   type="password"
                   id="password"
-                  className="w-full p-2 border border-gray-300 rounded"
+                  className="w-full p-2 border border-gray-300 rounded text-black placeholder:text-black text-black"
                 />
               </div>
 
