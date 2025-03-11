@@ -1,9 +1,7 @@
-//08 DE DICIEMBRE DE 2024
+//26 Febrero 2025
 
 //Importa esta libreria para interactuar con la tabla roles en una base de datos PostgreSQL.
 import { sql } from '@vercel/postgres';
-
-const connectionString = process.env.POSTGRES_URL;
 
 //Recupera TODOS los registros de la tabla Usuarios.
 export const getUsuarios = async () => {
