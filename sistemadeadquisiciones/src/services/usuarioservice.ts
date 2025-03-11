@@ -6,7 +6,7 @@ import { sql } from '@vercel/postgres';
 //Recupera TODOS los registros de la tabla Usuarios.
 export const getUsuarios = async () => {
   try {
-    // Usamos sql directamente para hacer la consulta con INNER JOIN entre las tablas USUARIOS y ROLES
+    // Llamamos al procedimiento almacenado en PostgreSQL
     const result = await sql`
       SELECT 
         u.id_usuario,
@@ -16,36 +16,49 @@ export const getUsuarios = async () => {
         u.password,
         u.estatus,
         r.nombre AS rol,  
-        u.secretaria
+        u.secretaria,
+        u.sistema
       FROM 
         usuarios u
       INNER JOIN 
         roles r ON u.id_rol = r.id_rol; 
     `;
-    return result.rows; //Devuelve un arreglo de objetos, donde cada objeto representa un rol.
+    return result.rows; // Devuelve un arreglo de objetos con los datos de los usuarios y sus roles.
   } catch (error) {
-    throw error; ////Lanza errores capturados para manejo externo.
+    console.log(error);
+
+    throw error; // Lanza errores capturados para manejo externo.
   }
 };
 
+
 //Función para CREAR/INSERTAR un nuevo Usuario en la tabla Usuarios
-export const createUsuario = async (nombre: string, email: string, password: string, rol: string, nomina: string, descriptorJSON: string, emailUsuario: string, secretaria: string) => {
+export const createUsuario = async (nombre: string, apellidos: string, email: string, password: string, rol: string, nomina: string, emailUsuario: string, secretaria: string, sistemas: string) => {
   try {
-    // Usamos sql para insertar el nuevo usuario a la base de datos
     const result = await sql`
-      INSERT INTO usuarios (nombre, email, password, id_rol, nomina, rostro, secretaria) 
-      VALUES (${nombre}, ${email}, ${password}, ${rol}, ${nomina}, ${descriptorJSON}, ${secretaria}) 
-      RETURNING *;
-    `;
+    INSERT INTO usuarios (nombre, apellidos, email, password, id_rol, nomina, secretaria, sistema) 
+    VALUES (${nombre}, ${email}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${sistemas}) 
+    RETURNING *;
+  `;
 
     const bitacora = await sql`
-    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
-    VALUES (
-        ${'usuarios'}, 
-        ${`Se dio de alta un nuevo usuario ${result.rows[0].id_usuario}`}, 
-        ${emailUsuario}, 
-        ${`Se dio de alta nombre: ${nombre}, email: ${email}, password: ${password}, id_rol: ${rol}, nomina: ${nomina}, descriptorJSON: ${descriptorJSON}, secretaria: ${secretaria}`}
-    )`;
+    SELECT * FROM insertar_usuario(
+      ${'usuarios'},
+      ${'alta'},
+      ${emailUsuario}, 
+      ${`Se dio de alta un nuevo usuario
+        ${nombre}, 
+        ${apellidos}, 
+        ${nomina}, 
+        ${password}, 
+        ${email}, 
+        ${secretaria}, 
+        ${sistemas}, 
+        ${rol}`}, 
+    );
+  `;
+
+
     return result.rows[0]; //Devuelve el registro recién creado.
   } catch (error) {
     throw error; //Lanza errores capturados para manejo externo.
