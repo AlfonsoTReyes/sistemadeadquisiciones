@@ -55,11 +55,73 @@ export default function Menu() {
         </li>
 
         <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> PROVEEDORES
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
           <Link
             href="/requirente"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
-            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitud Requirente
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Datos generales
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Documentos
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Pagos
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Consulta de concursos
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compras
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Recepción de articulo
           </Link>
         </li>
 
@@ -68,34 +130,561 @@ export default function Menu() {
             href="/requisicion"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
-            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitud Requisición
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Polizas
           </Link>
         </li>
 
         <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> MANEJADOR DE PROVEEDORES
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
           <Link
-            href="/comite"
+            href="/requisicion"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
-            <FontAwesomeIcon icon={faUsers} className="mr-2" /> Comité
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitud de proveedores
           </Link>
         </li>
 
         <li className="mb-1">
           <Link
-            href="/concursos"
+            href="/requisicion"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
-            <FontAwesomeIcon icon={faFolderOpen} className="mr-2" /> Concursos y Contratos
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Padrón de proveedores
           </Link>
         </li>
 
         <li className="mb-1">
           <Link
-            href="/cotizaciones"
-            className="block text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
-            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Cotizaciones
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Renovaciones y altas
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Pagos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Envio de notificaciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Renovaciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Pagos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> ADQUISCIONES
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitudes
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comité
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Cotizaciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Suficiencia pre aprobada
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Ordenes de compra
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Recepción de articulo
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> Comite
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comite para revisión
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comite calendarios
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> Contratos y concursos
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comite para revisión
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Calendarios
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> CONCURSOS Y CONTRATOS
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adjudicaciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Concursos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Proveedores
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Expedientes
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Bases
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Fallos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> CONTRATOS
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adquisiciones
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contatos en espera
+          </Link>
+        </li> 
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Aprobados
+          </Link>
+        </li> 
+        <li className="mb-1">
+          <Link
+            href="/requisicion"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Padrón de proveedores
+          </Link>
+        </li> 
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> SECRETARIA
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes de Adquisiciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Comité
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Cotizaciones
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Suficiencias pre aprobadas
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compra
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Recepción de articulo
+          </Link>
+        </li>
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Seguimientos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> SECRETARIA ADMINISTRACIÓN
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes de Adquisiciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> FINANZAS
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes pre suficiencia
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes suficiencia
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Comite
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Concursos y contratos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Cotizaciones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compras
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Polizas
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <button
+            onClick={() => setIsSessionOpen(!isSession)}
+            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <div className="flex items-center">
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> COTIZACIONES
+            </div>
+            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+          </button>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Adquisiones
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compra
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Recepción de articulos
+          </Link>
+        </li>
+
+        <li className="mb-1">
+          <Link
+            href="/requirente"
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Detalle de poliza
           </Link>
         </li>
 
@@ -110,42 +699,43 @@ export default function Menu() {
             <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
           </button>
           {isUsuariosOpen && (
-            <ul className="ml-1 mt-1 space-y-1 bg-gray-600 rounded-md p-2">
-              <li className="mb-1">
-                <Link
-                  href="/usuarios"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faUser} className="mr-2" /> Usuarios
-                </Link>
-              </li>
-              <li className="mb-1">
-                <Link
-                  href="/empleados"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faUsers} className="mr-2" /> Empleados
-                </Link>
-              </li>
-              <li className="mb-1">
-                <Link
-                  href="/roles"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faUserShield} className="mr-2" /> Roles
-                </Link>
-              </li>
-              <li className="mb-1">
-                <Link
-                  href="/permisos"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faKey} className="mr-2" /> Permisos
-                </Link>
-              </li>
-            </ul>
-          )}
+              <ul className="ml-1 mt-1 space-y-1 bg-gray-600 rounded-md p-2">
+                <li className="mb-1">
+                  <Link
+                    href="/usuarios"
+                    className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                  >
+                    <FontAwesomeIcon icon={faUser} className="mr-2" /> Usuarios
+                  </Link>
+                </li>
+                <li className="mb-1">
+                  <Link
+                    href="/empleados"
+                    className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                  >
+                    <FontAwesomeIcon icon={faUsers} className="mr-2" /> Empleados
+                  </Link>
+                </li>
+                <li className="mb-1">
+                  <Link
+                    href="/roles"
+                    className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                    >
+                      <FontAwesomeIcon icon={faUserShield} className="mr-2" /> Roles
+                    </Link>
+                  </li>
+                  <li className="mb-1">
+                    <Link
+                      href="/permisos"
+                      className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                    >
+                      <FontAwesomeIcon icon={faKey} className="mr-2" /> Permisos
+                    </Link>
+                  </li>
+                </ul>
+              )}
         </li>
+          
 
         <li className="mb-1">
           <button
