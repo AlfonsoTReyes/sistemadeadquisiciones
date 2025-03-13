@@ -1,64 +1,61 @@
 'use client';
-import {useState } from 'react';
+import { useState } from 'react';
 import ModificarUsuario from './formularios/modificar';
 import ModificarContraseña from './formularios/modificarContraseña';
+import EliminarUsuario from './formularios/eliminar'; // Importamos el nuevo componente
+import useUsuarios from './useUsuario';
 
 interface Usuario {
-    id_usuario: number;
-    nombre: string;
-    email: string;
-    nomina: string;
-    password: string;
-    rol: string;
-    estatus: boolean;
-    secretaria: string;
+  id_usuario: number;
+  nombre_u: string;
+  apellidos:string;
+  email: string;
+  nomina: string;
+  password: string;
+  rol: string;
+  estatus: boolean;
+  nombre_s: string;
+  nombre_d: string;
+  puesto:string;
+  sistema:string;
 }
 
 interface TablaUsuariosProps {
-    usuarios: Usuario[];
-    onUsuarioAdded: () => void;
-
+  usuarios: Usuario[];
+  onUsuarioAdded: () => void;
 }
 
 const TablaUsuarios: React.FC<TablaUsuariosProps> = ({ usuarios, onUsuarioAdded }) => {
+    const { eliminarUsuario, confirmDeleteId, setConfirmDeleteId } = useUsuarios();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
     const [usuarioAEditar, setUsuarioAEditar] = useState<number | null>(null);
     const [contraseñaEditar, setContraseñaAEditar] = useState<number | null>(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-    const email = sessionStorage.getItem('userEmail') || '';
+    const [paginaActual, setPaginaActual] = useState(1);
+    const registrosPorPagina = 10;
+    const totalPaginas = Math.ceil(usuarios.length / registrosPorPagina);
+    const indexUltimoRegistro = paginaActual * registrosPorPagina;
+    const indexPrimerRegistro = indexUltimoRegistro - registrosPorPagina;
+    const usuariosPaginados = usuarios.slice(indexPrimerRegistro, indexUltimoRegistro);
 
     const openEditModal = (id: number) => {
         setUsuarioAEditar(id);
         setIsEditModalOpen(true);
     };
+
     const closeEditModal = () => {
         setUsuarioAEditar(null);
         setIsEditModalOpen(false);
     };
+
     const openEditPassModal = (id: number) => {
         setContraseñaAEditar(id);
         setIsPassEditModalOpen(true);
     };
+
     const closeEditPassModal = () => {
         setContraseñaAEditar(null);
         setIsPassEditModalOpen(false);
-    };
-
-    const handleDeleteConfirmation = (id: number) => {
-        setConfirmDeleteId(id); // Marca el id del usuario que se va a eliminar
-    };
-
-    const eliminarUsuario = async () => {
-        if (confirmDeleteId === null) return;
-        try {
-          const res = await fetch(`/api/usuarios?id_usuario=${confirmDeleteId}&eliminar=true&email=${email}`, { method: 'DELETE' });
-          if (!res.ok) throw new Error('Error al eliminar usuario');
-        } catch (error) {
-          console.error(error);
-        } finally {
-          setConfirmDeleteId(null);
-        }
     };
 
     return (
@@ -70,6 +67,8 @@ const TablaUsuarios: React.FC<TablaUsuariosProps> = ({ usuarios, onUsuarioAdded 
                     <th className="border px-4 py-2">Correo</th>
                     <th className="border px-4 py-2">Rol</th>
                     <th className="border px-4 py-2">Secretaria</th>
+                    <th className="border px-4 py-2">Dependencia</th>
+                    <th className="border px-4 py-2">Puesto</th>
                     <th className="border px-4 py-2">Estatus</th>
                     <th className="border px-4 py-2">Acciones</th>
                 </tr>
@@ -77,50 +76,71 @@ const TablaUsuarios: React.FC<TablaUsuariosProps> = ({ usuarios, onUsuarioAdded 
                 <tbody>
                 {usuarios.map((usuario) => (
                     <tr key={usuario.id_usuario}>
-                    <td className="border px-4 py-2">{usuario.nombre}</td>
+                    <td className="border px-4 py-2">{usuario.nombre_u} {usuario.apellidos}</td>
                     <td className="border px-4 py-2">{usuario.email}</td>
                     <td className="border px-4 py-2">{usuario.rol}</td>
-                    <td className="border px-4 py-2">{usuario.secretaria}</td>
+                    <td className="border px-4 py-2">{usuario.nombre_s}</td>
+                    <td className="border px-4 py-2">{usuario.nombre_d}</td>
+                    <td className="border px-4 py-2">{usuario.puesto}</td>
                     <td className="border px-4 py-2">{usuario.estatus ? "Activo" : "Inactivo"}</td>
                     <td className="border px-4 py-2">
                         <button onClick={() => openEditModal(usuario.id_usuario)} className="text-yellow-500 hover:underline">Editar</button>
                         <button onClick={() => openEditPassModal(usuario.id_usuario)} className="text-blue-500 hover:underline">Modificar contraseña</button>
-                        <button onClick={() => handleDeleteConfirmation(usuario.id_usuario)} className="text-red-500 hover:underline">Eliminar</button>
+                        <button onClick={() => setConfirmDeleteId(usuario.id_usuario)} className="text-red-500 hover:underline">Eliminar</button>
                     </td>
                     </tr>
                 ))}
                 </tbody>
             </table>
+            <div className="flex justify-center mt-4 space-x-2">
+              <button 
+                onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                disabled={paginaActual === 1}
+                className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+              >
+                Anterior
+              </button>
+                <select 
+                  value={paginaActual} 
+                  onChange={(e) => setPaginaActual(Number(e.target.value))}
+                  className="px-2 py-1 border rounded"
+                >
+                  {Array.from({ length: totalPaginas }, (_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      {index + 1}
+                    </option>
+                  ))}
+                </select>
+              <button 
+                onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaActual === totalPaginas}
+                className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+              >
+                Siguiente
+              </button>
+            </div>
 
-        
-              {isEditModalOpen && usuarioAEditar !== null && (
+            {isEditModalOpen && usuarioAEditar !== null && (
                 <div className="modal-overlay">
                   <div className="modal-content">
-                    <ModificarUsuario usuarioId={usuarioAEditar} onClose={closeEditModal} onUsuarioModificado={onUsuarioAdded} />
+                    <ModificarUsuario id_usuario={usuarioAEditar} onClose={closeEditModal} onUsuarioUpdated={onUsuarioAdded} />
                   </div>
                 </div>
               )}
-        
-              {isEditPassModalOpen && contraseñaEditar !== null && (
+
+            {isEditPassModalOpen && contraseñaEditar !== null && (
                 <div className="modal-overlay">
                   <div className="modal-content">
                     <ModificarContraseña usuarioId={contraseñaEditar} onClose={closeEditPassModal} onConstraseñaModificado={onUsuarioAdded} />
                   </div>
                 </div>
               )}
-        
-              {confirmDeleteId !== null && (
-                <div className="modal-overlay">
-                  <div className="modal-content">
-                    <h2 className="text-lg font-bold mb-4">¿Deseas eliminar este usuario?</h2>
-                    <p>Una vez eliminado, no podrás recuperar al usuario.</p>
-                    <div className="flex justify-between mt-6">
-                      <button onClick={eliminarUsuario} className="bg-red-500 text-white p-2 rounded hover:bg-red-600">Confirmar</button>
-                      <button onClick={() => setConfirmDeleteId(null)} className="bg-gray-500 text-white p-2 rounded hover:bg-blue-600">Cancelar</button>
-                    </div>
-                  </div>
-                </div>
-              )}
+
+            <EliminarUsuario 
+                usuarioId={confirmDeleteId} 
+                onClose={() => setConfirmDeleteId(null)} 
+                onDelete={eliminarUsuario} 
+            />
         </div>
     );
 };

@@ -37,9 +37,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { nombre, apellidos, email, password, rol, nomina, emailUsuario, secretaria, sistemas} = await req.json();
+    const { nombre, apellidos, email, password, rol, nomina, emailUsuario, secretaria, sistemas, dependencia, puesto} = await req.json();
     // Convertir el descriptor facial a JSON si es necesario (asegurando que es un Float32Array)
-    const nuevoUsuario = await createUsuario(nombre, apellidos, email, password, rol, nomina, emailUsuario, secretaria, sistemas);
+    const nuevoUsuario = await createUsuario(nombre, apellidos, email, password, rol, nomina, emailUsuario, secretaria, sistemas,  dependencia, puesto);
     return NextResponse.json(nuevoUsuario);
   } catch (error) {
     console.error('Error en POST /api/usuarios:', error);

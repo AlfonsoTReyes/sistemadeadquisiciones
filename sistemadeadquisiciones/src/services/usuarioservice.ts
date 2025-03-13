@@ -8,22 +8,28 @@ export const getUsuarios = async () => {
   try {
     // Llamamos al procedimiento almacenado en PostgreSQL
     const result = await sql`
-      SELECT 
+    SELECT 
         u.id_usuario,
-        u.nombre,
+        u.nombre AS nombre_u,
         u.email,
         u.nomina,
         u.password,
         u.estatus,
         r.nombre AS rol,  
-        u.secretaria,
-        u.sistema
-      FROM 
+        s.nombre AS nombre_s,
+        d.nombre AS nombre_d,
+        u.puesto
+    FROM 
         usuarios u
-      INNER JOIN 
-        roles r ON u.id_rol = r.id_rol; 
+    INNER JOIN 
+        roles r ON u.id_rol = r.id_rol
+    INNER JOIN 
+        secretarias s ON u.id_secretaria = s.id_secretaria
+    INNER JOIN 
+        dependencias d ON u.id_dependencia = d.id_dependencia;
+
     `;
-    return result.rows; // Devuelve un arreglo de objetos con los datos de los usuarios y sus roles.
+    return result.rows; 
   } catch (error) {
     console.log(error);
 
@@ -33,29 +39,30 @@ export const getUsuarios = async () => {
 
 
 //Función para CREAR/INSERTAR un nuevo Usuario en la tabla Usuarios
-export const createUsuario = async (nombre: string, apellidos: string, email: string, password: string, rol: string, nomina: string, emailUsuario: string, secretaria: string, sistemas: string) => {
+export const createUsuario = async (nombre: string, apellidos: string, email: string, password: string, rol: string, nomina: string, emailUsuario: string, secretaria: string, sistemas: string, dependencia: string, puesto: string) => {
   try {
+    console.log(nombre, email, email, password, rol, nomina, secretaria, dependencia, puesto, sistemas);
     const result = await sql`
-    INSERT INTO usuarios (nombre, apellidos, email, password, id_rol, nomina, secretaria, sistema) 
-    VALUES (${nombre}, ${email}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${sistemas}) 
+    INSERT INTO usuarios (nombre, apellidos, email, password, id_rol, nomina, id_secretaria, id_dependencia, puesto, sistema) 
+    VALUES (${nombre}, ${apellidos}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${dependencia}, ${puesto}, ${sistemas}) 
     RETURNING *;
   `;
 
-    const bitacora = await sql`
-    SELECT * FROM insertar_usuario(
-      ${'usuarios'},
-      ${'alta'},
-      ${emailUsuario}, 
-      ${`Se dio de alta un nuevo usuario
-        ${nombre}, 
-        ${apellidos}, 
-        ${nomina}, 
-        ${password}, 
-        ${email}, 
-        ${secretaria}, 
-        ${sistemas}, 
-        ${rol}`}, 
-    );
+  // Construcción segura del mensaje de bitácora
+  const mensajeBitacora = `Se dio de alta un nuevo usuario: 
+    Nombre: ${nombre}, 
+    Apellidos: ${apellidos}, 
+    Nómina: ${nomina}, 
+    Email: ${email}, 
+    Secretaria: ${secretaria}, 
+    Sistema: ${sistemas}, 
+    Rol: ${rol}`;
+
+// Consulta SQL con valores seguros
+  const bitacora = await sql`
+  INSERT INTO bitacora_sistema(
+	tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
+	VALUES (${'usuarios'}, ${'alta'}, ${emailUsuario}, ${mensajeBitacora}, now(), now() );
   `;
 
 
@@ -73,17 +80,28 @@ export const getUsuarioById = async (id: number) => {
     const result = await sql`
       SELECT 
         u.id_usuario,
-        u.nombre,
+        u.nombre AS nombre_u,
+        u.apellidos,
         u.email,
         u.nomina,
         u.password,
-        u.id_rol
-      FROM 
+        u.estatus,
+        r.nombre AS rol,  
+        s.nombre AS nombre_s,
+        d.nombre AS nombre_d,
+        u.puesto,
+        u.id_rol,
+        u.id_secretaria,
+        u.id_dependencia
+    FROM 
         usuarios u
-      INNER JOIN 
+    INNER JOIN 
         roles r ON u.id_rol = r.id_rol
-      WHERE 
-        u.id_usuario = ${id};
+    INNER JOIN 
+        secretarias s ON u.id_secretaria = s.id_secretaria
+    INNER JOIN 
+        dependencias d ON u.id_dependencia = d.id_dependencia
+    WHERE id_usuario= ${id};
     `;
     return result.rows[0]; // Devuelve el primer usuario encontrado
   } catch (error) {
