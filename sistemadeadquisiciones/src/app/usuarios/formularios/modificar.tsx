@@ -32,7 +32,6 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
       try {
         setIsLoading(true);
         const usuarioData = await getUserById(id_usuario);
-  
         setNombre(usuarioData.nombre_u);
         setApellidos(usuarioData.apellidos);
         setEmail(usuarioData.email);
@@ -138,7 +137,14 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
     <div>
       <h1 className="text-lg font-bold mb-4">Editar Usuario</h1>
 
-      {isLoading && <p className="text-center text-gray-500">Cargando...</p>}
+      {isLoading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+          <div className="flex flex-col items-center">
+            <div className="loader border-t-4 border-blue-500 rounded-full w-12 h-12 animate-spin"></div>
+            <p className="mt-2 text-white">Cargando...</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="mx-auto">
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -214,8 +220,12 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
         {error && <p className="text-red-500">{error}</p>}
 
         <div className="flex justify-between mt-6">
-          <button type="submit" disabled={isLoading} className="bg-blue-500 text-white p-2 rounded w-1/2">Guardar</button>
-          <button type="button" onClick={onClose} className="bg-red-500 text-white p-2 rounded w-1/2 hover:bg-red-600">Cerrar</button>
+        <button type="submit" disabled={isLoading} className={`w-1/2 p-2 rounded ${isLoading ? 'bg-gray-500' : 'bg-blue-500'} text-white`}>
+            {isLoading ? 'Cargando...' : 'Guardar'}
+          </button>
+          <button type="button" onClick={onClose} className="bg-red-500 text-white p-2 rounded w-1/2 hover:bg-red-600">
+            Cerrar
+          </button>
         </div>
       </form>
     </div>
