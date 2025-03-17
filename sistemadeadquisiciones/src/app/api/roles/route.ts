@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
 // Se define una función POST para crear un rol.
 export async function POST(req: NextRequest) {
   try {
-    const { nombre} = await req.json(); //Extrae el campo nombre del cuerpo de la solicitud.
-    const nuevoRol = await createRol(nombre); //Llama a la función createRol para crear un nuevo rol en la base de datos.
+    const { nombre, descripcion, sistema} = await req.json(); //Extrae el campo nombre del cuerpo de la solicitud.
+    const nuevoRol = await createRol(nombre, descripcion, sistema); //Llama a la función createRol para crear un nuevo rol en la base de datos.
     return NextResponse.json(nuevoRol); //Devuelve una respuesta HTTP con el cuerpo en formato JSON que contiene el registro del rol creado.
   } catch (error) { //Captura cualquier error que ocurra dentro del bloque try
     console.error('Error en POST /api/roles:', error); //Registra el error en la consola para depuración y monitoreo.
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     //Extrae los valores id_rol y nombre del cuerpo de la solicitud. La función req.json() convierte los datos JSON enviados por el cliente en un objeto JavaScript.
-    const { id_rol, nombre} = await req.json();
+    const { id_rol, nombre, descripcion, sistema} = await req.json();
 
     if (!id_rol) {//Verifica si id_rol no fue proporcionado en la solicitud.
       //Si falta, responde con un estado HTTP 400 (Bad Request) y un mensaje indicando que el ID no fue proporcionado.
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
     }
 
     //Llama a la función updateRol, pasándole el identificador del rol (id_rol) y un objeto con el nuevo nombre del rol ({ nombre }).
-    const rolActualizado = await updateRol(id_rol, { nombre}); 
+    const rolActualizado = await updateRol(id_rol, { nombre, descripcion, sistema}); 
     
     if (!rolActualizado) {//Verifica si la variable rolActualizado está vacía, lo que indica que el rol con el ID proporcionado no existe.
       //Responde con un estado HTTP 404 (Not Found) y un mensaje indicando que el rol no fue encontrado.

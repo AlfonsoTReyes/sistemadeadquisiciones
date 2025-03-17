@@ -10,7 +10,7 @@ export const getRol = async () => {
   try {
     // Usamos sql directamente para hacer la consulta y recuperar todos los datos de la tabla ROLES
     const result = await sql`
-      SELECT * FROM obtener_roles();
+      SELECT * FROM roles;
     `;
     return result.rows; //Devuelve un arreglo de objetos, donde cada objeto representa un rol.
     
@@ -21,12 +21,12 @@ export const getRol = async () => {
 };
 
 // El resto de las funciones permanece igual.
-export const createRol = async (nombre: string) => {
+export const createRol = async (nombre: string, descripcion: string, sistema: string) => {
   try {
     // Usamos sql para insertar el nuevo usuario}
     const result = await sql`
-      INSERT INTO roles (nombre) 
-      VALUES (${nombre}) 
+      INSERT INTO roles (nombre, descripcion, sistema) 
+      VALUES (${nombre}, ${descripcion}, ${sistema}) 
       RETURNING *;
     `;
     return result.rows[0];
@@ -40,7 +40,7 @@ export const getRolById = async (id: number) => {
     try {
       //Consulta un rol específico según su id_rol.
       const result = await sql`
-        SELECT id_rol, nombre FROM roles WHERE id_rol = ${id};
+        SELECT id_rol, nombre, descripcion, sistema FROM roles WHERE id_rol = ${id};
       `;
       return result.rows[0]; // Devuelve el rol encontrado
     } catch (error) {
@@ -50,14 +50,14 @@ export const getRolById = async (id: number) => {
   
 
 // Función para modificar un usuario
-export const updateRol = async (id: number, rolData: { nombre: string }) => {
+export const updateRol = async (id: number, rolData: { nombre: string, descripcion: string, sistema: string }) => {
     try {
-      const { nombre } = rolData;
+      const { nombre, descripcion, sistema  } = rolData;
   
       // Actualiza el rol directamente usando el id
       const result = await sql`
         UPDATE roles 
-        SET nombre = ${nombre}
+        SET nombre = ${nombre}, descripcion = ${descripcion}, sistema = ${sistema}
         WHERE id_rol = ${id} 
         RETURNING *; 
       `;
