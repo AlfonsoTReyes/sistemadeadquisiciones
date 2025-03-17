@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { fetchRoles, createUser, fetchSecretarias, fetchDependencias } from "./altalogica"; // Importamos las peticiones
+import { fetchRoles, createUser, fetchSecretarias, fetchDependencias } from "./fetchUsuarios"; // Importamos las peticiones
 
 interface AltaUsuarioProps {
   onClose: () => void;

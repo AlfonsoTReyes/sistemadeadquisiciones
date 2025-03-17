@@ -4,7 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Importa las funciones relacionadas con roles desde el servicio correspondiente.
-import { getUsuarios, getUsuarioById, createUsuario, deleteUsuario, updateUsuario, updateContraseña} from '../../../services/usuarioservice';
+import { getUsuarios, getUsuarioById, createUsuario, deleteUsuario, updateUsuario, updateContraseña,
+  updateRostro
+} from '../../../services/usuarioservice';
 
 import * as faceapi from 'face-api.js'
 
@@ -79,34 +81,44 @@ export async function DELETE(req: NextRequest) {
 }
 
 
-// export async function PUT(req: NextRequest) {
+export async function PUT(req: NextRequest) {
 
-//   try {
-//     const { id_usuario, nombre, apellido_paterno, apellido_materno, rol, nomina, email, password, emailUsuario } = await req.json();
+  try {
+    const { id_usuario, nombre, apellidos, email, nomina, secretaria, dependencia, puesto, sistema, rol, emailUsuario, password, rostro} = await req.json();
     
-//     if (!id_usuario) {
-//       return NextResponse.json({ message: 'ID no proporcionado' }, { status: 400 });
-//     }
+    if (!id_usuario) {
+      return NextResponse.json({ message: 'ID no proporcionado' }, { status: 400 });
+    }
 
 
-//     if (password) {
-//       const usuarioActualizado = await updateContraseña(id_usuario, { password, emailUsuario });
+    if (password) {
+      const usuarioActualizado = await updateContraseña(id_usuario, { password, emailUsuario });
       
-//       if (!usuarioActualizado) {
-//         return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
-//       }
+      if (!usuarioActualizado) {
+        return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
+      }
 
-//       return NextResponse.json(usuarioActualizado);
-//     }
+      return NextResponse.json(usuarioActualizado);
+    }
+
+    if (rostro) {
+      const usuarioActualizado = await updateRostro(id_usuario, rostro, emailUsuario);
+      
+      if (!usuarioActualizado) {
+        return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
+      }
+
+      return NextResponse.json(usuarioActualizado);
+    }
     
-//     const usuarioActualizado = await updateUsuario(id_usuario, { nombre, apellido_paterno, apellido_materno, rol, nomina, email, emailUsuario}); 
-//     if (!usuarioActualizado) {
-//       return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
-//     }
+    const usuarioActualizado = await updateUsuario(id_usuario, { nombre, apellidos, email, nomina, secretaria, dependencia, puesto, sistema, rol, emailUsuario}); 
+    if (!usuarioActualizado) {
+      return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
+    }
 
-//     return NextResponse.json(usuarioActualizado);
-//   } catch (error) {
-//     console.error(error);
-//     return NextResponse.json({ message: 'Error al actualizar usuario', error }, { status: 500 });
-//   }
-// }
+    return NextResponse.json(usuarioActualizado);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ message: 'Error al actualizar usuario', error }, { status: 500 });
+  }
+}

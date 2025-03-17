@@ -1,8 +1,8 @@
 //06 DE DICIEMBRE DE 2024
 import React, { useState, useEffect, useRef } from "react";
-import bcrypt from "bcryptjs"; //Se importa Bcrypt.js es una biblioteca para manejar el cifrado seguro de contraseñas.
 import * as faceapi from "face-api.js"; //Se importa Face API es una biblioteca para reconocimiento y análisis facial basada en TensorFlow.js.
-import * as tf from '@tensorflow/tfjs'; //Se importa TensorFlow.js es una biblioteca de aprendizaje automático que permite ejecutar modelos en JavaScript.
+import { updateUser } from "./fetchUsuarios";
+
 
 //Se declara la interfaz para definir las propiedades que debe de tener los objetos
 interface AltaUsuarioProps {
@@ -108,19 +108,7 @@ const AltaUsuario: React.FC<AltaUsuarioProps> = ({ usuarioId, onClose, onUsuario
         id_usuario: usuarioId, descriptor, emailUsuario
       };
       //Valida y envía los datos del empleado mediante una solicitud POST a la API (/api/empleados).
-      const response = await fetch("/api/rostro", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(usuarioData),
-      });
-      if (!response.ok) {
-        setIsLoading(false);
-        //Maneja posibles errores y muestra mensajes de éxito o error según el caso.
-        const errorResponse = await response.json();
-        throw new Error(errorResponse.message || 'Error al crear el usuario. Contacte con el administrador');
-      }
+      await updateUser(usuarioData);
       setSuccessMessage("Alta exitosa de usuario");
       onUsuarioModificado();
       setTimeout(() => {

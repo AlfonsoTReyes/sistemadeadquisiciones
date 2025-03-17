@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getUserById, fetchRoles, updateUser, fetchSecretarias, fetchDependencias } from "./altalogica";
+import { getUserById, fetchRoles, updateUser, fetchSecretarias, fetchDependencias } from "./fetchUsuarios";
+
 
 interface EditarUsuarioProps {
   id_usuario: number;
@@ -31,50 +32,63 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
       try {
         setIsLoading(true);
         const usuarioData = await getUserById(id_usuario);
+  
         setNombre(usuarioData.nombre_u);
         setApellidos(usuarioData.apellidos);
         setEmail(usuarioData.email);
         setNomina(usuarioData.nomina);
         setSecretaria(usuarioData.id_secretaria);
-        setDependencia(usuarioData.id_dependencia);
+        setDependencia(usuarioData.id_dependencia); // ✅ Asegura que la dependencia se setea correctamente
         setPuesto(usuarioData.puesto);
-        setSistemas(usuarioData.sistema);
+        setSistemas(usuarioData.sistema || "");
         setRol(usuarioData.id_rol);
-
         const secretariasData = await fetchSecretarias();
         setSecretarias(secretariasData);
-
-        const dependenciasData = await fetchDependencias();
+        const dependenciasData: { id_dependencia: string; nombre: string; id_secretaria: string }[] = await fetchDependencias();
         setDependencias(dependenciasData);
-
         const rolesData = await fetchRoles();
         setRoles(rolesData);
-
-        // Filtrar dependencias de acuerdo con la secretaría del usuario
-        setDependenciasFiltradas(
-          dependenciasData.filter((dep: { id_dependencia: string; nombre: string; id_secretaria: string }) =>
-            String(dep.id_secretaria) === String(usuarioData.id_secretaria)
-          )
-        );        
+  
+        // ✅ Filtrar dependencias asegurando que 'dep' tenga el tipo correcto
+        const dependenciasFiltradas = dependenciasData.filter((dep) => 
+          String(dep.id_secretaria) === String(usuarioData.id_secretaria)
+        );
+        
+        setDependenciasFiltradas(dependenciasFiltradas);
+  
+        // ✅ Solo actualiza la dependencia si sigue siendo válida
+        if (!dependenciasFiltradas.some((dep) => String(dep.id_dependencia) === String(usuarioData.id_dependencia))) {
+          setDependencia("");
+        }
+  
       } catch (err: any) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-
+  
     loadUsuario();
   }, [id_usuario]);
-
+  
+  
+  
+  
   // Filtrar dependencias cuando cambie la secretaría seleccionada
   useEffect(() => {
     if (secretaria) {
-      setDependenciasFiltradas(dependencias.filter(dep => String(dep.id_secretaria) === String(secretaria)));
-      setDependencia(""); // Reiniciar la dependencia cuando cambia la secretaría
+      const nuevasDependencias = dependencias.filter(dep => String(dep.id_secretaria) === String(secretaria));
+      setDependenciasFiltradas(nuevasDependencias);
+  
+      // ✅ Mantiene la dependencia seleccionada si es válida, en lugar de resetearla a ""
+      if (!nuevasDependencias.some(dep => String(dep.id_dependencia) === String(dependencia))) {
+        setDependencia("");
+      }
     } else {
       setDependenciasFiltradas([]);
     }
   }, [secretaria, dependencias]);
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -129,6 +143,10 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
       <form onSubmit={handleSubmit} className="mx-auto">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
+            <label>Nomina: <span className="text-red-500">*</span></label>
+            <input type="text" name="nomina" value={nomina} onChange={handleInputChange} required className="border p-2 rounded w-full" />
+          </div>
+          <div>
             <label>Nombre: <span className="text-red-500">*</span></label>
             <input type="text" name="nombre" value={nombre} onChange={handleInputChange} required className="border p-2 rounded w-full" />
           </div>
@@ -139,10 +157,6 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
           <div>
             <label>Correo: <span className="text-red-500">*</span></label>
             <input type="email" name="email" value={email} onChange={handleInputChange} required className="border p-2 rounded w-full" />
-          </div>
-          <div>
-            <label>Nomina: <span className="text-red-500">*</span></label>
-            <input type="text" name="nomina" value={nomina} onChange={handleInputChange} required className="border p-2 rounded w-full" />
           </div>
 
           {/* Secretaría y Dependencia */}

@@ -41,10 +41,10 @@ export const getUsuarios = async () => {
 //Función para CREAR/INSERTAR un nuevo Usuario en la tabla Usuarios
 export const createUsuario = async (nombre: string, apellidos: string, email: string, password: string, rol: string, nomina: string, emailUsuario: string, secretaria: string, sistemas: string, dependencia: string, puesto: string) => {
   try {
-    console.log(nombre, email, email, password, rol, nomina, secretaria, dependencia, puesto, sistemas);
+
     const result = await sql`
-    INSERT INTO usuarios (nombre, apellidos, email, password, id_rol, nomina, id_secretaria, id_dependencia, puesto, sistema) 
-    VALUES (${nombre}, ${apellidos}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${dependencia}, ${puesto}, ${sistemas}) 
+    INSERT INTO usuarios (nombre, apellidos, email, password, id_rol, nomina, id_secretaria, id_dependencia, puesto, sistema, estatus, created_at) 
+    VALUES (${nombre}, ${apellidos}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${dependencia}, ${puesto}, ${sistemas}, true, NOW()) 
     RETURNING *;
   `;
 
@@ -64,7 +64,6 @@ export const createUsuario = async (nombre: string, apellidos: string, email: st
 	tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
 	VALUES (${'usuarios'}, ${'alta'}, ${emailUsuario}, ${mensajeBitacora}, now(), now() );
   `;
-
 
     return result.rows[0]; //Devuelve el registro recién creado.
   } catch (error) {
@@ -92,7 +91,8 @@ export const getUsuarioById = async (id: number) => {
         u.puesto,
         u.id_rol,
         u.id_secretaria,
-        u.id_dependencia
+        u.id_dependencia,
+        u.sistema
     FROM 
         usuarios u
     INNER JOIN 
@@ -110,26 +110,29 @@ export const getUsuarioById = async (id: number) => {
 };
 
 // Función para MODIFICAR un Usuario
-export const updateUsuario = async (id: number, usuarioData: { nombre: string, email: string, rol: string, nomina: string, emailUsuario: string, secretaria: string }) => {
+export const updateUsuario = async (id: number, usuarioData: { nombre: string, apellidos: string, email: string, nomina: string, secretaria: string, dependencia: string, puesto: string, sistema: string, rol: string, emailUsuario: string }) => {
   try {
     //Extrae la propiedad nombre,email,rol,nomina del objeto usuarioData para su uso directo en la consulta SQL.
-    const { nombre, email, rol, nomina, emailUsuario, secretaria } = usuarioData;
+    const { nombre, apellidos, email, nomina, secretaria, dependencia, puesto, sistema, rol, emailUsuario } = usuarioData;
 
     //Actualizar el usuario con el id_rol obtenido
     const result = await sql`
       UPDATE usuarios 
-      SET nombre = ${nombre}, email = ${email}, id_rol = ${rol}, nomina = ${nomina}, secretaria = ${secretaria}
+      SET nombre = ${nombre}, apellidos= ${apellidos}, email = ${email}, id_rol = ${rol}, nomina = ${nomina}, id_secretaria = ${secretaria}, id_dependencia = ${dependencia}, puesto=${puesto}, sistema=${sistema}, updated_at=NOW()
       WHERE id_usuario = ${id} 
       RETURNING *; 
     `;
 
+
     const bitacora = await sql`
-    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
+    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
     VALUES (
         ${'usuarios'}, 
-        ${`Se actualizo un usuario ${id}`}, 
+        ${`modificación`}, 
         ${emailUsuario}, 
-        ${`Se actualizo nombre: ${nombre}, email: ${email}, id_rol: ${rol}, nomina: ${nomina}, secretaria = ${secretaria}`}
+        ${`Se actualizo nombre = ${nombre}, apellidos= ${apellidos}, email = ${email}, id_rol = ${rol}, nomina = ${nomina}, id_secretaria = ${secretaria}, id_dependencia = ${dependencia}, puesto=${puesto}, sistema=${sistema} con el id ${result.rows[0].id_usuario}`},
+        NOW(),
+        NOW()
     )`;
     return result.rows[0]; // Devuelve el usuario actualizado
   } catch (error) {
@@ -139,24 +142,27 @@ export const updateUsuario = async (id: number, usuarioData: { nombre: string, e
 
 
 //Función para CREAR/INSERTAR un nuevo Usuario en la tabla Usuarios
-export const updateRostro = async (id: number, descriptorJSON: string, emailUsuario: string) => {
+export const updateRostro = async (id: number, rostro: string, emailUsuario: string) => {
   try {
-    console.log(id, descriptorJSON);
+    console.log(id, rostro);
     // Usamos sql para insertar el nuevo usuario a la base de datos
     const result = await sql`
       UPDATE usuarios 
-      SET rostro = ${descriptorJSON}
+      SET rostro = ${rostro}
       where id_usuario = ${id}
       RETURNING *;
     `;
 
     const bitacora = await sql`
-    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
+    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion,  created_at, updated_at)
     VALUES (
         ${'usuarios'}, 
-        ${`Se actualizo el rostro facial ${id}`}, 
+        ${`Actualización rostro ${id}`}, 
         ${emailUsuario}, 
-        ${`Se actualizo rostro = ${descriptorJSON}`}
+        ${`Se actualizo rostro = ${rostro},
+        NOW(),
+        NOW()`
+        }
     )`;
     return result.rows[0]; //Devuelve el registro recién creado.
   } catch (error) {
@@ -179,12 +185,14 @@ export const updateContraseña= async (id: number, usuarioData: { password: stri
     `;
 
     const bitacora = await sql`
-    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
+    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
     VALUES (
         ${'usuarios'}, 
-        ${`Se actualizo la contraseña del usuario ${id}`}, 
+        ${`Actualización de contraseña`}, 
         ${emailUsuario}, 
-        ${`Se actualizo contraseña: ${password}`}
+        ${`Se actualizo contraseña: ${password}`},
+        NOW(),
+        NOW()
     )`;
     return result.rows[0]; // Devuelve el usuario actualizado
   } catch (error) {
@@ -223,3 +231,5 @@ export const deleteUsuario = async (id: number, email: string) => {
     throw error; //Lanza errores capturados para manejo externo.
   }
 };
+
+

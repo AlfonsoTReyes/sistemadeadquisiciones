@@ -26,8 +26,8 @@ interface TablaUsuariosProps {
 }
 
 const TablaUsuarios: React.FC<TablaUsuariosProps> = ({ usuarios, onUsuarioAdded }) => {
-    const { eliminarUsuario, confirmDeleteId, setConfirmDeleteId } = useUsuarios();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isConfirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
     const [usuarioAEditar, setUsuarioAEditar] = useState<number | null>(null);
     const [contraseñaEditar, setContraseñaAEditar] = useState<number | null>(null);
@@ -136,11 +136,11 @@ const TablaUsuarios: React.FC<TablaUsuariosProps> = ({ usuarios, onUsuarioAdded 
                 </div>
               )}
 
-            <EliminarUsuario 
+            {/* <EliminarUsuario 
                 usuarioId={confirmDeleteId} 
                 onClose={() => setConfirmDeleteId(null)} 
                 onDelete={eliminarUsuario} 
-            />
+            /> */}
         </div>
     );
 };

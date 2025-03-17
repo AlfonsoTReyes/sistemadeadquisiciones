@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import bcrypt from 'bcryptjs'; //Se importa Bcrypt.js es una biblioteca para manejar el cifrado seguro de contraseñas.
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; //Se importa FontAwesomeIcon es el componente React utilizado para mostrar los íconos de Font Awesome.
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'; //Se importa estos íconos pertenecen al paquete de íconos sólidos de Font Awesome y son importados desde @fortawesome/free-solid-svg-icons.
+import { updateUser } from "./fetchUsuarios";
+
 
 // Se define las propiedades que va a recibir los objetos declarados en la interfaz
 interface ModificarContraseñaUsuarioProps {
@@ -47,19 +49,8 @@ const ModificarContraseña: React.FC<ModificarContraseñaUsuarioProps> = ({usuar
       const hashedPassword = await bcrypt.hash(password, 10);
       const usuarioData = { id_usuario: usuarioId, password: hashedPassword, emailUsuario };
       //Envía una solicitud PUT al endpoint /api/empleados con el id_usuario del empleado y la contraseña cifrada.
-      const response = await fetch('/api/usuarios', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(usuarioData),
-      });
-      if (!response.ok) {
-        setIsLoading(false);
-        const errorResponse = await response.json();
-        throw new Error(errorResponse.message || 'Error al cambiar contraseña. Contacte con el administrador.');
-      }
-      //Maneja errores y muestra mensajes según el resultado.
+     
+      await updateUser(usuarioData);
       setSuccessMessage('Contraseña cambiada con éxito');
       onConstraseñaModificado();
       setTimeout(() => {
@@ -124,7 +115,7 @@ const ModificarContraseña: React.FC<ModificarContraseñaUsuarioProps> = ({usuar
               disabled={isLoading} // Deshabilitar botón mientras carga
               className={`w-1/2 p-2 rounded ${isLoading ? 'bg-gray-500' : 'bg-blue-500'} text-white`}
             >
-              {isLoading ? 'Cargando...' : 'Guardar'} //Ejecuta el envío del formulario.
+              {isLoading ? 'Cargando...' : 'Guardar'} 
             </button>
             <button
               type="button"

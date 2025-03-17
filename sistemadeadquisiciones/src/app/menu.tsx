@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBars,
@@ -20,12 +21,93 @@ import {
   faSmile,
   faSignOutAlt,
 } from "@fortawesome/free-solid-svg-icons";
+import ModificarUsuario from "./usuarios/formularios/modificar";
+import ModificarContraseña from "./usuarios/formularios/modificarContraseña";
+import ModificarRostro from "./usuarios/formularios/rostro";
 
 export default function Menu() {
-  const [isOpen, setIsOpen] = useState(false); // Estado del menú
-  //const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [isUsuariosOpen, setIsUsuariosOpen] = useState(false);
   const [isSession, setIsSessionOpen] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [id_usuario, setIdusuario] = useState("");
+  const [usuarioAEditar, setUsuarioAEditar] = useState<number | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
+  const [contraseñaEditar, setContraseñaAEditar] = useState<number | null>(null);
+  const [isEditRostroModalOpen, setIsRostroEditModalOpen] = useState(false);
+  const [rostroEditar, setRostroAEditar] = useState<number | null>(null);
+
+  const openEditModal = (id: number) => {
+    setUsuarioAEditar(id);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setUsuarioAEditar(null);
+    setIsEditModalOpen(false);
+  };
+
+  const openEditPassModal = (id: number) => {
+    setContraseñaAEditar(id);
+    setIsPassEditModalOpen(true);
+  };
+
+  const closeEditPassModal = () => {
+    setContraseñaAEditar(null);
+    setIsPassEditModalOpen(false);
+  };
+
+  const openEditRostroModal = (id: number) => {
+    setRostroAEditar(id);
+    setIsRostroEditModalOpen(true);
+  };
+
+  const closeEditRostroModal = () => {
+    setRostroAEditar(null);
+    setIsRostroEditModalOpen(false);
+  };
+
+  // useEffect(() => {
+  //   const email = sessionStorage.getItem("userEmail") || "";
+  //   setEmail(email);
+  //   const nombreGuardado = sessionStorage.getItem("userNombre") || "";
+  //   setNombre(nombreGuardado);
+  //   const id = sessionStorage.getItem("userId") || "";
+  //   setIdusuario(id);
+
+  //   const permisos = sessionStorage.getItem("userPermissions");
+  //   if (permisos) {
+  //     setPermissions(JSON.parse(permisos));
+  //   } else {
+  //     setPermissions([]);
+  //     router.push("/");
+  //   }
+  // }, []);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("userPermissions");
+    sessionStorage.removeItem("userEmail");
+    sessionStorage.removeItem("userNombre");
+    sessionStorage.removeItem("userId");
+    sessionStorage.clear();
+    setPermissions([]);
+    router.push("login/cerrar");
+  };
+
+  // if (!permissions || permissions.length === 0) {
+  //   return (
+  //     <div className="bg-custom-color text-white w-full p-4 text-center">
+  //       <p>
+  //         No tienes acceso al sistema. Por favor, contacta al administrador.
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50">
@@ -68,7 +150,7 @@ export default function Menu() {
 
         <li className="mb-1">
           <Link
-            href="/requirente"
+            href="/proveedores"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
             <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Datos generales
@@ -713,7 +795,7 @@ export default function Menu() {
                     href="/empleados"
                     className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                   >
-                    <FontAwesomeIcon icon={faUsers} className="mr-2" /> Empleados
+                    <FontAwesomeIcon icon={faUsers} className="mr-2" /> Proveedores
                   </Link>
                 </li>
                 <li className="mb-1">
@@ -750,17 +832,20 @@ export default function Menu() {
           {isSession && (
             <ul className="ml-1 mt-1 space-y-1 bg-gray-600 rounded-md p-2">
               <li className="mb-1">
-                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
+                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                  onClick={() => openEditPassModal(parseInt(id_usuario))}>
                   <FontAwesomeIcon icon={faLock} className="mr-2" /> Modificar contraseña
                 </button>
               </li>
               <li className="mb-1">
-                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
+                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                  onClick={() => openEditRostroModal(parseInt(id_usuario))}>
                   <FontAwesomeIcon icon={faSmile} className="mr-2" /> Agregar rostro facial
                 </button>
               </li>
               <li className="mb-1">
-                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
+                <button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                  onClick={handleLogout}>
                   <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Cerrar sesión
                 </button>
               </li>
@@ -768,6 +853,41 @@ export default function Menu() {
           )}
         </li>
       </ul>
+      <div className="text-black">
+        {isEditModalOpen && usuarioAEditar !== null && (
+          <div className="modal-overlay">
+            <div className="modal-content text-black">
+              <ModificarUsuario
+                id_usuario={usuarioAEditar}
+                onClose={closeEditModal}
+                onUsuarioUpdated={() => {}}
+              />
+            </div>
+          </div>
+        )}
+        {isEditPassModalOpen && contraseñaEditar !== null && (
+          <div className="modal-overlay">
+            <div className="modal-content text-black">
+              <ModificarContraseña
+                usuarioId={contraseñaEditar}
+                onClose={closeEditPassModal}
+                onConstraseñaModificado={() => {}}
+              />
+            </div>
+          </div>
+        )}
+        {isEditRostroModalOpen && rostroEditar !== null && (
+          <div className="modal-overlay">
+            <div className="modal-content text-black">
+              <ModificarRostro
+                usuarioId={rostroEditar}
+                onClose={closeEditRostroModal}
+                onUsuarioModificado={() => {}}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </nav>
   );
 }
