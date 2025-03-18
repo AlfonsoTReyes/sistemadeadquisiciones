@@ -9,7 +9,7 @@ interface AsignarRolProps {
 
 interface Permiso {
   id_permiso: number;
-  nombre: string;
+  nombre_permiso: string;
   estatus: boolean;
 }
 
@@ -26,7 +26,6 @@ const AsignarPermiso: React.FC<AsignarRolProps> = ({ rolId, onClose, onRolAsigna
       try {
         const dataPermisos = await fetchPermisos();
         setPermisos(dataPermisos);
-
         const permisosRol = await fetchPermisosRol(rolId);
         const permisosInit = dataPermisos.reduce((acc: { [key: number]: boolean }, permiso: Permiso) => {
           const permisoAsignado = permisosRol.find((perm: { id_permiso: number }) => perm.id_permiso === permiso.id_permiso);
@@ -109,7 +108,7 @@ const AsignarPermiso: React.FC<AsignarRolProps> = ({ rolId, onClose, onRolAsigna
             <tbody>
               {permisos.map((permiso) => (
                 <tr key={permiso.id_permiso} className="permiso-row">
-                  <td>{permiso.nombre}</td>
+                  <td>{permiso.nombre_permiso}</td>
                   <td>
                     <input
                       type="radio"

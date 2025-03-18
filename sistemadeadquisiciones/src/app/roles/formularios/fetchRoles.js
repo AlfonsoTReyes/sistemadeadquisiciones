@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 
 const API_URL = "/api/roles";
 const API_URL_ROLES_PERMISOS = "/api/rolespermisos";
+const API_URL_PERMISOS = "/api/permisos";
+
 
 /** Obtiene la lista de roles desde la API */
 export const fetchRoles = async () => {
