@@ -4,85 +4,101 @@ import { useRouter } from "next/navigation";
 const useLoginService = () => {
   const router = useRouter();
 
-  // Estados para login tradicional
+  // estados para login tradicional
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Estados para login con e-firma
-  const [cerFile, setCerFile] = useState(null);
-  const [keyFile, setKeyFile] = useState(null);
-  const [firmaPassword, setFirmaPassword] = useState("");
+  // función para obtener los permisos del usuario
+  const fetchPermissions = async (idRol) => {
+    try {
+      const res = await fetch(`/api/permisos?idrol=${idRol}`);
 
-  // Manejo de cambio en input de archivos
-  const handleFileChange = (e, type) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      if (type === "cer") setCerFile(file);
-      else setKeyFile(file);
+      if (!res.ok) {
+        throw new Error("no se pudieron obtener los permisos");
+      }
+
+      const data = await res.json();
+      sessionStorage.setItem("userPermissions", JSON.stringify(data));
+      
+
+      console.log("permisos cargados:", data);
+    } catch (error) {
+      console.error("error al cargar los permisos:", error);
     }
   };
 
-  // Autenticación tradicional con email y contraseña
+  // función para determinar la ruta de redirección según el sistema
+  const getRedirectPath = (sistema) => {
+    switch (sistema.toLowerCase()) {
+      case "finanzas":
+        return "/finanzas";
+      case "adquisiciones":
+        return "/adquisiciones";
+      case "proveedores":
+        return "/proveedores";
+      case "solicitantes":
+        return "/solicitantes";
+      default:
+        return "/dashboard"; // ruta por defecto si el sistema no está definido
+    }
+  };
+
+  // autenticación tradicional con email y contraseña
   const handleLogin = async (e) => {
     e.preventDefault();
-    const operacion='Inicio sesión la persona con el correo '+email;
-    const tabla_afectada='Login';
-    const datos_nuevos='Solo inicio sesión al sistema';
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, operacion, tabla_afectada, datos_nuevos }),
-      });
 
-      const data = await response.json();
-      if (data.success) {
-        router.push("/dashboard");
-      } else {
-        alert("Error: " + data.message);
-      }
-    } catch (error) {
-      console.error("Error en login tradicional:", error);
-      alert("Hubo un problema con el inicio de sesión.");
-    }
-  };
-
-  // Autenticación con e-firma
-  const handleLoginFirma = async (e) => {
-    e.preventDefault();
-
-    if (!cerFile || !keyFile || !firmaPassword) {
-      alert("Por favor, sube ambos archivos y proporciona la contraseña.");
+    if (!email || !password) {
+      alert("por favor, ingresa tu email y contraseña.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("cer", cerFile);
-    formData.append("key", keyFile);
-    formData.append("password", firmaPassword);
+    const operacion = `inicio sesión la persona con el correo ${email}`;
+    const tabla_afectada = "login";
+    const datos_nuevos = "solo inicio sesión al sistema";
+
+    console.log("enviando solicitud a /api/login con:", { email, password, operacion, tabla_afectada, datos_nuevos });
 
     try {
-      const response = await fetch("/api/efirma", {
-        method: "POST",
-        body: formData,
+      const response = await fetch("/api/login", {
+        method: "post",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, operacion, tabla_afectada, datos_nuevos }),
       });
 
+      console.log("respuesta recibida:", response);
+
       const data = await response.json();
-      if (data.success) {
-        router.push("/dashboard");
+      console.log("datos procesados:", data);
+
+      if (data.token) {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("userRole", data.usuario.id_rol.toString());
+        sessionStorage.setItem("userEmail", data.usuario.email);
+        sessionStorage.setItem("userNombre", data.usuario.nombre);
+        sessionStorage.setItem("userId", data.usuario.id_usuario);
+        sessionStorage.setItem("userSistema", data.usuario.sistema);
+
+        // obtener permisos con el rol del usuario
+        await fetchPermissions(data.usuario.id_rol.toString());
+
+        // determinar la ruta de redirección
+        const redirectPath = getRedirectPath(data.usuario.sistema);
+        router.push(redirectPath);
       } else {
-        alert("Error en e-firma: " + data.message);
+        alert("error: " + (data.message || "credenciales incorrectas."));
       }
     } catch (error) {
-      console.error("Error en login con e-firma:", error);
-      alert("Hubo un problema con la autenticación.");
+      console.error("error en login tradicional:", error);
+      alert("hubo un problema con el inicio de sesión.");
     }
   };
 
   return {
-    email, setEmail, password, setPassword,
-    cerFile, keyFile, firmaPassword, setFirmaPassword,
-    handleLogin, handleFileChange, handleLoginFirma
+    email,
+    setEmail,
+    password,
+    setPassword,
+    handleLogin,
   };
 };
 

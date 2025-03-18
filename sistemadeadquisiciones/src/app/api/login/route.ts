@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         await inputBitacora(email, operacion, tabla_afectada, datos_nuevos);
 
         // Enviar el token al frontend
-        return NextResponse.json({ message: "Login exitoso", token });
+        return NextResponse.json({ message: "Login exitoso", token, usuario});
     } catch (error) {
         console.error("Error en la solicitud POST:", error);
         return NextResponse.json({ message: "Error en el servidor" }, { status: 500 });

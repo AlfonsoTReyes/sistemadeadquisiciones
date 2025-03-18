@@ -3,11 +3,9 @@ import { sql } from '@vercel/postgres'; // Importa el cliente de Vercel
 
 export const getUserByEmail = async (email: string) => {
     try {
-        console.log("hola mundo");
+
         // Llamamos al procedimiento almacenado en la base de datos
-        const result = await sql`
-            SELECT * FROM obtener_usuario_por_email(${email});
-        `;
+        const result = await sql`SELECT * FROM usuarios WHERE email= ${email} and estatus=true;`;
         return result.rows[0]; // Devuelve el usuario encontrado
     } catch (error) {
         console.error("Error al obtener el usuario:", error);
@@ -31,12 +29,14 @@ export const inputBitacora = async (email: string, operacion: string, tabla_afec
     try {
         console.log(tabla_afectada, operacion, email, datos_nuevos);
         const result = await sql`
-        INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
+        INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
           VALUES (
               ${tabla_afectada}, 
               ${operacion}, 
               ${email}, 
-              ${datos_nuevos}
+              ${datos_nuevos},
+              NOW(),
+              NOW()
           )
         `;
         return result.rows;  // Devuelve todos los usuarios
