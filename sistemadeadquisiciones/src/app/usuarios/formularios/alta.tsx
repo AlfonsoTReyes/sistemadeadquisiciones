@@ -172,6 +172,8 @@ const AltaUsuario: React.FC<AltaUsuarioProps> = ({ onClose, onUsuarioAdded }) =>
               <option value="PROVEEDORES">PROVEEDORES</option>
               <option value="ADQUISICIONES">ADQUISICIONES</option>
               <option value="FINANZAS">FINANZAS</option>
+              <option value="SOLICITANTES">SOLICITANTES</option>
+
             </select>
           </div>
           <div className="mb-4">

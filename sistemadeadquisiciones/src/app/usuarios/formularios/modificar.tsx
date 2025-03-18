@@ -211,6 +211,8 @@ const EditarUsuario: React.FC<EditarUsuarioProps> = ({ id_usuario, onClose, onUs
               <option value="PROVEEDORES">PROVEEDORES</option>
               <option value="ADQUISICIONES">ADQUISICIONES</option>
               <option value="FINANZAS">FINANZAS</option>
+              <option value="SOLICITANTES">SOLICITANTES</option>
+
             </select>
           </div>
 

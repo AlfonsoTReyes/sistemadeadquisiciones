@@ -7,10 +7,7 @@ import {
   faBars,
   faTimes,
   faChevronDown,
-  faFileInvoiceDollar,
   faClipboardList,
-  faFolderOpen,
-  faClipboardCheck,
   faUserCog,
   faUser,
   faUsers,
@@ -71,22 +68,22 @@ export default function Menu() {
     setIsRostroEditModalOpen(false);
   };
 
-  // useEffect(() => {
-  //   const email = sessionStorage.getItem("userEmail") || "";
-  //   setEmail(email);
-  //   const nombreGuardado = sessionStorage.getItem("userNombre") || "";
-  //   setNombre(nombreGuardado);
-  //   const id = sessionStorage.getItem("userId") || "";
-  //   setIdusuario(id);
+  useEffect(() => {
+    const email = sessionStorage.getItem("userEmail") || "";
+    setEmail(email);
+    const nombreGuardado = sessionStorage.getItem("userNombre") || "";
+    setNombre(nombreGuardado);
+    const id = sessionStorage.getItem("userId") || "";
+    setIdusuario(id);
 
-  //   const permisos = sessionStorage.getItem("userPermissions");
-  //   if (permisos) {
-  //     setPermissions(JSON.parse(permisos));
-  //   } else {
-  //     setPermissions([]);
-  //     router.push("/");
-  //   }
-  // }, []);
+    const permisos = sessionStorage.getItem("userPermissions");
+    if (permisos) {
+      setPermissions(JSON.parse(permisos));
+    } else {
+      setPermissions([]);
+      router.push("/");
+    }
+  }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("userRole");
@@ -99,15 +96,15 @@ export default function Menu() {
     router.push("login/cerrar");
   };
 
-  // if (!permissions || permissions.length === 0) {
-  //   return (
-  //     <div className="bg-custom-color text-white w-full p-4 text-center">
-  //       <p>
-  //         No tienes acceso al sistema. Por favor, contacta al administrador.
-  //       </p>
-  //     </div>
-  //   );
-  // }
+  if (!permissions || permissions.length === 0) {
+    return (
+      <div className="bg-custom-color text-white w-full p-4 text-center">
+        <p>
+          No tienes acceso al sistema. Por favor, contacta al administrador.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50">
@@ -137,20 +134,14 @@ export default function Menu() {
         </li>
 
         <li className="mb-1">
-          <button
-            onClick={() => setIsSessionOpen(!isSession)}
-            className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-          >
-            <div className="flex items-center">
+            <div className="flex items-center text-white  px-4 py-2 rounded-md">
               <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> SECRETARIA
             </div>
-            <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
-          </button>
         </li>
 
         <li className="mb-1">
           <Link
-            href="/requirente"
+            href="/solicitantes/solicitudes"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
             <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes de Adquisiciones
@@ -272,7 +263,7 @@ export default function Menu() {
             className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
             <div className="flex items-center">
-              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> Usuario
+              <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> {email}
             </div>
             <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
           </button>
