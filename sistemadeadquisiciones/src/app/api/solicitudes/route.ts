@@ -28,21 +28,27 @@ export async function GET(req: NextRequest) {
 // registrar una nueva solicitud
 export async function POST(req: NextRequest) {
   try {
-    const { folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion } = await req.json();
-
-    if (!folio || !nomina_solicitante || !secretaria || !motivo || !monto || !id_adjudicacion) {
+    const { folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario } = await req.json();
+    let tipo;
+    
+    if (!folio || !nomina || !secretaria || !motivo || !monto || !id_adjudicacion || !usuario) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
 
+    if(id_adjudicacion == 1){
+      tipo= 7;
+    }else{
+      tipo = 8;
+    }
     const nuevaSolicitud = await createSolicitud({
       folio,
-      nomina_solicitante,
+      nomina,
       secretaria,
       motivo,
       monto,
       id_adjudicacion,
-      fecha_solicitud: new Date(),
-      estatus: "pendiente",
+      estatus: "Pendiente",
+      tipo, usuario
     });
 
     return NextResponse.json(nuevaSolicitud);
@@ -55,20 +61,29 @@ export async function POST(req: NextRequest) {
 // actualizar solicitud
 export async function PUT(req: NextRequest) {
   try {
-    const { id_solicitud, folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion, estatus } = await req.json();
+    const { idSolicitud, folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario } = await req.json();
+    console.log(idSolicitud, folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario);
 
-    if (!id_solicitud) {
+    if (!idSolicitud) {
       return NextResponse.json({ message: "id de solicitud no proporcionado" }, { status: 400 });
     }
 
-    const solicitudActualizada = await updateSolicitud(id_solicitud, {
+    let tipo;
+    if(id_adjudicacion == 1){
+      tipo= 7;
+    }else{
+      tipo = 8;
+    }
+
+    const solicitudActualizada = await updateSolicitud(idSolicitud, {
       folio,
-      nomina_solicitante,
+      nomina,
       secretaria,
       motivo,
       monto,
       id_adjudicacion,
-      estatus,
+      tipo,
+      usuario,
     });
 
     if (!solicitudActualizada) {
@@ -77,6 +92,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(solicitudActualizada);
   } catch (error) {
+    console.log(error);
     console.error("error al actualizar solicitud:", error);
     return NextResponse.json({ message: "error al actualizar solicitud", error }, { status: 500 });
   }

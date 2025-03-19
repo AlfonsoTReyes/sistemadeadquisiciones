@@ -95,6 +95,14 @@ const TablaSolicitudes: React.FC<{
                     ))}
                 </tbody>
             </table>
+
+            {isEditModalOpen && solicitudAEditar !== null && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <ModificarSolicitud idSolicitud={solicitudAEditar} onClose={closeEditModal} onSolicitudUpdated={onSolicitudAdded} />
+                  </div>
+                </div>
+              )}
         </div>
     );
 };

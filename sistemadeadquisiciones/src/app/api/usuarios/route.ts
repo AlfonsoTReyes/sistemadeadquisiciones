@@ -8,7 +8,6 @@ import { getUsuarios, getUsuarioById, createUsuario, deleteUsuario, updateUsuari
   updateRostro
 } from '../../../services/usuarioservice';
 
-import * as faceapi from 'face-api.js'
 
 export async function GET(req: NextRequest) {
   try {

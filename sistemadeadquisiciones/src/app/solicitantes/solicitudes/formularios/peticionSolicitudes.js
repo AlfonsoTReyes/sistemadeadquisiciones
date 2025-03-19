@@ -6,7 +6,7 @@ export const fetchSolicitudes = async () => {
   try {
     const response = await fetch(API_URL);
     if (!response.ok) {
-      throw new Error("Error al obtener los roles");
+      throw new Error("Error al obtener las solicitudes");
     }
     return await response.json();
   } catch (err) {
@@ -29,7 +29,7 @@ export const createSolicitud = async (rolData) => {
 
     if (!response.ok) {
       const errorResponse = await response.json();
-      throw new Error(errorResponse.message || "Error al crear el rol.");
+      throw new Error(errorResponse.message || "Error al crear la solicitud.");
     }
 
     return await response.json();
@@ -39,10 +39,10 @@ export const createSolicitud = async (rolData) => {
 };
 
 /** Obtiene un usuario por ID */
-export const getRolById = async (id_rol) => {
+export const getSolicitudById = async (id_solicitud) => {
   try {
-    const response = await fetch(`${API_URL}?id_rol=${id_rol}`);
-    if (!response.ok) throw new Error("Error al obtener los datos del rol");
+    const response = await fetch(`${API_URL}?id_solicitud=${id_solicitud}`);
+    if (!response.ok) throw new Error("Error al obtener los datos de la solicitud");
     
     return await response.json();
   } catch (error) {
@@ -51,21 +51,20 @@ export const getRolById = async (id_rol) => {
 };
 
 
-export const updateRol = async (rolData) => {
+export const updateSolicitud = async (solicitudData) => {
   try {
     const response = await fetch(`${API_URL}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(rolData),
+      body: JSON.stringify(solicitudData),
     });
 
-    if (!response.ok) throw new Error("Error al actualizar usuario");
+    if (!response.ok) throw new Error("Error al actualizar la solicitud");
     
     return await response.json();
   } catch (error) {
     throw new Error(error.message || "Error desconocido");
   }
 };
-

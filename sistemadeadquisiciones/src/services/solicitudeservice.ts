@@ -33,20 +33,21 @@ export const getSolicitudById = async (id: number) => {
 // crear una nueva solicitud
 export const createSolicitud = async (solicitudData: {
     folio: string;
-    nomina_solicitante: string;
+    nomina: string;
     secretaria: string;
     motivo: string;
     monto: number;
     id_adjudicacion: number;
-    fecha_solicitud: Date;
     estatus: string;
+    tipo: number;
+    usuario: number;
   }) => {
     try {
-      const { folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion, fecha_solicitud, estatus } = solicitudData;
+      const { folio, nomina, secretaria, motivo, monto, id_adjudicacion, estatus, tipo, usuario } = solicitudData;
   
       const result = await sql`
-        INSERT INTO solicitud_adquisicion (folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion, fecha_solicitud, estatus) 
-        VALUES (${folio}, ${nomina_solicitante}, ${secretaria}, ${motivo}, ${monto}, ${id_adjudicacion}, ${fecha_solicitud.toISOString()}, ${estatus}) 
+        INSERT INTO solicitud_adquisicion (folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion, fecha_solicitud, created_at, estatus, tipo_adquisicion, id_usuario) 
+        VALUES (${folio}, ${nomina}, ${secretaria}, ${motivo}, ${monto}, ${tipo}, NOW(), NOW(), ${estatus}, ${id_adjudicacion}, ${usuario}) 
         RETURNING *;
       `;
       return result.rows[0];
@@ -59,37 +60,40 @@ export const createSolicitud = async (solicitudData: {
 
 // actualizar una solicitud existente
 export const updateSolicitud = async (
-  id: number,
+  idSolicitud: number,
   solicitudData: {
-    folio?: string;
-    nomina_solicitante?: string;
-    secretaria?: string;
-    motivo?: string;
-    monto?: number;
-    id_adjudicacion?: number;
-    estatus?: string;
+    folio: string;
+    nomina: string;
+    secretaria: string;
+    motivo: string;
+    monto: number;
+    id_adjudicacion: number;
+    tipo:number;
+    usuario: string;
   }
 ) => {
   try {
-    const { folio, nomina_solicitante, secretaria, motivo, monto, id_adjudicacion, estatus } = solicitudData;
+    const { folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario, tipo } = solicitudData;
 
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
-        folio = COALESCE(${folio}, folio), 
-        nomina_solicitante = COALESCE(${nomina_solicitante}, nomina_solicitante),
-        secretaria = COALESCE(${secretaria}, secretaria),
-        motivo = COALESCE(${motivo}, motivo),
-        monto = COALESCE(${monto}, monto),
-        id_adjudicacion = COALESCE(${id_adjudicacion}, id_adjudicacion),
-        estatus = COALESCE(${estatus}, estatus),
+        folio = ${folio}, 
+        nomina_solicitante = ${nomina},
+        secretaria = ${secretaria},
+        motivo = ${motivo},
+        monto = ${monto},
+        id_adjudicacion = ${tipo},
+        tipo_adquisicion = ${id_adjudicacion},
+        id_usuario = ${usuario},
         updated_at = NOW()
-      WHERE id_solicitud = ${id} 
+      WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
 
     return result.rows[0];
   } catch (error) {
+    console.log(error);
     console.error("error al actualizar solicitud:", error);
     throw error;
   }
