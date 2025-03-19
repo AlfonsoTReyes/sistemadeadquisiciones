@@ -33,11 +33,6 @@ const TablaSolicitudes: React.FC<{
         setIsEditModalOpen(true);
     };
 
-    const handleDetalleClick = (idSolicitud: number) => {
-        sessionStorage.setItem("solicitudId", idSolicitud.toString()); // Convierte el ID a string
-    };
-    
-
     const closeEditModal = () => {
         setSolicitudAEditar(null);
         setIsEditModalOpen(false);
@@ -97,11 +92,7 @@ const TablaSolicitudes: React.FC<{
                                     </button>
                                 )}
                                 <br></br>
-                                <Link
-                                    className="text-orange-500 hover:underline"
-                                    href="./detalle_solicitudes"
-                                    onClick={() => handleDetalleClick(solicitud.id_solicitud)}
-                                    >
+                                <Link className="text-orange-500 hover:underline" href={`./detalle_solicitudes?solicitud=${solicitud.id_solicitud}`}>
                                     Detalle de solicitudes
                                 </Link>
                             </td>
