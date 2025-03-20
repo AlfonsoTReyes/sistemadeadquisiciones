@@ -16,7 +16,8 @@ interface Solicitud {
     fecha_aprobacion: string | null;
     id_usuario: number;
     monto: number;
-    id_sesion_comite: number | null;
+    tipo_adquisicion: string;
+    dependencia: string;
 }
 
 const TablaSolicitudes: React.FC<{ 
@@ -77,7 +78,16 @@ const TablaSolicitudes: React.FC<{
                             <td className="border px-4 py-2">{solicitud.nomina_solicitante}</td>
                             <td className="border px-4 py-2">{solicitud.secretaria}</td>
                             <td className="border px-4 py-2">{solicitud.motivo}</td>
-                            <td className="border px-4 py-2">{solicitud.fecha_solicitud}</td>
+                            <td className="border px-4 py-2">
+                                {new Date(solicitud.fecha_solicitud).toLocaleString("es-MX", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: false, // Usa formato 24 horas
+                                })}
+                            </td>
                             <td className="border px-4 py-2">${solicitud.monto.toLocaleString()}</td>
                             <td className="border px-4 py-2">{solicitud.estatus}</td>
                             <td className="border px-4 py-2">

@@ -2,9 +2,9 @@ const API_URL = "/api/solicitudes";
 
 
 /** Obtiene la lista de roles desde la API */
-export const fetchSolicitudes = async () => {
+export const fetchSolicitudes = async (userSecre, userSistema) => {
   try {
-    const response = await fetch(API_URL);
+    const response = await fetch(`${API_URL}?secretaria=${userSecre}?sistema=${userSistema}`);
     if (!response.ok) {
       throw new Error("Error al obtener las solicitudes");
     }
@@ -16,7 +16,7 @@ export const fetchSolicitudes = async () => {
 
 
 /** Crea un nuevo usuario en la API */
-export const createSolicitud = async (rolData) => {
+export const createSolicitud = async (solicitudData) => {
   try {
 
     const response = await fetch(API_URL, {
@@ -24,7 +24,7 @@ export const createSolicitud = async (rolData) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(rolData),
+      body: JSON.stringify(solicitudData),
     });
 
     if (!response.ok) {

@@ -15,12 +15,20 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
   const [monto, setMonto] = useState("");
   const [idAdjudicacion, setIdAdjudicacion] = useState("");
   const [secretaria, setSecretaria] = useState("");
+  const [secretariaId, setSecretariId] = useState("");
   const [nombre, setNombre] = useState("");
   const [dependencia, setDependencia] = useState("");
+  const [dependenciaId, setDependenciaId] = useState("");
   const [nomina, setNomina] = useState("");
   const [usuario, setUsuario] = useState("");
+  const [lugar, setLugar] = useState("");
+  const [asunto, setAsunto] = useState("");
+  const [necesidad, setNecesidad] = useState("");
+  const [cotizacion, setCotizacion] = useState("");
+  const [compra_servicio, setCompraServicio] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]); // Fecha actual
 
   useEffect(() => {
     // Obtener el ID de usuario desde sessionStorage
@@ -31,13 +39,13 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
       getUserById(userId)
         .then((userData) => {
           if (userData) {
-            setNombre(userData.nombre);
+            setNombre(userData.nombre_u);
             setSecretaria(userData.nombre_s);
-            setDependencia(userData.dependencia);
+            setSecretariId(userData.id_secretaria)
+            setDependencia(userData.nombre_d);
+            setDependenciaId(userData.id_dependencia);
             setNomina(userData.nomina);
             setUsuario(userData.id_usuario);
-
-
           }
         })
         .catch((err) => {
@@ -54,6 +62,11 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
     else if (name === "monto") setMonto(value);
     else if (name === "idAdjudicacion") setIdAdjudicacion(value);
     else if (name === "secretaria") setSecretaria(value);
+    else if (name === "lugar") setLugar(value);
+    else if (name === "asunto") setAsunto(value);
+    else if (name === "necesidad") setNecesidad(value);
+    else if (name === "cotizacion") setCotizacion(value);
+    else if (name === "compra_servicio") setCompraServicio(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +86,13 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
       motivo,
       monto: parseFloat(monto),
       id_adjudicacion: parseInt(idAdjudicacion),
-      secretaria,
+      secretaria: secretariaId,
+      dependencia: dependenciaId,
+      lugar,
+      asunto,
+      necesidad,
+      cotizacion: Boolean(cotizacion),
+      compra_servicio,
       nomina,
       usuario
     };
@@ -109,12 +128,62 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
       <form onSubmit={handleSubmit} className="mx-auto">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
+            <label>Nómina: <span className="text-red-500">*</span></label>
+            <input disabled type="text"  value={nomina} name="nomina" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Secretaría: <span className="text-red-500">*</span></label>
+            <input disabled type="text"  value={secretaria} name="secretaria" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Dependencia: <span className="text-red-500">*</span></label>
+            <input disabled type="text" value={dependencia} name="dependencia" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Nombre: <span className="text-red-500">*</span></label>
+            <input disabled type="text" value={nombre} name="nombre" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Fecha: <span className="text-red-500">*</span></label>
+            <input type="date" value={fecha} name="fecha" required className="border border-gray-300 p-2 rounded w-full" disabled />
+          </div>
+          <div className="mb-4">
+            <label>Lugar: <span className="text-red-500">*</span></label>
+            <input type="text" name="lugar" value="San Juan del Río, Querétaro" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
             <label>Folio: <span className="text-red-500">*</span></label>
             <input type="text" name="folio" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
+            <label>Asunto: <span className="text-red-500">*</span></label>
+            <input type="text" name="asunto" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
             <label>Motivo: <span className="text-red-500">*</span></label>
             <input type="text" name="motivo" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Necesidad: <span className="text-red-500">*</span></label>
+            <input type="text" name="necesidad" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>¿Tiene cotización? <span className="text-red-500">*</span></label>
+            <select 
+              name="cotizacion"
+              value={cotizacion} // Asigna el valor actual del estado
+              onChange={(e) => setCotizacion(e.target.value)} // Mantiene el estado como string
+              className="border border-gray-300 p-2 rounded w-full bg-white"
+              required
+            >
+              <option value="">Seleccione...</option>
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label>Describa la compra o servicio <span className="text-red-500">*</span></label>
+            <input type="text" name="compra_servicio" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>Monto: <span className="text-red-500">*</span></label>
@@ -127,14 +196,6 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
               <option value="1">Bienes y servicios</option>
               <option value="2">Obras públicas</option>
             </select>
-          </div>
-          <div className="mb-4">
-            <label>Secretaría: <span className="text-red-500">*</span></label>
-            <input disabled type="text"  value={secretaria} name="secretaria" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
-          </div>
-          <div className="mb-4">
-            <label>nOMINA: <span className="text-red-500">*</span></label>
-            <input disabled type="text"  value={nomina} name="nomina" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
         </div>
 

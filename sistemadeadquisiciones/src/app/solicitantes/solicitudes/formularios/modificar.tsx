@@ -16,10 +16,15 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
   const [monto, setMonto] = useState("");
   const [idAdjudicacion, setIdAdjudicacion] = useState("");
   const [secretaria, setSecretaria] = useState("");
-  const [nombre, setNombre] = useState("");
   const [dependencia, setDependencia] = useState("");
   const [nomina, setNomina] = useState("");
-  const [usuario, setUsuario] = useState("");
+  const [lugar, setLugar] = useState("");
+  const [asunto, setAsunto] = useState("");
+  const [necesidad, setNecesidad] = useState("");
+  const [cotizacion, setCotizacion] = useState("");
+  const [compra_servicio, setCompraServicio] = useState("");
+  const [fecha, setFecha] = useState();
+  
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -30,10 +35,22 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
         setIsLoading(true);
         const solicitudData = await getSolicitudById(idSolicitud);
         if (solicitudData) {
+          console.log(solicitudData);
           setFolio(solicitudData.folio);
           setMotivo(solicitudData.motivo);
           setMonto(solicitudData.monto.toString());
           setIdAdjudicacion(solicitudData.tipo_adquisicion.toString());
+          setSecretaria(solicitudData.secretaria);
+          setLugar(solicitudData.lugar);
+          setAsunto(solicitudData.asunto);
+          setNecesidad(solicitudData.necesidad);
+          setCotizacion(solicitudData.cotizacion);
+          setCompraServicio(solicitudData.compra_servicio);
+          if (solicitudData.fecha_solicitud) {
+            const fechaFormateada = solicitudData.fecha_solicitud.slice(0, 10);
+            setFecha(fechaFormateada);
+          }
+          
         }
       } catch (err) {
         console.error("Error al obtener la solicitud:", err);
@@ -54,11 +71,10 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
       getUserById(userId)
         .then((userData) => {
           if (userData) {
-            setNombre(userData.nombre);
             setSecretaria(userData.nombre_s);
-            setDependencia(userData.dependencia);
+            setDependencia(userData.nombre_d);
             setNomina(userData.nomina);
-            setUsuario(userData.id_usuario);
+
           }
         })
         .catch((err) => {
@@ -74,6 +90,12 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
     else if (name === "motivo") setMotivo(value);
     else if (name === "monto") setMonto(value);
     else if (name === "idAdjudicacion") setIdAdjudicacion(value);
+    else if (name === "secretaria") setSecretaria(value);
+    else if (name === "lugar") setLugar(value);
+    else if (name === "asunto") setAsunto(value);
+    else if (name === "necesidad") setNecesidad(value);
+    else if (name === "cotizacion") setCotizacion(value);
+    else if (name === "compra_servicio") setCompraServicio(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,9 +116,11 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
       motivo,
       monto: parseFloat(monto),
       id_adjudicacion: parseInt(idAdjudicacion),
-      secretaria,
-      nomina,
-      usuario,
+      lugar,
+      asunto,
+      necesidad,
+      cotizacion: Boolean(cotizacion),
+      compra_servicio,
     };
 
     try {
@@ -130,12 +154,58 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
       <form onSubmit={handleSubmit} className="mx-auto">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
+            <label>Secretaría:</label>
+            <input disabled type="text" value={secretaria} name="secretaria" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
+          </div>
+          <div className="mb-4">
+            <label>Nómina:</label>
+            <input disabled type="text" value={nomina} name="nomina" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
+          </div>
+          <div className="mb-4">
+            <label>Dependencia: <span className="text-red-500">*</span></label>
+            <input disabled type="text" value={dependencia} name="dependencia" required className="border border-gray-300 p-2 rounded w-full"/>
+          </div>
+          <div className="mb-4">
+            <label>Fecha: <span className="text-red-500">*</span></label>
+            <input type="date" value={fecha} name="fecha" required className="border border-gray-300 p-2 rounded w-full" disabled />
+          </div>
+          <div className="mb-4">
+            <label>Lugar: <span className="text-red-500">*</span></label>
+            <input type="text" name="lugar" value={lugar} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
             <label>Folio: <span className="text-red-500">*</span></label>
             <input type="text" name="folio" value={folio} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
+            <label>Asunto: <span className="text-red-500">*</span></label>
+            <input type="text" name="asunto" value={asunto} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
             <label>Motivo: <span className="text-red-500">*</span></label>
             <input type="text" name="motivo" value={motivo} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>Necesidad: <span className="text-red-500">*</span></label>
+            <input type="text" name="necesidad" value={necesidad} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+          </div>
+          <div className="mb-4">
+            <label>¿Tiene cotización? <span className="text-red-500">*</span></label>
+            <select 
+              name="cotizacion"
+              value={cotizacion} // Asigna el valor actual del estado
+              onChange={(e) => setCotizacion(e.target.value)} // Mantiene el estado como string
+              className="border border-gray-300 p-2 rounded w-full bg-white"
+              required
+            >
+              <option value="">Seleccione...</option>
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label>Describa la compra o servicio <span className="text-red-500">*</span></label>
+            <input type="text" name="compra_servicio" value={compra_servicio} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>Monto: <span className="text-red-500">*</span></label>
@@ -148,14 +218,6 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
               <option value="1">Bienes y servicios</option>
               <option value="2">Obras públicas</option>
             </select>
-          </div>
-          <div className="mb-4">
-            <label>Secretaría:</label>
-            <input disabled type="text" value={secretaria} name="secretaria" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
-          </div>
-          <div className="mb-4">
-            <label>Nómina:</label>
-            <input disabled type="text" value={nomina} name="nomina" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
           </div>
         </div>
 

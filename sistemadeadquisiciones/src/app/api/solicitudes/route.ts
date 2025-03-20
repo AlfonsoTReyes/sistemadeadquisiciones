@@ -1,13 +1,15 @@
 // 08 de diciembre de 2024
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSolicitudes, getSolicitudById, createSolicitud, updateSolicitud } from "../../../services/solicitudeservice";
+import { getSolicitudes, getSolicitudesAll, getSolicitudById, createSolicitud, updateSolicitud } from "../../../services/solicitudeservice";
 
 // obtener todas las solicitudes o una en específico
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_solicitud");
+    const secretaria = searchParams.get("secretaria");
+    const sistema = searchParams.get("sistema");
 
     if (id) {
       const solicitud = await getSolicitudById(parseInt(id));
@@ -17,8 +19,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(solicitud);
     }
 
-    const solicitudes = await getSolicitudes();
-    return NextResponse.json(solicitudes);
+    if(sistema !=='UNIVERSAL'){
+      if (secretaria) {
+        const solicitud = await getSolicitudes(parseInt(secretaria));
+        if (!solicitud) {
+          return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(solicitud);
+      }
+    }else{
+      const solicitud = await getSolicitudesAll();
+        if (!solicitud) {
+          return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(solicitud);
+    }
+
   } catch (error) {
     console.error("error al obtener solicitudes:", error);
     return NextResponse.json({ message: "error al obtener solicitudes", error }, { status: 500 });
@@ -28,9 +44,9 @@ export async function GET(req: NextRequest) {
 // registrar una nueva solicitud
 export async function POST(req: NextRequest) {
   try {
-    const { folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario } = await req.json();
+    const { folio, motivo, monto, id_adjudicacion, secretaria, dependencia, lugar, asunto, necesidad, cotizacion, compra_servicio, nomina, usuario } = await req.json();
     let tipo;
-    
+    console.log(folio, motivo, monto, id_adjudicacion, secretaria, dependencia, lugar, asunto, necesidad, cotizacion, compra_servicio, nomina, usuario);
     if (!folio || !nomina || !secretaria || !motivo || !monto || !id_adjudicacion || !usuario) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
@@ -41,14 +57,9 @@ export async function POST(req: NextRequest) {
       tipo = 8;
     }
     const nuevaSolicitud = await createSolicitud({
-      folio,
-      nomina,
-      secretaria,
-      motivo,
-      monto,
-      id_adjudicacion,
-      estatus: "Pendiente",
-      tipo, usuario
+      folio, motivo, monto, dependencia, nomina, secretaria,
+      id_adjudicacion, estatus: "Pendiente", tipo, usuario, lugar, asunto, necesidad,
+      cotizacion, compra_servicio
     });
 
     return NextResponse.json(nuevaSolicitud);
