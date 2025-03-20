@@ -1,4 +1,4 @@
-"use client";
+
 
 import React, { useEffect, useState } from "react"; // ✅ Asegura la importación de React
 import MenuPrincipal from "./menu";

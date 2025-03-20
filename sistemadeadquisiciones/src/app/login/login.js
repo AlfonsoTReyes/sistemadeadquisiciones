@@ -68,7 +68,7 @@ const useLoginService = () => {
       console.log("respuesta recibida:", response);
 
       const data = await response.json();
-      console.log("datos procesados:", data);
+      console.log("datos procesados:", data.usuario);
 
       if (data.token) {
         sessionStorage.setItem("token", data.token);
@@ -77,6 +77,7 @@ const useLoginService = () => {
         sessionStorage.setItem("userNombre", data.usuario.nombre);
         sessionStorage.setItem("userId", data.usuario.id_usuario);
         sessionStorage.setItem("userSistema", data.usuario.sistema);
+        sessionStorage.setItem("userSecre", data.usuario.id_secretaria);
 
         // obtener permisos con el rol del usuario
         await fetchPermissions(data.usuario.id_rol.toString());
