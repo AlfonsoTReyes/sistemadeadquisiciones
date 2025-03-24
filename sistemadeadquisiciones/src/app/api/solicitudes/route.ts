@@ -72,8 +72,9 @@ export async function POST(req: NextRequest) {
 // actualizar solicitud
 export async function PUT(req: NextRequest) {
   try {
-    const { idSolicitud, folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario } = await req.json();
-    console.log(idSolicitud, folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario);
+    const { idSolicitud, folio, motivo, monto, id_adjudicacion,lugar, asunto, necesidad, cotizacion, compra_servicio
+     } = await req.json();
+    console.log(idSolicitud, folio, motivo, monto, id_adjudicacion);
 
     if (!idSolicitud) {
       return NextResponse.json({ message: "id de solicitud no proporcionado" }, { status: 400 });
@@ -88,13 +89,15 @@ export async function PUT(req: NextRequest) {
 
     const solicitudActualizada = await updateSolicitud(idSolicitud, {
       folio,
-      nomina,
-      secretaria,
       motivo,
       monto,
       id_adjudicacion,
       tipo,
-      usuario,
+      lugar,
+      asunto,
+      necesidad,
+      cotizacion,
+      compra_servicio
     });
 
     if (!solicitudActualizada) {

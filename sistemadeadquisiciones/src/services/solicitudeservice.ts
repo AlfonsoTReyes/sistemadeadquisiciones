@@ -77,29 +77,33 @@ export const updateSolicitud = async (
   idSolicitud: number,
   solicitudData: {
     folio: string;
-    nomina: string;
-    secretaria: string;
     motivo: string;
     monto: number;
     id_adjudicacion: number;
     tipo:number;
-    usuario: string;
+    lugar:string;
+    asunto:string;
+    necesidad: string;
+    cotizacion: boolean;
+    compra_servicio:string;
   }
 ) => {
   try {
-    const { folio, nomina, secretaria, motivo, monto, id_adjudicacion, usuario, tipo } = solicitudData;
+    const { folio, lugar, asunto, necesidad, cotizacion, compra_servicio, motivo, monto, id_adjudicacion, tipo } = solicitudData;
 
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
         folio = ${folio}, 
-        nomina_solicitante = ${nomina},
-        secretaria = ${secretaria},
+        lugar = ${lugar},
+        asunto = ${asunto},
+        necesidad = ${necesidad},
+        cotizacion = ${cotizacion},
+        compra_servicio = ${compra_servicio},
         motivo = ${motivo},
         monto = ${monto},
         id_adjudicacion = ${tipo},
         tipo_adquisicion = ${id_adjudicacion},
-        id_usuario = ${usuario},
         updated_at = NOW()
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;

@@ -2,11 +2,11 @@ const API_URL = "/api/solicituddetalles";
 
 
 /** Obtiene la lista de roles desde la API */
-export const fetchSolicitudesDetalles = async () => {
+export const fetchSolicitudesDetalles = async (id_solicitud) => {
   try {
     const response = await fetch(`${API_URL}?id_solicitudd=${id_solicitud}`);
     if (!response.ok) {
-      throw new Error("Error al obtener las solicitudes");
+      throw new Error("Error al obtener las solicitudes de detalle");
     }
     return await response.json();
   } catch (err) {

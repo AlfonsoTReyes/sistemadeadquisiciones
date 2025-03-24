@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get("id_solicitudd");
 
     if (id) {
-      console.log(1);
       const solicitud = await getDetallesSolicitudPorId(parseInt(id));
       if (!solicitud) {
         return NextResponse.json({ message: "detalle de solicitud no encontrada" }, { status: 404 });

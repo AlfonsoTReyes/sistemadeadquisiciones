@@ -23,7 +23,7 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
   const [necesidad, setNecesidad] = useState("");
   const [cotizacion, setCotizacion] = useState("");
   const [compra_servicio, setCompraServicio] = useState("");
-  const [fecha, setFecha] = useState();
+  const [fecha, setFecha] = useState("");
   
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -40,7 +40,6 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
           setMotivo(solicitudData.motivo);
           setMonto(solicitudData.monto.toString());
           setIdAdjudicacion(solicitudData.tipo_adquisicion.toString());
-          setSecretaria(solicitudData.secretaria);
           setLugar(solicitudData.lugar);
           setAsunto(solicitudData.asunto);
           setNecesidad(solicitudData.necesidad);

@@ -1,12 +1,10 @@
-'use client';
+"use client";
 import { useState, useEffect } from 'react';
 import Menu from '../menu_solicitante';
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaSolicitudes';
 import AltaSolicitud from './formularios/alta';
 import DynamicMenu from "../../dinamicMenu";
-
-
 import { fetchSolicitudes } from './formularios/peticionSolicitudes';
 
 const SolicitudPage = () => {
@@ -14,18 +12,29 @@ const SolicitudPage = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const userSecre = sessionStorage.getItem("userSecre");
-    const userSistema = sessionStorage.getItem("userSistema");
+    const [userSecre, setUserSecre] = useState<string | null>(null);
+    const [userSistema, setUserSistema] = useState<string | null>(null);
+    const [sessionLoaded, setSessionLoaded] = useState(false);
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
+    // ✅ Obtener valores de sessionStorage solo en el cliente
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const secre = sessionStorage.getItem("userSecre");
+            const sistema = sessionStorage.getItem("userSistema");
+
+            setUserSecre(secre);
+            setUserSistema(sistema);
+            setSessionLoaded(true); // ✅ Indica que sessionStorage fue leído
+        }
+    }, []);
 
     const fetchSolicitudesData = async () => {
+        if (!sessionLoaded || !userSecre || !userSistema) return; // ⛔ No ejecutar si los valores aún no están listos
         setLoading(true);
         try {
             const data = await fetchSolicitudes(userSecre, userSistema);
             setSolicitudes(data);
-            console.log(data);
+            console.log("Solicitudes cargadas:", data);
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -33,9 +42,12 @@ const SolicitudPage = () => {
         }
     };
 
+    // ✅ Llamar la función solo cuando sessionStorage haya sido leído
     useEffect(() => {
-        fetchSolicitudesData();
-    }, []);
+        if (sessionLoaded && userSecre && userSistema) {
+            fetchSolicitudesData();
+        }
+    }, [sessionLoaded, userSecre, userSistema]);
 
     return (
         <div>
@@ -43,19 +55,23 @@ const SolicitudPage = () => {
             <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
                 <h1 className="text-2xl text-center font-bold mb-4">Lista de Solicitudes</h1>
 
-                <button onClick={openModal} className="bg-green-500 text-white p-2 rounded">
+                <button onClick={() => setIsModalOpen(true)} className="bg-green-500 text-white p-2 rounded">
                     Dar de alta nueva solicitud
                 </button>
 
-                {loading && <p>Cargando solicitudes... {userSecre}</p>}
+                {loading && <p>Cargando solicitudes...</p>}
                 {error && <p>Error: {error}</p>}
 
-                <TablaSolicitudes solicitudes={solicitudes} onSolicitudAdded={fetchSolicitudesData} />
+                {sessionLoaded ? (
+                    <TablaSolicitudes solicitudes={solicitudes} onSolicitudAdded={fetchSolicitudesData} />
+                ) : (
+                    <p className="text-gray-500">Esperando datos de sesión...</p>
+                )}
 
                 {isModalOpen && (
                     <div className="modal-overlay">
                         <div className="modal-content">
-                            <AltaSolicitud onClose={closeModal} onSolicitudAdded={fetchSolicitudesData} />
+                            <AltaSolicitud onClose={() => setIsModalOpen(false)} onSolicitudAdded={fetchSolicitudesData} />
                         </div>
                     </div>
                 )}

@@ -1,70 +1,67 @@
-'use client';
+"use client";
 import { useState, useEffect } from 'react';
-import Menu from '../menu_solicitante';
+import DynamicMenu from "../../dinamicMenu";
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaDetalle';
 import AltaSolicitud from './formularios/alta';
-
 import { fetchSolicitudesDetalles } from './formularios/peticionSolicitudesDetalle';
+import { DetallesSolicitud } from "./interfaces";
 
 const SolicitudPage = () => {
-    const [solicitudes, setSolicitudes] = useState([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [idSolicitud, setIdSolicitud] = useState<string | null>(null);
+  const [idSolicitud, setIdSolicitud] = useState<string | null>(null);
+  const [detallesSolicitud, setDetallesSolicitud] = useState<DetallesSolicitud | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
-    const fetchSolicitudesData = async () => {
-        setLoading(true);
-        try {
-            const data = await fetchSolicitudesDetalles();
-            setSolicitudes(data);
-            console.log(data);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
+  // ✅ Solo lee sessionStorage cuando window esté disponible
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedId = sessionStorage.getItem("solicitudId");
+      if (storedId) {
+        setIdSolicitud(storedId);
+      }
+    }
+  }, []);
+
+  // ✅ Solo ejecuta cuando idSolicitud ya está disponible
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!idSolicitud) return;
+
+      setLoading(true);
+      try {
+        const data = await fetchSolicitudesDetalles(idSolicitud);
+        setDetallesSolicitud(data);
+      } catch (err) {
+        console.error("Error al obtener detalles de la solicitud:", err);
+        setError("No se pudo cargar la solicitud.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    useEffect(() => {
-        fetchSolicitudesData();
-    }, []);
+    fetchData();
+  }, [idSolicitud]);
 
-    useEffect(() => {
-        const idSolicitud = sessionStorage.getItem("solicitudId");
-        setIdSolicitud(idSolicitud);
-      }, []);
+  return (
+    <div>
+      <DynamicMenu />
+      <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
+        <h1 className="text-2xl text-center font-bold mb-4">Detalles de la solicitud</h1>
 
-    return (
-        <div>
-            <Menu />
-            <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
-                <h1 className="text-2xl text-center font-bold mb-4">Lista de Solicitudes {idSolicitud}</h1>
+        {loading && <p>Cargando solicitudes...</p>}
+        {error && <p>Error: {error}</p>}
 
-                <button onClick={openModal} className="bg-green-500 text-white p-2 rounded">
-                    Dar de alta nueva solicitud
-                </button>
+        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null }} onSolicitudAdded={fetchSolicitudesDetalles} />
 
-                {loading && <p>Cargando solicitudes...</p>}
-                {error && <p>Error: {error}</p>}
-
-                <TablaSolicitudes solicitudes={solicitudes} onSolicitudAdded={fetchSolicitudesData} />
-
-                {isModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
-                            <AltaSolicitud onClose={closeModal} onSolicitudAdded={fetchSolicitudesData} />
-                        </div>
-                    </div>
-                )}
-            </div>
-            <Pie />
-        </div>
-    );
+      </div>
+      <Pie />
+    </div>
+  );
 };
 
 export default SolicitudPage;
