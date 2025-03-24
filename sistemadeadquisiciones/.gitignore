@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Ignorar todos los documentos subidos
+/public/otros anexos/
+/public/dictamen/
+/public/anexo técnico/
+/public/cotización/
+/public/suficiencia/
+
+public/dictamen/*
+!public/dictamen/.gitkeep
+
+public/cotización/*
+!public/cotización/.gitkeep
+
+public/anexo técnico/*
+!public/anexo técnico/.gitkeep
+
+public/documentos_adicionales/*
+!public/documentos_adicionales/.gitkeep
+
+public/otros anexos/*
+!public/otro/.gitkeep
