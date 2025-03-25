@@ -9,7 +9,11 @@ export const getDetallesSolicitudPorId = async (id: number) => {
   try {
     // Consulta 1: Datos de solicitud_adquisicion
     const solicitud = await sql`
-      SELECT * FROM solicitud_adquisicion WHERE id_solicitud = ${id}
+      SELECT sa.*, s.nombre as nombre_secretaria FROM
+        solicitud_adquisicion sa
+      JOIN 
+        public.secretarias s ON sa.id_secretaria = s.id_secretaria 
+      WHERE sa.id_solicitud = ${id}
     `;
 
     const justificacion = await sql`
@@ -26,8 +30,8 @@ export const getDetallesSolicitudPorId = async (id: number) => {
     `;
 
     const documentos_adicionales = await sql`
-    SELECT * FROM documentos_solicitud WHERE id_solicitud = ${id}
-  `;
+      SELECT * FROM documentos_solicitud WHERE id_solicitud = ${id}
+    `;
 
     // Unificar los resultados en un solo objeto
     return {

@@ -72,11 +72,9 @@ export const updateSuficiencia = async (
     asunto: string;
     lugar: string;
     fecha: string;
-    hora: string;
     cuenta: string;
     cantidad: number;
     motivo: string;
-    estatus: string;
   }
 ) => {
   try {
@@ -86,11 +84,9 @@ export const updateSuficiencia = async (
         asunto = ${data.asunto},
         lugar = ${data.lugar},
         fecha = ${data.fecha},
-        hora = ${data.hora},
         cuenta = ${data.cuenta},
         cantidad = ${data.cantidad},
         motivo = ${data.motivo},
-        estatus = ${data.estatus},
         updated_at = NOW()
       WHERE id_suficiencia = ${id}
       RETURNING *;
