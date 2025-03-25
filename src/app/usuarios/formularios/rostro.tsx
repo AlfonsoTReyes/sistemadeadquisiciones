@@ -1,7 +1,7 @@
 //06 DE DICIEMBRE DE 2024
 import React, { useState, useEffect, useRef } from "react";
 import * as faceapi from "face-api.js"; //Se importa Face API es una biblioteca para reconocimiento y análisis facial basada en TensorFlow.js.
-import { updateUser } from "./fetchUsuarios";
+import { updateUser } from "../../peticiones_api/fetchUsuarios";
 
 
 //Se declara la interfaz para definir las propiedades que debe de tener los objetos

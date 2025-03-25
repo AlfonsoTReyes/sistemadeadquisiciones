@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getUserById, fetchRoles, updateUser, fetchSecretarias, fetchDependencias } from "./fetchUsuarios";
+import { getUserById, fetchRoles, updateUser, fetchSecretarias, fetchDependencias } from "../../peticiones_api/fetchUsuarios";
 
 
 interface EditarUsuarioProps {
