@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { createSoliPreSuficiencia } from "../peticionPreSuficiencia";
-import { getUserById } from "../../usuarios/formularios/fetchUsuarios";
+import { createSoliPreSuficiencia } from "../../peticiones_api/peticionPreSuficiencia";
+import { getUserById } from "../../peticiones_api/fetchUsuarios";
 
 interface AltaSuficienciaProps {
     onClose: () => void;

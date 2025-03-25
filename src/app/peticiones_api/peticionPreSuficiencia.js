@@ -1,6 +1,5 @@
 const API_URL = "/api/presuficiencia";
 
-
 export const createSoliPreSuficiencia = async (PreData) => {
   try {
 

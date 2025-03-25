@@ -1,4 +1,5 @@
 const API_URL = "/api/solicituddetalles";
+const API_URL_OTROS = "/api/solicitud_documentos";
 
 
 /** Obtiene la lista de roles desde la API */
@@ -66,5 +67,52 @@ export const updateSolicitud = async (solicitudData) => {
     return await response.json();
   } catch (error) {
     throw new Error(error.message || "Error desconocido");
+  }
+};
+
+
+/********** ALTA DE OTROS DOCUMENTOS ******/
+
+export const createOtroAnexo = async (formData) => {
+  try {
+
+    const response = await fetch(API_URL_OTROS, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const errorResponse = await response.json();
+      throw new Error(errorResponse.message || "Error al crear la solicitud.");
+    }
+
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
+export const deleteOtroAnexo = async (formData) => {
+  try {
+
+    const response = await fetch(API_URL_OTROS, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const errorResponse = await response.json();
+      throw new Error(errorResponse.message || "Error al crear la solicitud.");
+    }
+
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
   }
 };
