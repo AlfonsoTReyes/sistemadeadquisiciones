@@ -9,7 +9,7 @@ import {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id_suficiencia");
+    const id = searchParams.get("id_pre");
     const id_solicitud = searchParams.get("id_solicitud");
 
     if (id) {
@@ -43,18 +43,6 @@ export async function POST(req: NextRequest) {
       cantidad,
       motivo
     } = await req.json();
-    console.log("444", id_secretaria,
-        id_dependencia,
-        id_usuario,
-        id_solicitud,
-        oficio,
-        asunto,
-        lugar,
-        fecha,
-        hora,
-        cuenta,
-        cantidad,
-        motivo);
 
     if (!id_secretaria || !id_dependencia || !id_usuario || !oficio || !asunto || !lugar || !fecha || !hora || !cuenta || !cantidad || !motivo || !id_solicitud) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
@@ -92,11 +80,9 @@ export async function PUT(req: NextRequest) {
       asunto,
       lugar,
       fecha,
-      hora,
       cuenta,
       cantidad,
-      motivo,
-      estatus
+      motivo
     } = await req.json();
 
     if (!id_suficiencia) {
@@ -108,11 +94,9 @@ export async function PUT(req: NextRequest) {
       asunto,
       lugar,
       fecha,
-      hora,
       cuenta,
       cantidad,
       motivo,
-      estatus
     });
 
     if (!actualizado) {
