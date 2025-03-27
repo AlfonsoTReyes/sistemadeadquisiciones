@@ -8,6 +8,7 @@ export interface Solicitud {
     folio: string;
     id_usuario: number;
     monto: number;
+    nombre_secretaria: string;
 }
 
 export interface Justificacion {
@@ -30,11 +31,11 @@ export interface Justificacion {
 }
 
 export interface TechoPresupuestal {
-    id_techo: number;
+    id_suficiencia: number;
     id_solicitud: number;
     id_usuario: number;
     monto_aprobado: number;
-    no_folio: string;
+    oficio: string;
     id_documento: number;
     contendio: string;
     firma_digital_finanzas: string;

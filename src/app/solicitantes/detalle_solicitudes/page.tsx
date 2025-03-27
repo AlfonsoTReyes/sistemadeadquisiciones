@@ -4,7 +4,7 @@ import DynamicMenu from "../../dinamicMenu";
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaDetalle';
 import AltaSolicitud from './formularios/alta';
-import { fetchSolicitudesDetalles } from './formularios/peticionSolicitudesDetalle';
+import { fetchSolicitudesDetalles } from '../../peticiones_api/peticionSolicitudesDetalle';
 import { DetallesSolicitud } from "./interfaces";
 
 const SolicitudPage = () => {
@@ -27,23 +27,23 @@ const SolicitudPage = () => {
     }
   }, []);
 
+  const fetchData = async () => {
+    if (!idSolicitud) return;
+
+    setLoading(true);
+    try {
+      const data = await fetchSolicitudesDetalles(idSolicitud);
+      setDetallesSolicitud(data);
+    } catch (err) {
+      console.error("Error al obtener detalles de la solicitud:", err);
+      setError("No se pudo cargar la solicitud.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ✅ Solo ejecuta cuando idSolicitud ya está disponible
   useEffect(() => {
-    const fetchData = async () => {
-      if (!idSolicitud) return;
-
-      setLoading(true);
-      try {
-        const data = await fetchSolicitudesDetalles(idSolicitud);
-        setDetallesSolicitud(data);
-      } catch (err) {
-        console.error("Error al obtener detalles de la solicitud:", err);
-        setError("No se pudo cargar la solicitud.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [idSolicitud]);
 
@@ -56,7 +56,7 @@ const SolicitudPage = () => {
         {loading && <p>Cargando solicitudes...</p>}
         {error && <p>Error: {error}</p>}
 
-        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null }} onSolicitudAdded={fetchSolicitudesDetalles} />
+        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null }} onSolicitudAdded={fetchData} />
 
       </div>
       <Pie />

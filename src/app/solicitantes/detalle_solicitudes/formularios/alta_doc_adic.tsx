@@ -1,16 +1,20 @@
 "use client";
 import { useState } from "react";
+import { createOtroAnexo } from '../../../peticiones_api/peticionSolicitudesDetalle';
+
 
 interface Props {
   idSolicitud: number;
   onClose: () => void;
-  onUploadSuccess: () => void;
+  onUploadSuccess: ( ) => void;
 }
 
 const FormularioDocumento: React.FC<Props> = ({ idSolicitud, onClose, onUploadSuccess }) => {
   const [tipoDocumento, setTipoDocumento] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,14 +29,15 @@ const FormularioDocumento: React.FC<Props> = ({ idSolicitud, onClose, onUploadSu
 
     setSubiendo(true);
     try {
-      const res = await fetch("/api/solicitud_documentos", {
-        method: "POST",
-        body: formData,
-      });
 
-      if (!res.ok) throw new Error("Error al subir el documento");
-
+      await createOtroAnexo(formData);
+      
+      setSuccessMessage("Documento registrado correctamente");
       onUploadSuccess();
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+
     } catch (err) {
       console.error(err);
       alert("Ocurrió un error al subir el documento.");
@@ -71,6 +76,13 @@ const FormularioDocumento: React.FC<Props> = ({ idSolicitud, onClose, onUploadSu
           accept=".pdf,.jpg,.png,.docx"
         />
       </label>
+
+      {(successMessage || error) && (
+        <div className={`p-4 mb-4 border-l-4 ${successMessage ? "bg-green-100 border-green-500 text-green-700" : "bg-red-100 border-red-500 text-red-700"}`} role="alert">
+          {successMessage && <p className="font-bold">{successMessage}</p>}
+          {error && <p className="font-bold">{error}</p>}
+        </div>
+      )}
 
       <div className="flex justify-end gap-2">
         <button
