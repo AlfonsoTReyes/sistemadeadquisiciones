@@ -4,7 +4,7 @@ import Menu from '../menu';
 import Pie from '../pie';
 import AltaRol from './formularios/alta';
 import TablaRoles from './tableRoles';
-import { fetchRoles } from './formularios/fetchRoles';
+import { fetchRoles } from '../peticiones_api/fetchRoles';
 
 const RolesPage = () => {
     const [roles, setRoles] = useState([]);

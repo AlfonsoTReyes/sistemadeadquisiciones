@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRolById, updateRol } from './fetchRoles';
+import { getRolById, updateRol } from '../../peticiones_api/fetchRoles';
 
 interface ModificarRolProps {
   rolId: number;

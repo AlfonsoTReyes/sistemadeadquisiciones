@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import ModificarRol from './formularios/modificar';
 import AsignarPermiso from './formularios/asignar'; //Formulario que permite asignar el rol de un usuario existente. 
-import {fetchRoles} from './formularios/fetchRoles';
+import {fetchRoles} from '../peticiones_api/fetchRoles';
 
 interface Rol {
     id_rol: number;

@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { createRol } from "./fetchRoles"; // Importamos las peticiones
+import { createRol } from "../../peticiones_api/fetchRoles"; // Importamos las peticiones
 
 //Se declara la interfaz para definir las propiedades que debe de tener los objetos
 interface AltaRolProps {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { fetchPermisos, fetchPermisosRol, updatePermisosRol } from "./fetchRoles";
+import { fetchPermisos, fetchPermisosRol, updatePermisosRol } from "../../peticiones_api/fetchRoles";
 
 interface AsignarRolProps {
   rolId: number;
