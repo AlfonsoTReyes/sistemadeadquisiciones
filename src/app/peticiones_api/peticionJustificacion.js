@@ -35,10 +35,10 @@ export const createJustificacion = async (rolData) => {
   }
 };
 
-export const getJusitificacionById = async (id_solicitud) => {
+export const getJusitificacionById = async (id_just) => {
   try {
-    const response = await fetch(`${API_URL}?id_solicitud=${id_solicitud}`);
-    if (!response.ok) throw new Error("Error al obtener los datos de la solicitud");
+    const response = await fetch(`${API_URL}?id_just=${id_just}`);
+    if (!response.ok) throw new Error("Error al obtener los datos de la justificación");
     
     return await response.json();
   } catch (error) {

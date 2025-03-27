@@ -1,37 +1,94 @@
 import React, { useState } from 'react';
+import { createJustificacion } from '../../peticiones_api/peticionJustificacion';
 
 interface JustificacionFormProps {
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: () => void;
+  idSolicitud: number; 
+
 }
 
-const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    lugar: '',
-    fecha_hora: '',
-    no_oficio: '',
-    asunto: '',
-    nombre_dirigido: '',
-    planteamiento: '',
-    antecedente: '',
-    necesidad: '',
-    fundamento_legal: '',
-    uso: '',
-    consecuencias: '',
-    historicos_monetarios: '',
-    marcas_especificas: '',
-    estatus: 'pendiente'
-  });
+const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, onSubmit, idSolicitud }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [formData, setFormData] = useState({
+      id_solicitud: idSolicitud,
+      lugar: 'SAN JUAN DEL RÍO',
+      fecha_hora: new Date().toISOString().slice(0, 16), // formato compatible con datetime-local
+      no_oficio: '',
+      asunto: '',
+      nombre_dirigido: 'LCDO. MIGUEL VALENCIA MOLINA ',
+      planteamiento: '',
+      antecedente: '',
+      necesidad: '',
+      fundamento_legal: '',
+      uso: '',
+      consecuencias: '',
+      historicos_monetarios: '',
+      marcas_especificas: '',
+      estatus: 'pendiente'
+    });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+  const handleFileUploadMultiple = async (e: React.ChangeEvent<HTMLInputElement>, seccion: string) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+  
+    const idSolicitud = '123'; // ← pon aquí el id real
+    const idUsuario = '1';     // ← el id del usuario actual
+  
+    for (const file of Array.from(files)) {
+      const formDataFile = new FormData();
+      formDataFile.append('archivo', file);
+      formDataFile.append('seccion', seccion);
+      formDataFile.append('id_solicitud', idSolicitud);
+      formDataFile.append('id_usuario', idUsuario);
+  
+      try {
+        const res = await fetch('/php/subir_archivo_justificacion.php', {
+          method: 'POST',
+          body: formDataFile,
+        });
+  
+        const data = await res.json();
+        if (!data.success) {
+          console.error(`Error al subir ${file.name}`);
+        }
+      } catch (err) {
+        console.error(`Error en subida de ${file.name}`, err);
+      }
+    }
+  
+    alert("Todos los archivos se han subido");
   };
+  
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setError(null);
+    setSuccessMessage("");
+    setIsLoading(true);
+  
+    try {
+      await createJustificacion(formData);
+  
+      setSuccessMessage("Solicitud registrada correctamente");
+      onSubmit(); // refresca desde el componente padre
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -62,12 +119,18 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
           <label>Nombre a quien va dirigido
             <span className="text-red-500">*</span>
-            <input name="nombre_dirigido" className="border border-gray-300 p-2 rounded w-full" value={formData.nombre_dirigido} onChange={handleChange} required />
+            <input readOnly name="nombre_dirigido" className="border border-gray-300 p-2 rounded w-full" value={formData.nombre_dirigido} onChange={handleChange} required />
           </label>
 
           <label>Fundamento legal
             <span className="text-red-500">*</span>
-            <input name="fundamento_legal" className="border border-gray-300 p-2 rounded w-full" value={formData.fundamento_legal} onChange={handleChange} required />
+            <textarea name="fundamento_legal" className="border border-gray-300 p-2 rounded w-full" value={formData.fundamento_legal} onChange={handleChange} required />
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.png,.doc,.docx"
+              onChange={(e) => handleFileUploadMultiple(e, 'fundamento_legal')}
+            />
           </label>
 
           <label>Uso
@@ -75,39 +138,51 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
             <input name="uso" className="border border-gray-300 p-2 rounded w-full" value={formData.uso} onChange={handleChange} required />
           </label>
 
-          <label>
-            <span className="font-semibold mb-1">Estatus</span>
-            <input name="estatus" className="border border-gray-300 p-2 rounded w-full" value={formData.estatus} disabled />
-          </label>
-
           {/* textareas */}
-          <label>
-            <span className="font-semibold mb-1">Planteamiento</span>
+          <label>Planteamiento
+          <span className="text-red-500">*</span>
             <textarea name="planteamiento" className="border border-gray-300 p-2 rounded w-full" value={formData.planteamiento} onChange={handleChange} required />
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.png,.doc,.docx"
+              onChange={(e) => handleFileUploadMultiple(e, 'planteamiento')}
+            />
           </label>
 
-          <label>
-            <span className="font-semibold mb-1">Antecedente</span>
+          <label>Antecedente
+            <span className="text-red-500">*</span>
             <textarea name="antecedente" className="border border-gray-300 p-2 rounded w-full" value={formData.antecedente} onChange={handleChange} required />
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.png,.doc,.docx"
+              onChange={(e) => handleFileUploadMultiple(e, 'antecedente')}
+            />
           </label>
 
-          <label>
-            <span className="font-semibold mb-1">Necesidad</span>
+          <label>Necesidad
+            <span className="text-red-500">*</span>
             <textarea name="necesidad"className="border border-gray-300 p-2 rounded w-full" value={formData.necesidad} onChange={handleChange} required />
           </label>
 
-          <label>
-            <span className="font-semibold mb-1">Consecuencias</span>
+          <label>Consecuencias
+            <span className="text-red-500">*</span>
             <textarea name="consecuencias" className="border border-gray-300 p-2 rounded w-full" value={formData.consecuencias} onChange={handleChange} required />
           </label>
 
-          <label>
-            <span>Históricos monetarios</span>
+          <label>Históricos monetarios
+            <span className="text-red-500">*</span>
             <textarea name="historicos_monetarios" className="border border-gray-300 p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} required />
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.png,.doc,.docx"
+              onChange={(e) => handleFileUploadMultiple(e, 'historicos_monetarios')}
+            />
           </label>
 
-          <label>
-            <span className="font-semibold mb-1">Marcas específicas</span>
+          <label>Marcas específicas (en caso de ser necesario)
             <textarea name="marcas_especificas" className="border border-gray-300 p-2 rounded w-full" value={formData.marcas_especificas} onChange={handleChange} required />
           </label>
 
