@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { writeFile, mkdir } from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
-import { guardarDocumentoAdicional, obtenerDocumentosPorSolicitud } from "../../../services/documentosoliservice";
+import { guardarDocumentoAdicional, obtenerDocumentosPorSolicitud, obtenerDocumentoPorId, eliminarDocumentoAdicionalPorId } from "../../../services/documentosoliservice";
+import { unlink } from "fs/promises";
+
 
 // GET: obtener documentos por solicitud
 export async function GET(req: NextRequest) {
@@ -66,5 +68,40 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error al subir documento:", error);
     return NextResponse.json({ message: "error al subir documento", error }, { status: 500 });
+  }
+}
+
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ message: "id es requerido" }, { status: 400 });
+    }
+
+    const documento = await obtenerDocumentoPorId(parseInt(id));
+
+    if (!documento) {
+      return NextResponse.json({ message: "Documento no encontrado" }, { status: 404 });
+    }
+
+    // eliminar archivo físico
+    const filePath = path.join(process.cwd(), "public", documento.ruta_archivo);
+    try {
+      await unlink(filePath);
+    } catch (fsError) {
+      console.warn("No se pudo eliminar el archivo físico:", fsError);
+      // no detenemos el proceso si el archivo ya no existe
+    }
+
+    // eliminar de la base de datos
+    await eliminarDocumentoAdicionalPorId(parseInt(id));
+
+    return NextResponse.json({ success: true, message: "Documento eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar documento:", error);
+    return NextResponse.json({ message: "Error al eliminar documento", error }, { status: 500 });
   }
 }
