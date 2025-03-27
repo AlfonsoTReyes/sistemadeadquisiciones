@@ -5,7 +5,7 @@ import Pie from '../pie';
 import AltaPermiso from './formularios/alta';
 import ModificarPermiso from './formularios/modificar';
 import TablaPermisos from './tablePermisos';
-import { fetchPermisos } from './formularios/fetchPermisos';
+import { fetchPermisos } from '../peticiones_api/fetchPermisos';
 
 
 interface Permiso {

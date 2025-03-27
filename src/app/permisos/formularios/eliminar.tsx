@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { deletePermiso } from './fetchPermisos';
+import { deletePermiso } from '../../peticiones_api/fetchPermisos';
 
 interface EliminarPermisoProps {
   permisoId: number | null;

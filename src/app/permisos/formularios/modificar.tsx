@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPermisoById, updatePermiso } from './fetchPermisos';
+import { getPermisoById, updatePermiso } from '../../peticiones_api/fetchPermisos';
 
 interface ModificarPermisoProps {
   permisoId: number; // ID del usuario que se va a modificar

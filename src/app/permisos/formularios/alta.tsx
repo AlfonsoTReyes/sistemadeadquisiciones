@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createPermiso } from "./fetchPermisos"; // Importamos las peticiones
+import { createPermiso } from "../../peticiones_api/fetchPermisos"; // Importamos las peticiones
 
 interface AltaPermisoProps {
   onClose: () => void;
