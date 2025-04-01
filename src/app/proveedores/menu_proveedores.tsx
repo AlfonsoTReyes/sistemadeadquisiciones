@@ -150,7 +150,7 @@ export default function Menu() {
 
         <li className="mb-1">
           <Link
-            href="/requirente"
+            href="/proveedores/datos_generales"
             className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
           >
             <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Datos generales
