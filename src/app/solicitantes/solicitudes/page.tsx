@@ -5,7 +5,7 @@ import Pie from '../../pie';
 import TablaSolicitudes from './tablaSolicitudes';
 import AltaSolicitud from './formularios/alta';
 import DynamicMenu from "../../dinamicMenu";
-import { fetchSolicitudes } from './formularios/peticionSolicitudes';
+import { fetchSolicitudes } from '../../peticiones_api/peticionSolicitudes';
 
 const SolicitudPage = () => {
     const [solicitudes, setSolicitudes] = useState([]);

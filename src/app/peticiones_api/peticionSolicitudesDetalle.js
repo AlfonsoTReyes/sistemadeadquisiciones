@@ -105,25 +105,6 @@ export const getOtroAnexoById = async (id_solicitud) => {
   }
 };
 
-
-export const updateOtroAnexo = async (solicitudData) => {
-  try {
-    const response = await fetch(`${API_URL}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(solicitudData),
-    });
-
-    if (!response.ok) throw new Error("Error al actualizar la solicitud");
-    
-    return await response.json();
-  } catch (error) {
-    throw new Error(error.message || "Error desconocido");
-  }
-};
-
 export const deleteOtroAnexo = async (idDoc) => {
   try {
     const response = await fetch(`${API_URL_OTROS}?id=${idDoc}`, {
@@ -135,6 +116,27 @@ export const deleteOtroAnexo = async (idDoc) => {
       throw new Error(errorResponse.message || "Error al eliminar el documento.");
     }
 
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || "Error desconocido");
+  }
+};
+
+
+
+/**************************** ACTUALIZACIONES ************************/
+export const updateSolicitudEstatus = async (estatusData) => {
+  try {
+    const response = await fetch(`${API_URL}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(estatusData),
+    });
+
+    if (!response.ok) throw new Error("Error al actualizar la solicitud");
+    
     return await response.json();
   } catch (error) {
     throw new Error(error.message || "Error desconocido");

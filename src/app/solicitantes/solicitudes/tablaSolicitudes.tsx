@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import ModificarSolicitud from "./formularios/modificar"; // formulario para editar solicitudes
+import ModificarSolicitud from "./formularios/modificar";
 import Link from 'next/link';
 
 
@@ -25,8 +25,8 @@ const TablaSolicitudes: React.FC<{
     onSolicitudAdded: () => Promise<void>;
 }> = ({ solicitudes, onSolicitudAdded }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isAprobarModalOpen, setIsAprobarModalOpen] = useState(false);
     const [solicitudAEditar, setSolicitudAEditar] = useState<number | null>(null);
+    const [isAprobarModalOpen, setIsAprobarModalOpen] = useState(false);
     const [solicitudAAprobar, setSolicitudAAprobar] = useState<number | null>(null);
 
     const openEditModal = (id: number) => {

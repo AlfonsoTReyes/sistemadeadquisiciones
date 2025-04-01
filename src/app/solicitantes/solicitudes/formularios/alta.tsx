@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { createSolicitud } from './peticionSolicitudes';
-import { getUserById } from '../../../usuarios/formularios/fetchUsuarios';
+import { createSolicitud } from '../../../peticiones_api/peticionSolicitudes';
+import { getUserById } from '../../../peticiones_api/fetchUsuarios';
 
 interface AltaSolicitudProps {
   onClose: () => void;
