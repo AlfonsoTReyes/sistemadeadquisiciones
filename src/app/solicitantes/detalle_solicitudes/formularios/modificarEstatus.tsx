@@ -52,6 +52,19 @@ const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
         <h2 className="text-xl font-bold mb-4 text-gray-800">Confirmación</h2>
         <p className="text-gray-600 mb-6">¿Estás seguro de actualizar el estatus?</p>
 
+        {successMessage && (
+          <div className="mb-4 p-3 text-green-800 bg-green-100 border border-green-300 rounded-lg">
+            {successMessage}
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-3 text-green-800 bg-green-100 border border-green-300 rounded-lg">
+            {error}
+          </div>
+        )}
+
+
         {/* Selector de estatus */}
         <div className="mb-6">
           <label className="block text-gray-700 font-semibold mb-2">
@@ -62,10 +75,10 @@ const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
             onChange={(e) => setNuevoEstatus(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-2"
           >
-            <option value="pendiente">Pendiente</option>
-            <option value="revision">En Revisión</option>
-            <option value="aprobada">Aprobada</option>
-            <option value="cancelada">Cancelada</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En revisión">En revisión</option>
+            <option value="Aprobada">Aprobada</option>
+            <option value="Cancelada">Cancelada</option>
           </select>
         </div>
 

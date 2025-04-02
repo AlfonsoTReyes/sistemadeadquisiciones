@@ -256,3 +256,26 @@ export const deleteJustificacionDetalle = async (id: number) => {
     throw error;
   }
 };
+
+
+export const updateJustificacionEstatus = async (
+  idJustificacion: number,
+    nuevoEstatus: string
+) => {
+  try {
+    const result = await sql`
+      UPDATE justificacion_solicitud 
+      SET 
+        estatus = ${nuevoEstatus},
+        updated_at = NOW()
+      WHERE id_justificacion = ${idJustificacion} 
+      RETURNING *;
+    `;
+
+    return result.rows[0];
+  } catch (error) {
+    console.log(error);
+    console.error("error al actualizar solicitud:", error);
+    throw error;
+  }
+};
