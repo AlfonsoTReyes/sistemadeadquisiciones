@@ -50,6 +50,31 @@ export const getSolicitudById = async (id: number) => {
   }
 };
 
+
+export const getSolicitudByIdPDF = async (id: number) => {
+  try {
+    const result = await sql`
+      SELECT 
+        s.*, 
+        sec.nombre AS nombre_secretaria, 
+        dep.nombre AS nombre_dependencia,
+        u.nombre AS nombre_usuario,
+        u.apellidos
+      FROM solicitud_adquisicion s
+      LEFT JOIN secretarias sec ON s.id_secretaria = sec.id_secretaria
+      LEFT JOIN dependencias dep ON s.id_dependencia = dep.id_dependencia
+      LEFT JOIN usuarios u ON s.id_usuario = u.id_usuario
+      WHERE s.id_solicitud = ${id};
+    `;
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al obtener solicitud:", error);
+    throw error;
+  }
+};
+
+
 // crear una nueva solicitud
 export const createSolicitud = async (solicitudData: {
     folio: string, motivo: string, monto: number, dependencia: string, nomina: string, secretaria: string,
