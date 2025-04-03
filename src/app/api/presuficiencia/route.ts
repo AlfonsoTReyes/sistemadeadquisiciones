@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getSuficienciaById,
+  getSuficienciaByIdPDF,
   createSuficiencia,
   updateSuficiencia
 } from "../../../services/suficienciaService";
@@ -10,10 +11,20 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_pre");
-    const id_solicitud = searchParams.get("id_solicitud");
+    const id_pdf = searchParams.get("id");
+    console.log("AAA");
 
     if (id) {
       const suficiencia = await getSuficienciaById(parseInt(id));
+      if (!suficiencia) {
+        return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
+      }
+      return NextResponse.json(suficiencia);
+    }
+
+    if (id_pdf) {
+      console.log("AAA");
+      const suficiencia = await getSuficienciaByIdPDF(parseInt(id_pdf));
       if (!suficiencia) {
         return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
       }

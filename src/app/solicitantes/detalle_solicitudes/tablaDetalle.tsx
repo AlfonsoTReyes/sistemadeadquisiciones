@@ -11,7 +11,6 @@ import ModalDocumentoAdicionalEliminar from "./formularios/eliminar_doc_adic";
 import ModificarSolicitud from "../solicitudes/formularios/modificar";
 import ModalComentarios from "../../comentarios_documentos/modal";
 import ModalConfirmacion from "./formularios/modificarEstatus";
-import generarPDFSolicitud from "../../PDF/solicitud";
 
 
 const TablaSolicitudes: React.FC<{ 
@@ -37,11 +36,26 @@ const TablaSolicitudes: React.FC<{
     const [estatusDoc, setDocEstatus] = useState<number | null>(null);
     const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
 
-    const handlePDF = () => {
-        if (solicitud?.id_solicitud) {
-          generarPDFSolicitud(solicitud.id_solicitud);
-        }
-      };
+    type TipoPDF = "solicitud" | "justificacion" | "presupuesto";
+
+    const generarPDF = async (id: number, tipo: TipoPDF) => {
+      try {
+        if (tipo === "solicitud") {
+          const { default: generarPDFSolicitud } = await import("../../PDF/solicitud");
+          await generarPDFSolicitud(id);
+        } else if (tipo === "justificacion") {
+          const { default: generarPDFJustificacion } = await import("../../PDF/justificacion");
+          await generarPDFJustificacion(id);
+        } else if (tipo === "presupuesto") {
+            const { default: generarPDFPreSuficiencia } = await import("../../PDF/solicitudTecho");
+            await generarPDFPreSuficiencia(id);
+          }
+      } catch (error) {
+        console.error("error al generar el pdf:", error);
+        alert("ocurrió un error al generar el pdf.");
+      }
+    };
+    
 
 
     const openEditDocModal = (id: number) => {
@@ -141,28 +155,25 @@ const TablaSolicitudes: React.FC<{
                         Editar
                     </button>
                     <button
-  onClick={handlePDF}
-  className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
->
-  Generar PDF
-</button>
-
-
-
+                        onClick={() => generarPDF(solicitud.id_solicitud, "solicitud")}
+                        className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
+                        >
+                        Generar pdf
+                    </button>
                     <button
                         onClick={() => openCommentsModal(solicitud.id_solicitud, "suficiencia", solicitud.id_solicitud)}
                         className="bg-purple-500 text-white py-2 rounded-xl shadow hover:bg-purple-600 transition"
                         >
                         Ver Comentarios
                     </button>
-                    <button
+                    {/* <button
                         onClick={() =>
                             abrirModalConfirmacion(solicitud.id_solicitud, "suficiencia")
                         }
                         className="bg-green-500 text-white py-2 rounded-xl shadow hover:bg-green-600 transition"
                         >
                         Actualizar estatus
-                    </button>
+                    </button> */}
 
 
                 </div>
@@ -184,7 +195,12 @@ const TablaSolicitudes: React.FC<{
                         <button onClick={() => openEditJustModal(justificacion.id_justificacion)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
                             Editar
                         </button>
-                        <button className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition">Generar PDF</button>
+                        <button
+                            onClick={() => generarPDF(justificacion.id_justificacion, "justificacion")}
+                            className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
+                            >
+                            Generar pdf
+                        </button>
                         <button
                             onClick={() => openCommentsModal(justificacion.id_justificacion, "justificacion", justificacion.id_solicitud)}
                             className="bg-purple-500 text-white py-2 rounded-xl shadow hover:bg-purple-600 transition"
@@ -234,8 +250,11 @@ const TablaSolicitudes: React.FC<{
                         <button onClick={() => openEditPreModal(techoPresupuestal.id_suficiencia)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
                             Editar
                         </button>
-                        <button className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition">
-                            Generar PDF
+                        <button
+                            onClick={() => generarPDF(techoPresupuestal.id_suficiencia, "presupuesto")}
+                            className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
+                            >
+                            Generar pdf
                         </button>
                         <button
                             onClick={() => openCommentsModal(techoPresupuestal.id_suficiencia, "adquisicion", techoPresupuestal.id_solicitud)}
