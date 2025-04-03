@@ -116,7 +116,6 @@ export const updateSolicitud = async (
 ) => {
   try {
     const { folio, lugar, asunto, necesidad, cotizacion, compra_servicio, motivo, monto, id_adjudicacion, tipo } = solicitudData;
-
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
@@ -148,7 +147,6 @@ export const updateSolicitudEstatus = async (
     estatus: string
 ) => {
   try {
-
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 

@@ -1,5 +1,18 @@
 const API_URL = "/api/presuficiencia";
 
+/** Obtiene la lista de roles desde la API */
+export const fetchSoliPreSuficiencia = async () => {
+  try {
+    const response = await fetch(`${API_URL}`);
+    if (!response.ok) {
+      throw new Error("Error al obtener las solicitudes de detalle");
+    }
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
 export const createSoliPreSuficiencia = async (PreData) => {
   try {
 

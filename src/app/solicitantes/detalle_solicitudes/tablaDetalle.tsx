@@ -11,6 +11,7 @@ import ModalDocumentoAdicionalEliminar from "./formularios/eliminar_doc_adic";
 import ModificarSolicitud from "../solicitudes/formularios/modificar";
 import ModalComentarios from "../../comentarios_documentos/modal";
 import ModalConfirmacion from "./formularios/modificarEstatus";
+import ModalEnvioConfirmacion from "./formularios/enviarSolicitud";
 
 
 const TablaSolicitudes: React.FC<{ 
@@ -35,6 +36,8 @@ const TablaSolicitudes: React.FC<{
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [estatusDoc, setDocEstatus] = useState<number | null>(null);
     const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
+    const [isEnviarConfirmModalOpen, setIsEnviarConfirmModalOpen] = useState(false);
+
 
     type TipoPDF = "solicitud" | "justificacion" | "presupuesto";
 
@@ -55,9 +58,19 @@ const TablaSolicitudes: React.FC<{
         alert("ocurrió un error al generar el pdf.");
       }
     };
-    
 
-
+    const abrirModalEnvioConfirmacion = (idDoc: number, tipoOrigen: string) => {
+        setDocEstatus(idDoc);
+        setTipoOrigenModal(tipoOrigen);
+        setIsEnviarConfirmModalOpen(true);
+    };
+      
+    const cerrarModalEnvioConfirmacion = () => {
+        setDocEstatus(null);
+        setTipoOrigenModal("");
+        setIsEnviarConfirmModalOpen(false);
+    };
+      
     const openEditDocModal = (id: number) => {
         setDocAEditar(id);
         setIsEditDocModalOpen(true);
@@ -119,14 +132,14 @@ const TablaSolicitudes: React.FC<{
         setDocEstatus(idDoc);
         setTipoOrigenModal(tipoOrigen);
         setIsConfirmModalOpen(true);
-      };
+    };
       
       // Cerrar modal sin hacer cambios
-      const cerrarModalConfirmacion = () => {
+    const cerrarModalConfirmacion = () => {
         setIsConfirmModalOpen(false);
         setDocEstatus(null);
         setTipoOrigenModal("");
-      };
+    };
 
     if (!solicitudes?.solicitud) {
         return <p className="text-gray-500">No hay detalles disponibles.</p>;
@@ -146,7 +159,7 @@ const TablaSolicitudes: React.FC<{
                 <p><strong>Secretaría:</strong> {solicitud.nombre_secretaria}</p>
                 <p><strong>Motivo:</strong> {solicitud.motivo}</p>
                 <p><strong>Monto:</strong> ${solicitud.monto}</p>
-                <p><strong>Fecha Solicitud:</strong> {solicitud.fecha_solicitud}</p>
+                <p><strong>Fecha Solicitud:</strong> {new Date(solicitud.fecha_solicitud).toLocaleString()}</p>
                 <p className={`font-semibold ${solicitud.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                     Estatus: {solicitud.estatus}
                 </p>
@@ -166,16 +179,14 @@ const TablaSolicitudes: React.FC<{
                         >
                         Ver Comentarios
                     </button>
-                    {/* <button
+                    <button
                         onClick={() =>
                             abrirModalConfirmacion(solicitud.id_solicitud, "suficiencia")
                         }
                         className="bg-green-500 text-white py-2 rounded-xl shadow hover:bg-green-600 transition"
                         >
                         Actualizar estatus
-                    </button> */}
-
-
+                    </button>
                 </div>
             </div>
 
@@ -187,7 +198,7 @@ const TablaSolicitudes: React.FC<{
                     <p><strong>Asunto:</strong> {justificacion.asunto}</p>
                     <p><strong>Lugar:</strong> {justificacion.lugar}</p>
                     <p><strong>Dirigido a:</strong> {justificacion.nombre_dirigido}</p>
-                    <p><strong>Fecha:</strong> {justificacion.fecha_hora}</p>
+                    <p><strong>Fecha:</strong> {new Date(justificacion.fecha_hora).toLocaleString()}</p>
                     <p className={`font-semibold ${justificacion.estatus === "Pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                         Estatus: {solicitud.estatus}
                     </p>
@@ -240,9 +251,9 @@ const TablaSolicitudes: React.FC<{
                 <div className="bg-white shadow-xl rounded-xl p-6 border border-gray-200 hover:shadow-2xl transition duration-300">
                     <div className="text-5xl text-center mb-4">💰</div>
                     <h2 className="text-xl font-bold text-center text-gray-800 mb-4">Solicitud Pre-suficiencia</h2>
-                    <p><strong>Fecha peticion:</strong> {techoPresupuestal.created_at}</p>
+                    <p><strong>Fecha de creación:</strong> {new Date(techoPresupuestal.created_at).toLocaleString()}</p>
                     <p><strong>No. Folio:</strong> {techoPresupuestal.oficio}</p>
-                    <p><strong>Fecha Aprobación:</strong> {techoPresupuestal.fecha_aprobacion}</p>
+                    <p><strong>Fecha Aprobación:</strong> {new Date(techoPresupuestal.fecha_aprobacion).toLocaleString() || "Sin contestación"}</p>
                     <p className={`font-semibold ${techoPresupuestal.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                         Estatus: {techoPresupuestal.estatus}
                     </p>
@@ -262,6 +273,17 @@ const TablaSolicitudes: React.FC<{
                             >
                             Ver Comentarios
                         </button>
+                        <button
+                            onClick={() =>
+                                abrirModalEnvioConfirmacion(
+                                techoPresupuestal.id_suficiencia, "aquisicion"
+                                )
+                            }
+                            className="bg-blue-600 text-white py-2 rounded-xl shadow hover:bg-blue-700 transition"
+                            >
+                            Enviar solicitud
+                        </button>
+
                         <button
                             onClick={() =>
                                 abrirModalConfirmacion(
@@ -467,6 +489,25 @@ const TablaSolicitudes: React.FC<{
                     onUpdateSuccess={onSolicitudAdded}
                 />
             )}
+
+            {/* {isEnviarConfirmModalOpen && estatusDoc !== null && tipoOrigenModal !== null && (
+                <ModalEnvioConfirmacion
+                    idDoc={estatusDoc}
+                    tipoOrigen={tipoOrigenModal}
+                    onClose={cerrarModalConfirmacion}
+                    onUpdateSuccess={onSolicitudAdded}
+                />
+            )} */}
+
+            {isEnviarConfirmModalOpen && estatusDoc !== null &&(
+                <ModalEnvioConfirmacion
+                    idDoc={estatusDoc}
+                    tipoOrigen="aquisicion"
+                    onClose={cerrarModalEnvioConfirmacion}
+                    onUpdateSuccess={onSolicitudAdded}
+                />
+            )}
+
 
 
         </div>

@@ -87,17 +87,18 @@ export const createSuficiencia = async (data: {
   cantidad: number;
   motivo: string;
   estatus: string;
+  tipo: string;
 }) => {
   try {
     const result = await sql`
       INSERT INTO solicitud_suficiencia (
         id_secretaria, id_dependencia, id_usuario, id_solicitud,
         oficio, asunto, lugar, fecha, hora,
-        cuenta, cantidad, motivo, estatus, created_at
+        cuenta, cantidad, motivo, estatus, created_at, tipo
       ) VALUES (
         ${data.id_secretaria}, ${data.id_dependencia}, ${data.id_usuario}, ${data.id_solicitud},
         ${data.oficio}, ${data.asunto}, ${data.lugar}, ${data.fecha}, ${data.hora},
-        ${data.cuenta}, ${data.cantidad}, ${data.motivo}, ${data.estatus}, NOW()
+        ${data.cuenta}, ${data.cantidad}, ${data.motivo}, ${data.estatus}, NOW(), ${data.tipo}
       ) RETURNING *;
     `;
     return result.rows[0];
@@ -163,6 +164,7 @@ export const updateSuficienciaEstatus = async (
   id: number, estatus: string
 ) => {
   try {
+    console.log(estatus);
     const result = await sql`
       UPDATE solicitud_suficiencia SET
         estatus = ${estatus},
@@ -173,6 +175,43 @@ export const updateSuficienciaEstatus = async (
     return result.rows[0];
   } catch (error) {
     console.error("error al actualizar suficiencia:", error);
+    throw error;
+  }
+};
+
+
+
+
+export const getPreSuficienciasPendientes = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+        ss.id_suficiencia,
+        s.nombre AS nombre_secretaria,
+        ss.oficio,
+        ss.asunto,
+        ss.lugar,
+        ss.fecha,
+        ss.hora,
+        ss.cuenta,
+        ss.cantidad,
+        ss.motivo,
+        u.nombre || ' ' || u.apellidos AS nombre_usuario,
+        d.nombre AS nombre_dependencia,
+        ss.created_at,
+        ss.updated_at,
+        ss.id_solicitud,
+        ss.estatus,
+        ss.tipo
+      FROM public.solicitud_suficiencia ss
+      LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
+      LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
+      LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
+            WHERE ss.estatus= 'Enviado para atender';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener suficiencias:", error);
     throw error;
   }
 };

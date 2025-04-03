@@ -83,7 +83,6 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
       motivo,
       id_solicitud: idSolicitud,
     };
-    console.log("Datos enviados:", suficienciaData);
 
 
     try {
