@@ -1,7 +1,9 @@
 // 08 de diciembre de 2024
 
 import { NextRequest, NextResponse } from "next/server";
-import {  getDetallesSolicitudPorId, updateEstatusDocumentos } from "../../../services/solicituddetalleservice";
+//import {  getDetallesSolicitudPorId, updateEstatusDocumentos } from "../../../services/solicituddetalleservice";
+import {  getDetallesSolicitudPorId } from "../../../services/solicituddetalleservice";
+
 
 // obtener todas las solicitudes o una en específico
 export async function GET(req: NextRequest) {
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "error al obtener solicitudes", error }, { status: 500 });
   }
 }
-
+/*
 
 export async function PUT(req: NextRequest) {
   try {
@@ -63,3 +65,4 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+  */

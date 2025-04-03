@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
       // --- PRIORITIZE fetching by USER ID ---
       if (id_usuario_proveedor) {
-        console.log(`DEBUG API GET: Received request for user ID: ${id_usuario_proveedor}`);
+        //console.log(`DEBUG API GET: Received request for user ID: ${id_usuario_proveedor}`);
         try {
           const userIdNum = parseInt(id_usuario_proveedor, 10);
           if (isNaN(userIdNum)) {
@@ -21,10 +21,10 @@ export async function GET(req: NextRequest) {
           const proveedor = await getProveedorByUserId(userIdNum);
           if (!proveedor) {
               // It's possible the user exists but hasn't finished registration
-              console.log(`DEBUG API GET: No profile found for user ID: ${userIdNum}`);
+              //console.log(`DEBUG API GET: No profile found for user ID: ${userIdNum}`);
               return NextResponse.json({ message: 'Perfil de proveedor no encontrado para este usuario.' }, { status: 404 });
           }
-          console.log(`DEBUG API GET: Found profile for user ID: ${userIdNum}`);
+          //console.log(`DEBUG API GET: Found profile for user ID: ${userIdNum}`);
           return NextResponse.json(proveedor);
         } catch(err: any) {
              // Catch errors from getProveedorByUserId specifically

@@ -54,8 +54,8 @@ interface ProveedorInfoProps {
   error: string | null;
   onUpdateClick: () => void; // Función del padre (actualmente placeholder)
   onPdfClick: (id: number) => void; // Función del padre para PDF
-  // Podríamos añadir una función para refetch si la actualización es exitosa
-  // onUpdateSuccess?: () => void;
+  onManageDocumentsClick: () => void; // <-- Nueva prop
+
 }
 
 const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
@@ -65,6 +65,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   // onUpdateClick, // Ya no necesitamos la del padre para ABRIR el modal
   onPdfClick,
   // onUpdateSuccess // Si quieres que el padre refresque
+  onManageDocumentsClick
 }) => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Estado para feedback de actualización
@@ -84,7 +85,9 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   const handleCloseModal = () => {
       setModalAbierto(false);
   };
-
+  const handleDetalleClick = (id_proveedor: number) => {
+    sessionStorage.setItem("usuarioProveedorid", id_proveedor.toString()); // Convierte el ID a string
+};
   const handleSaveUpdate = async (updatedDataFromModal: any) => { // Renombrado para claridad
     // La validación de providerData no es estrictamente necesaria aquí
     // porque el modal no se abriría sin él, pero es buena práctica.
@@ -216,6 +219,14 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
               >
                   Generar PDF
               </button>
+              <button
+             onClick={onManageDocumentsClick} // <-- Usar la nueva prop
+             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
+             // Opcional: deshabilitar si falta id_proveedor explícitamente
+             // disabled={!providerData?.id_proveedor}
+         >
+             Gestionar Documentos
+         </button>
           </div>
 
           {/* --- Integración del Modal --- */}
