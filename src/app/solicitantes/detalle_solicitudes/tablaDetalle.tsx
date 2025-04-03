@@ -179,7 +179,7 @@ const TablaSolicitudes: React.FC<{
                     <p><strong>Lugar:</strong> {justificacion.lugar}</p>
                     <p><strong>Dirigido a:</strong> {justificacion.nombre_dirigido}</p>
                     <p><strong>Fecha:</strong> {justificacion.fecha_hora}</p>
-                    <p className={`font-semibold ${justificacion.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                    <p className={`font-semibold ${justificacion.estatus === "Pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                         Estatus: {solicitud.estatus}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
@@ -284,7 +284,7 @@ const TablaSolicitudes: React.FC<{
                         </h2>
                         <p><strong>Nombre original:</strong> {doc.nombre_original}</p>
                         <p><strong>Subido el:</strong> {new Date(doc.created_at).toLocaleString()}</p>
-                        <p className={`font-semibold ${doc.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                        <p className={`font-semibold ${doc.estatus === "Pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                         Estatus: {doc.estatus}
                         </p>
                         <div className="mt-4 flex flex-col gap-2">

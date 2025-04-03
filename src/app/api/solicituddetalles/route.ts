@@ -1,8 +1,11 @@
 // 08 de diciembre de 2024
 
 import { NextRequest, NextResponse } from "next/server";
-//import {  getDetallesSolicitudPorId, updateEstatusDocumentos } from "../../../services/solicituddetalleservice";
-import {  getDetallesSolicitudPorId } from "../../../services/solicituddetalleservice";
+import { getDetallesSolicitudPorId } from "../../../services/solicituddetalleservice";
+import { updateSolicitudEstatus } from "../../../services/solicitudeservice";
+import { updateDocumentoEstatus } from "../../../services/documentosoliservice";
+import { updateJustificacionEstatus } from '../../../services/justificacionservice';
+import { updateSuficienciaEstatus } from "../../../services/suficienciaService";
 
 
 // obtener todas las solicitudes o una en específico
@@ -24,45 +27,54 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "error al obtener solicitudes", error }, { status: 500 });
   }
 }
-/*
+
 
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const { idDoc, tipoOrigen, nuevoEstatus } = body;
 
-    // Verificar si los valores requeridos están presentes
     if (!idDoc || !tipoOrigen || !nuevoEstatus) {
       return NextResponse.json(
-        { message: "Faltan datos para actualizar. Contacte con el administrador" },
+        { message: "faltan datos para actualizar. contacte con el administrador." },
         { status: 400 }
       );
     }
 
-    // Actualizar en función del tipo de origen
-    const resultado = await updateEstatusDocumentos(
-      parseInt(id_vehiculo_actual),
-      parseInt(id_vehiculo_nuevo),
-      tipo_origen
-    );
+    let resultado;
 
-    if (resultado.success) {
-      return NextResponse.json({
-        success: true,
-        message: "✅ id_vehiculo actualizado correctamente.",
-      });
-    } else {
-      return NextResponse.json(
-        { message: resultado.message || "❌ Error al actualizar id_vehiculo." },
-        { status: 500 }
-      );
+    // según el tipo de documento se llama a una función distinta
+    switch (tipoOrigen) {
+      case "suficiencia":
+        resultado = await updateSolicitudEstatus(idDoc, nuevoEstatus);
+        break;
+
+      case "justificacion":
+        resultado = await updateJustificacionEstatus(idDoc, nuevoEstatus);
+        break;
+
+      case "aquisicion":
+        resultado = await updateSuficienciaEstatus(idDoc, nuevoEstatus);
+        break;
+
+      case "documento":
+        resultado = await updateDocumentoEstatus(idDoc, nuevoEstatus);
+        break;
+
+      default:
+        return NextResponse.json(
+          { message: "tipo de documento no reconocido." },
+          { status: 400 }
+        );
     }
+
+    return NextResponse.json(resultado);
+
   } catch (error) {
-    console.error("Error al actualizar id_vehiculo:", error);
+    console.error("error al actualizar estatus:", error);
     return NextResponse.json(
-      { message: "❌ Error al actualizar id_vehiculo.", error },
+      { message: "❌ error interno al actualizar el estatus.", error },
       { status: 500 }
     );
   }
 }
-  */

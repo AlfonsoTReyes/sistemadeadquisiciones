@@ -86,3 +86,22 @@ export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) 
     throw error;
   }
 };
+
+
+export const updateDocumentoEstatus = async (
+  id: number, estatus: string
+) => {
+  try {
+    const result = await sql`
+      UPDATE documentos_solicitud SET
+        estatus = ${estatus},
+        updated_at = NOW()
+      WHERE id_doc_solicitud = ${id}
+      RETURNING *;
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al actualizar suficiencia:", error);
+    throw error;
+  }
+};

@@ -115,3 +115,21 @@ export const getSuficienciaBySolicitudDocumento = async (idSolicitud: number) =>
 
 
 /* CRUD PARA LA SUFICIENCIA APROBADA QUE SUBIRA FINANZAS */
+
+export const updateSuficienciaEstatus = async (
+  id: number, estatus: string
+) => {
+  try {
+    const result = await sql`
+      UPDATE solicitud_suficiencia SET
+        estatus = ${estatus},
+        updated_at = NOW()
+      WHERE id_suficiencia = ${id}
+      RETURNING *;
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al actualizar suficiencia:", error);
+    throw error;
+  }
+};
