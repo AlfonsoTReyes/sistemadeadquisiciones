@@ -1,4 +1,3 @@
-// --- START OF FILE src/components/proveedores/auth/FormularioLoginProveedor.tsx ---
 'use client';
 import React from 'react';
 import useProveedorAuth from '../useProveedorAuth'; // Adjust path

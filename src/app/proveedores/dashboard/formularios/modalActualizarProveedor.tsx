@@ -1,7 +1,6 @@
 // --- START OF FILE src/components/proveedores/modal_actualizar_proveedor.tsx (MODIFIED) ---
 import React, { useState, useEffect } from 'react';
 // --- Ensure correct import path ---
-import { updateProveedor } from './fetchdashboard'; // Or fetchprovedoores.js?
 
 interface ModalProps {
   datos: any; // El objeto ProveedorData original

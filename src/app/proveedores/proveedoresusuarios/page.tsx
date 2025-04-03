@@ -1,13 +1,12 @@
 'use client';
+
 import React from 'react';
-import PieP from "../../pie";
-import DynamicMenu from "../../dinamicMenu";
+
 import FormularioLoginProveedor from './formularios/FormularioLoginProveedor'; // Adjust path
 
 export default function LoginPageProveedor() {
   return (
     <div>
-      <DynamicMenu />
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
          <div>
@@ -18,7 +17,6 @@ export default function LoginPageProveedor() {
         <FormularioLoginProveedor />
       </div>
     </div>
-  <PieP />
 
   </div>
   );

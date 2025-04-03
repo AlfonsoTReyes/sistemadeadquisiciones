@@ -27,8 +27,6 @@ export default function PageProveedorDashboard() {
       } else {
          setError("ID de usuario inválido en sesión.");
          setLoading(false);
-         // Considera si redirigir aquí o solo mostrar error
-         // router.push('/proveedores/proveedoresusuarios');
       }
     } else {
       setError("Usuario no autenticado. Por favor, inicie sesión.");
