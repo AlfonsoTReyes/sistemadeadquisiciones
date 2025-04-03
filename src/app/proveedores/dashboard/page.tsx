@@ -91,21 +91,6 @@ export default function PageProveedorDashboard() {
       }
     };
 
-  // Placeholder functions for buttons
-  const handleUpdateClick = () => {
-      console.log("Update button clicked");
-      // Logic to open update modal would go here
-      // Example: router.push(`/proveedores/actualizar/${providerData?.id_proveedor}`); // Or open a modal
-       alert("Funcionalidad de Actualizar no implementada aún.");
-  };
-
-  const handlePdfClick = () => {
-       console.log("PDF button clicked");
-       // Logic to generate PDF would go here
-       alert("Funcionalidad de Generar PDF no implementada aún.");
-  };
-
-
   return (
     <div>
       <DynamicMenu />
@@ -114,8 +99,7 @@ export default function PageProveedorDashboard() {
             providerData={providerData}
             loading={loading}
             error={error}
-            onUpdateClick={handleUpdateClick}
-            onPdfClick={handlePdfClick} 
+            //onPdfClick={handlePdfClick} 
             onManageDocumentsClick={handleManageDocumentsClick}
          />
       </div>

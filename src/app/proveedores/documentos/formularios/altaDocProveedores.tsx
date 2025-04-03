@@ -331,7 +331,7 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
   return (
     <div className="p-4 md:p-6">
         <div className="flex justify-between items-center mb-4 pb-3 border-b">
-             <h1 className="text-xl font-semibold">Gestionar Documentos Proveedor (ID: {idProveedor} - {tipoProveedor})</h1>
+             <h1 className="text-xl font-semibold">Gestionar Documentos Proveedor </h1>
         </div>
 
 
@@ -349,7 +349,7 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
 
       {/* === Sección Documentos Requeridos === */}
       <div className="mb-6 p-4 border rounded shadow-sm">
-        <h2 className="text-lg font-medium mb-3">Documentos Requeridos ({tipoProveedor})</h2>
+        <h2 className="text-lg font-medium mb-3">Documentos Requeridos</h2>
          {!idUsuarioLogueado && <p className="text-red-600 text-sm mb-2">No se puede subir/eliminar: falta ID de usuario.</p>}
          {tipoProveedor === 'moral' ? (
                 renderRequiredDocs(REQUIRED_DOCS_MORAL)
@@ -445,7 +445,7 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
                    </td>
                             <td>
                                 {/* Botón eliminar general (puede coexistir con el de slots) */}
-                                <button onClick={async () => {
+                                <button className="px-1 py-1 rounded text-white text-sm bg-red-500 hover:bg-red-800" onClick={async () => {
                                     if (window.confirm(`Eliminar ${doc.nombre_original}?`)) {
                                         try {
                                             await deleteDocumentoProveedor(doc.id_documento_proveedor);
@@ -465,8 +465,8 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
 
        {/* Botón de cierre principal */}
         <div className="flex justify-end mt-6 pt-4 border-t">
-            <button type="button" onClick={onClose} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                Cerrar Ventana
+            <button type="button" onClick={onClose} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Guardar Cambios
             </button>
         </div>
 

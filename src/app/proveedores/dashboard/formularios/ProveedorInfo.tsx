@@ -221,7 +221,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
               </button>
               <button
              onClick={onManageDocumentsClick} // <-- Usar la nueva prop
-             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
+             className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
              // Opcional: deshabilitar si falta id_proveedor explícitamente
              // disabled={!providerData?.id_proveedor}
          >
