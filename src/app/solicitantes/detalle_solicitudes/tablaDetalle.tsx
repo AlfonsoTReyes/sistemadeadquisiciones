@@ -11,6 +11,7 @@ import ModalDocumentoAdicionalEliminar from "./formularios/eliminar_doc_adic";
 import ModificarSolicitud from "../solicitudes/formularios/modificar";
 import ModalComentarios from "../../comentarios_documentos/modal";
 import ModalConfirmacion from "./formularios/modificarEstatus";
+import generarPDFSolicitud from "../../PDF/solicitud";
 
 
 const TablaSolicitudes: React.FC<{ 
@@ -35,6 +36,13 @@ const TablaSolicitudes: React.FC<{
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [estatusDoc, setDocEstatus] = useState<number | null>(null);
     const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
+
+    const handlePDF = () => {
+        if (solicitud?.id_solicitud) {
+          generarPDFSolicitud(solicitud.id_solicitud);
+        }
+      };
+
 
     const openEditDocModal = (id: number) => {
         setDocAEditar(id);
@@ -112,22 +120,6 @@ const TablaSolicitudes: React.FC<{
 
     const { solicitud, justificacion, techoPresupuestal, documentos_adicionales } = solicitudes;
 
-    const generarPDF = async (idSolicitud: number) => {
-        try {
-          const res = await fetch(`/api/pdfsolicitud?id=${idSolicitud}`);
-      
-          if (!res.ok) throw new Error("No se pudo generar el PDF");
-      
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          window.open(url, "_blank"); // abre el PDF en una nueva pestaña
-        } catch (error) {
-          console.error("Error al generar PDF:", error);
-          alert("Ocurrió un error al generar el PDF.");
-        }
-    };
-
-      
     return (
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -148,9 +140,15 @@ const TablaSolicitudes: React.FC<{
                     <button onClick={() => openEditModal(solicitud.id_solicitud)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
                         Editar
                     </button>
-                    <button onClick={() => generarPDF(solicitud.id_solicitud)} className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition">
-                        Generar PDF
-                    </button>
+                    <button
+  onClick={handlePDF}
+  className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
+>
+  Generar PDF
+</button>
+
+
+
                     <button
                         onClick={() => openCommentsModal(solicitud.id_solicitud, "suficiencia", solicitud.id_solicitud)}
                         className="bg-purple-500 text-white py-2 rounded-xl shadow hover:bg-purple-600 transition"
