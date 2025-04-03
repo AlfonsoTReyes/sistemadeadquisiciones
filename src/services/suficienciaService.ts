@@ -29,6 +29,49 @@ export const getSuficienciaById = async (id: number) => {
   }
 };
 
+
+export const getSuficienciaByIdPDF = async (id: number) => {
+  try {
+    const result = await sql`
+    SELECT 
+      s.id_suficiencia,
+      s.id_secretaria,
+      sec.nombre AS nombre_secretaria,
+      s.oficio,
+      s.asunto,
+      s.lugar,
+      s.fecha,
+      s.hora,
+      s.cuenta,
+      s.cantidad,
+      s.motivo,
+      s.id_usuario,
+      u.nombre AS nombre_usuario,
+      u.apellidos AS apellido_usuario,
+      u.puesto,
+      s.created_at,
+      s.updated_at,
+      s.id_solicitud,
+      s.id_dependencia,
+      d.nombre AS nombre_dependencia,
+      s.estatus
+    FROM 
+      public.solicitud_suficiencia s
+    JOIN 
+      public.secretarias sec ON s.id_secretaria = sec.id_secretaria
+    JOIN 
+      public.usuarios u ON s.id_usuario = u.id_usuario
+    JOIN 
+      public.dependencias d ON s.id_dependencia = d.id_dependencia
+    WHERE s.id_suficiencia = ${id};
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al obtener suficiencia:", error);
+    throw error;
+  }
+};
+
 // crear nueva suficiencia
 export const createSuficiencia = async (data: {
   id_secretaria: number;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getJustificaciones,
   getJustificacionById,
+  getJustificacionByIdPDF,
   createJustificacion,
   updateJustificacion,
   deleteJustificacion
@@ -11,6 +12,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id_just');
+    const id_j = searchParams.get('id');
+
+    if (id_j) {
+      console.log("sassasasaas");
+      const justificacion = await getJustificacionByIdPDF(parseInt(id_j));
+      if (!justificacion) {
+        return NextResponse.json({ message: 'Justificación no encontrada' }, { status: 404 });
+      }
+      return NextResponse.json(justificacion);
+    }
 
     if (id) {
       const justificacion = await getJustificacionById(parseInt(id));

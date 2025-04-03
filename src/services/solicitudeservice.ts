@@ -59,7 +59,8 @@ export const getSolicitudByIdPDF = async (id: number) => {
         sec.nombre AS nombre_secretaria, 
         dep.nombre AS nombre_dependencia,
         u.nombre AS nombre_usuario,
-        u.apellidos
+        u.apellidos AS apellido_usuario,
+        u.puesto AS puesto_usuario
       FROM solicitud_adquisicion s
       LEFT JOIN secretarias sec ON s.id_secretaria = sec.id_secretaria
       LEFT JOIN dependencias dep ON s.id_dependencia = dep.id_dependencia
