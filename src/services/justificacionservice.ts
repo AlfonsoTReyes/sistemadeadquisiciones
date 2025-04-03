@@ -26,6 +26,29 @@ export const getJustificacionById = async (id: number) => {
   }
 };
 
+export const getJustificacionByIdPDF = async (id: number) => {
+  try {
+
+    const result = await sql`
+      select 
+        j.*,
+        u.nombre AS nombre_usuario,
+        u.apellidos AS apellido_usuario,
+        u.puesto AS puesto_usuario
+      from justificacion_solicitud j
+      join solicitud_adquisicion s on j.id_solicitud = s.id_solicitud
+      join usuarios u on s.id_usuario = u.id_usuario
+      where j.id_justificacion =
+      ${id};
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error al obtener justificación:", error);
+    throw error;
+  }
+};
+
+
 // crear nueva justificación
 export const createJustificacion = async (data: {
   id_solicitud: number;
