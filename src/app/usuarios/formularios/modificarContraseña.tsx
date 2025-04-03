@@ -3,7 +3,11 @@ import React, { useState, useEffect } from "react";
 import bcrypt from 'bcryptjs'; //Se importa Bcrypt.js es una biblioteca para manejar el cifrado seguro de contraseñas.
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; //Se importa FontAwesomeIcon es el componente React utilizado para mostrar los íconos de Font Awesome.
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'; //Se importa estos íconos pertenecen al paquete de íconos sólidos de Font Awesome y son importados desde @fortawesome/free-solid-svg-icons.
-import { updateUser } from "./fetchUsuarios";
+
+//import { updateUser } from "./fetchUsuarios";
+
+import { updateUser } from "../../peticiones_api/fetchUsuarios";
+
 
 
 // Se define las propiedades que va a recibir los objetos declarados en la interfaz

@@ -6,7 +6,6 @@ import TablaDocumentosProveedor from './tablaDocProveedores'; // Ajusta ruta
 import GestionDocumentosProveedor from './formularios/altaDocProveedores'; // Ajusta ruta
 import { fetchDocumentosPorProveedor } from './formularios/fetchDocumentosProveedores'; // Ajusta ruta
 import { DocumentoProveedor } from "./interfaces"; // Ajusta ruta
-import ModalDoc from '../../../componentes/ModalDoc/modalDoc';
 
 
 const DocumentosProveedorPage = () => {
@@ -19,11 +18,6 @@ const DocumentosProveedorPage = () => {
   const [loadingDocs, setLoadingDocs] = useState<boolean>(false); // Loading específico para la lista de documentos
   const [errorPage, setErrorPage] = useState<string | null>(null); // Errores al cargar ID/Tipo/Usuario
   const [errorDocs, setErrorDocs] = useState<string | null>(null); // Errores al cargar/actualizar documentos
-
-  // --- Estado para el Modal ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
 
 
   // 1. Efecto para obtener IDs y Tipo desde sessionStorage al montar
@@ -56,6 +50,8 @@ const DocumentosProveedorPage = () => {
         if (tipoNormalizado && (tipoNormalizado === 'moral' || tipoNormalizado === 'fisica')) {
             // Guardamos el valor original leído de sessionStorage, o uno normalizado si prefieres
             providerTypeFound = storedTipo; // Guarda 'moral' o 'fisica' (el original)
+            // O si quieres forzar la capitalización correcta en el estado:
+            // providerTypeFound = tipoNormalizado === 'moral' ? 'Moral' : 'Fisica';
         } else {
             // Error si falta el tipo o no es válido (incluso después de normalizar)
             errorFound = `Tipo de proveedor ('${storedTipo || 'ninguno'}') inválido o no encontrado en sesión.`;
@@ -100,8 +96,6 @@ const DocumentosProveedorPage = () => {
 
   }, []); // Ejecutar solo al montar
 
-
-
   // 2. Función para cargar/recargar los documentos (depende de idProveedor)
   const fetchDocsCallback = useCallback(async () => {
     if (!idProveedor) {
@@ -125,27 +119,19 @@ const DocumentosProveedorPage = () => {
     }
   }, [idProveedor]); // Dependencia: idProveedor
 
+
+
   useEffect(() => {
     if (idProveedor && !loadingPage) { // Ejecuta solo si tenemos ID y la carga inicial de IDs terminó
         fetchDocsCallback();
     }
 }, [idProveedor, loadingPage, fetchDocsCallback]); // Dependencias correctas
 
-  // Este handler se pasa a ProveedorData o se usa en un botón aquí
-  const handleOpenDocumentsModal = () => {
-    if (idProveedor && tipoProveedor) {
-      console.log(`Opening documents modal for ID: ${idProveedor}, Type: ${tipoProveedor}`); // Debug
-      openModal(); // <-- Simplemente abre el modal
-    } else {
-      console.error("Faltan datos (ID o Tipo) para abrir modal de documentos. Data:", idProveedor);
-      setErrorPage("No se pueden gestionar los documentos: faltan datos del proveedor.");
-      alert("No se pueden gestionar los documentos porque no se cargaron los datos del proveedor correctamente (falta ID o Tipo).");
-    }
-};
+
 
   return (
     <div>
-<DynamicMenu />
+      <DynamicMenu />
       <div className="min-h-screen p-4 md:p-8" style={{ marginTop: '80px' }}>
         <h1 className="text-2xl text-center sm:text-left font-bold mb-6">
           Documentos del Proveedor {idProveedor ? `(ID: ${idProveedor} - ${tipoProveedor || 'Tipo Desconocido'})` : ''}
@@ -166,32 +152,26 @@ const DocumentosProveedorPage = () => {
              <p className="text-center text-gray-500 mt-10">No se ha especificado un proveedor.</p>
         ) : null /* Evita mostrar tabla o mensaje de "no docs" mientras carga ID */}
 
-        {!loadingPage && idProveedor && !errorPage && (
-             <div className="mt-6 pt-6 border-t text-center">
-                <button
-                    onClick={handleOpenDocumentsModal}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow"
-                >
-                    Gestionar Documentos
-                </button>
-            </div>
+        {/* Renderizar la gestión de documentos solo si tenemos ID y Tipo y no hay error */}
+        {!loadingPage && !errorPage && idProveedor && tipoProveedor && (
+             <GestionDocumentosProveedor // O la lógica integrada aquí
+                idProveedor={idProveedor}
+                tipoProveedor={tipoProveedor} // <-- Pasa el tipo
+                // ... otras props necesarias (idUsuarioLogueado, documentos, onRefresh, etc.)
+                idUsuarioLogueado={idUsuarioLogueado} // Pasa el ID del usuario obtenido
+                documentos={documentos}               // Pasa la lista de documentos del estado
+                isLoadingDocs={loadingDocs}           // Pasa el estado de carga de la lista de docs
+                errorGlobal={errorDocs}               // Pasa los errores específicos de la carga/actualización de docs
+                onRefreshDocuments={fetchDocsCallback} // Pasa la función para refrescar la lista
+             />
         )}
-        <ModalDoc isOpen={isModalOpen} onClose={closeModal}> {/* <-- Cambiado de <Modal> a <ModalDoc> */}
-          {idProveedor && tipoProveedor ? (
-              <GestionDocumentosProveedor
-                  idProveedor={idProveedor}
-                  tipoProveedor={tipoProveedor}
-                  onClose={closeModal}
-              />
-          ) : (
-             <div className="p-6 text-center">
-                 <p className="text-red-500">Error: No se pudo cargar la información del proveedor para gestionar documentos.</p>
-                 <button onClick={closeModal} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded">Cerrar</button>
-             </div>
-          )}
-      </ModalDoc> {/* <-- Cambiado de </Modal> a </ModalDoc> */}
-  
-        </div>
+
+        {/* Mensaje si falta algo después de cargar */}
+        {!loadingPage && !errorPage && (!idProveedor || !tipoProveedor) && (
+            <p className="text-center text-gray-500 mt-10">No se ha podido determinar el proveedor o su tipo.</p>
+        )}
+
+      </div>
       <Pie />
     </div>
   );
