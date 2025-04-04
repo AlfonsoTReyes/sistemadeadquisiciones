@@ -17,7 +17,6 @@ export const getProveedorById = async (id: number) => {
       throw new Error('Proveedor no encontrado.');
     }
 
-    // Determine type based on which fields are not null
     const row = result.rows[0];
     const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido');
 

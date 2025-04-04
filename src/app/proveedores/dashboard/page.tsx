@@ -25,8 +25,8 @@ export default function PageProveedorDashboard() {
         setUserId(userIdNum);
         fetchProviderData(userIdNum); // Llama a fetch aquí si está bien
       } else {
-         setError("ID de usuario inválido en sesión.");
-         setLoading(false);
+        setError("ID de usuario inválido en sesión.");
+        setLoading(false);
       }
     } else {
       setError("Usuario no autenticado. Por favor, inicie sesión.");
