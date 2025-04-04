@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import DynamicMenu from "../dinamicMenu";
+import MenuPrincipal from "../menu";
 import Pie from "../pie";
 import TablaPreSuficiencia from "./tablaPreSuficiencia";
 import { fetchSoliPreSuficiencia } from "../peticiones_api/peticionPreSuficiencia";
@@ -21,7 +21,6 @@ const SolicitudPage = () => {
     try {
       const data = await fetchSoliPreSuficiencia();
       setDetallesSolicitud(data);
-      console.log(data);
     } catch (err) {
       console.error("error al obtener detalles de la solicitud:", err);
       setError("no se pudo cargar la solicitud.");
@@ -35,7 +34,7 @@ const SolicitudPage = () => {
 
   return (
     <div>
-      <DynamicMenu />
+      <MenuPrincipal />
       <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
         <h1 className="text-2xl text-center font-bold mb-4">
           Solicitud de la pre - suficiencia

@@ -4,7 +4,7 @@ import Menu from '../menu_solicitante';
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaSolicitudes';
 import AltaSolicitud from './formularios/alta';
-import DynamicMenu from "../../dinamicMenu";
+import MenuPrincipal from "../../menu";
 import { fetchSolicitudes } from '../../peticiones_api/peticionSolicitudes';
 
 const SolicitudPage = () => {
@@ -51,7 +51,7 @@ const SolicitudPage = () => {
 
     return (
         <div>
-            <DynamicMenu />
+            <MenuPrincipal />
             <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
                 <h1 className="text-2xl text-center font-bold mb-4">Lista de Solicitudes</h1>
 

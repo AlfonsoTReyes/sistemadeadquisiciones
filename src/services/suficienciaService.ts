@@ -164,7 +164,6 @@ export const updateSuficienciaEstatus = async (
   id: number, estatus: string
 ) => {
   try {
-    console.log(estatus);
     const result = await sql`
       UPDATE solicitud_suficiencia SET
         estatus = ${estatus},
@@ -207,11 +206,137 @@ export const getPreSuficienciasPendientes = async () => {
       LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
       LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
       LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
-            WHERE ss.estatus= 'Enviado para atender';
+      WHERE ss.estatus != 'Pendiente';
     `;
     return result.rows;
   } catch (error) {
     console.error("error al obtener suficiencias:", error);
+    throw error;
+  }
+};
+
+
+export const obtenerTipoSuficiencia = async (id_suficiencia: number) => {
+  try {
+    const result = await sql`
+      SELECT tipo
+      FROM solicitud_suficiencia
+      WHERE id_suficiencia = ${id_suficiencia};
+    `;
+
+    return result.rows[0]?.tipo || null;
+  } catch (error) {
+    console.error("error al obtener tipo de suficiencia:", error);
+    throw error;
+  }
+};
+
+
+
+/** DOCUMENTO RESPUESTA DE PRE SUFICIENCIA **/
+
+export const guardarDocumentoPreSuficiencia = async ({
+  id_suficiencia,
+  nombre_original,
+  ruta_archivo,
+  tipo_documento,
+  estatus,
+  id_usuario,
+}: {
+  id_suficiencia: number;
+  nombre_original: string;
+  ruta_archivo: string;
+  tipo_documento: string;
+  estatus: string;
+  id_usuario: number;
+}) => {
+  try {
+    const result = await sql`
+      INSERT INTO documento_suficiencia (
+        id_suficiencia,
+        nombre_original,
+        ruta_archivo,
+        estatus,
+        id_usuario,
+        tipo,
+        created_at,
+        fecha_respuesta
+      ) VALUES (
+        ${id_suficiencia},
+        ${nombre_original},
+        ${ruta_archivo},
+        ${estatus},
+        ${id_usuario},
+        ${tipo_documento},
+        NOW(),
+        NOW()
+      )
+      RETURNING *;
+    `;
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al guardar documento en documento_suficiencia:", error);
+    throw error;
+  }
+};
+
+
+export const updateSuficienciaEstatusAtendido = async (
+  id: number, estatus: string
+) => {
+  try {
+    const result = await sql`
+      UPDATE solicitud_suficiencia SET
+        estatus = ${estatus},
+        fecha_contestacion = NOW()
+      WHERE id_suficiencia = ${id}
+      RETURNING *;
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al actualizar suficiencia:", error);
+    throw error;
+  }
+};
+
+export const getSuficienciaRespuesBySolicitud = async (id: number) => {
+  try {
+    const result = await sql`
+      SELECT * FROM documento_suficiencia WHERE id_suficiencia = ${id};
+    `;
+
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener suficiencia:", error);
+    throw error;
+  }
+};
+
+export const obtenerDocumentoPorId = async (id_doc_solicitud: number) => {
+  try {
+    const result = await sql`
+      SELECT * FROM documento_suficiencia
+      WHERE id_documento_suficiencia = ${id_doc_solicitud};
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("error al obtener documentos por solicitud:", error);
+    throw error;
+  }
+};
+
+export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) => {
+  try {
+    const result = await sql`
+      DELETE FROM documento_suficiencia
+      WHERE id_documento_suficiencia = ${id_doc_solicitud};
+    `;
+
+    
+    return { success: true };
+  } catch (error) {
+    console.error("error al obtener documentos por solicitud:", error);
     throw error;
   }
 };
