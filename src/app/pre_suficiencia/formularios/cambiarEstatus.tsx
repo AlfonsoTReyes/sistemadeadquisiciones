@@ -30,6 +30,7 @@ const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
         nuevoEstatus,
       };
 
+      console.log(nuevoEstatus);
     try {
         await updateSolicitudEstatus(estatusData);
       

@@ -3,9 +3,9 @@ const API_URL_OTROS = "/api/documento_presuficiencia";
 
 
 /** Obtiene la lista de roles desde la API */
-export const fetchSoliPreSuficiencia = async () => {
+export const fetchSoliPreSuficiencia = async (tipo) => {
   try {
-    const response = await fetch(`${API_URL}`);
+    const response = await fetch(`${API_URL}?tipo=${tipo}`);
     if (!response.ok) {
       throw new Error("Error al obtener las solicitudes de detalle");
     }
@@ -118,5 +118,17 @@ export const deleteDocumento = async (idDoc) => {
     return await response.json();
   } catch (error) {
     throw new Error(error.message || "Error desconocido");
+  }
+};
+
+export const fetchSoliSuficiencia = async (tipo) => {
+  try {
+    const response = await fetch(`${API_URL}?tipo=${tipo}`);
+    if (!response.ok) {
+      throw new Error("Error al obtener las solicitudes de detalle");
+    }
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
   }
 };
