@@ -46,7 +46,10 @@ export async function PUT(req: NextRequest) {
 
     console.log(tipoOrigen, nuevoEstatus);
     switch (tipoOrigen) {
+      
       case "suficiencia":
+    console.log(tipoOrigen, nuevoEstatus);
+
         resultado = await updateSolicitudEstatus(idDoc, nuevoEstatus);
         break;
 

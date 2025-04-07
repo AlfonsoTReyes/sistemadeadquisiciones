@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import ModificarSolicitud from "./formularios/modificar";
 import Link from 'next/link';
-
+import ModalConfirmacion from "../detalle_solicitudes/formularios/modificarEstatus";
+import ModalFirmaEnvio from "./formularios/firmar"; // Ajusta la ruta
 
 interface Solicitud {
     id_solicitud: number;
@@ -28,14 +29,27 @@ const TablaSolicitudes: React.FC<{
     const [solicitudAEditar, setSolicitudAEditar] = useState<number | null>(null);
     const [isAprobarModalOpen, setIsAprobarModalOpen] = useState(false);
     const [solicitudAAprobar, setSolicitudAAprobar] = useState<number | null>(null);
+    const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
+    const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+    const [solicitudAFirmar, setSolicitudAFirmar] = useState<number | null>(null);
 
+    const openFirmaModal = (id: number) => {
+        setSolicitudAFirmar(id);
+        setIsFirmaModalOpen(true);
+    };
+    
+    const closeFirmaModal = () => {
+        setSolicitudAFirmar(null);
+        setIsFirmaModalOpen(false);
+    };
+    
     const openEditModal = (id: number) => {
         setSolicitudAEditar(id);
         setIsEditModalOpen(true);
     };
 
     const handleDetalleClick = (idSolicitud: number) => {
-        sessionStorage.setItem("solicitudId", idSolicitud.toString()); // Convierte el ID a string
+        sessionStorage.setItem("solicitudId", idSolicitud.toString());
     };
     
 
@@ -45,15 +59,16 @@ const TablaSolicitudes: React.FC<{
         onSolicitudAdded(); // recargar solicitudes después de la edición
     };
 
-    const openAprobarModal = (id: number) => {
-        setSolicitudAAprobar(id);
+    const openAprobarModal = (idDoc: number, tipoOrigen: string) => {
+        setSolicitudAAprobar(idDoc);
+        setTipoOrigenModal(tipoOrigen);
         setIsAprobarModalOpen(true);
     };
 
     const closeAprobarModal = () => {
         setSolicitudAAprobar(null);
         setIsAprobarModalOpen(false);
-        onSolicitudAdded(); // recargar solicitudes después de la aprobación
+        setTipoOrigenModal("");
     };
 
     return (
@@ -91,21 +106,36 @@ const TablaSolicitudes: React.FC<{
                             <td className="border px-4 py-2">${solicitud.monto.toLocaleString()}</td>
                             <td className="border px-4 py-2">{solicitud.estatus}</td>
                             <td className="border px-4 py-2">
-                                <button
-                                    onClick={() => openEditModal(solicitud.id_solicitud)}
-                                    className="text-yellow-800 hover:underline"
-                                >
-                                    Editar
-                                </button>
-                                <br />
-                                {solicitud.estatus === "pendiente" && (
+                                {!["en revisión", "aprobada"].includes(solicitud.estatus.toLowerCase()) && (
+                                <>
                                     <button
-                                        onClick={() => openAprobarModal(solicitud.id_solicitud)}
-                                        className="text-green-800 hover:underline"
+                                        onClick={() => openFirmaModal(solicitud.id_solicitud)}
+                                        className="text-blue-600 hover:underline"
                                     >
-                                        Cambiar estatus
+                                        Firmar y enviar
                                     </button>
+
+                                    <br />
+                                    <button
+                                        onClick={() => openEditModal(solicitud.id_solicitud)}
+                                        className="text-yellow-600 hover:underline"
+                                    >
+                                        Editar
+                                    </button>
+                                    <br />
+                                    </>
                                 )}
+                                <button
+                                onClick={() =>
+                                    openAprobarModal(
+                                    solicitud.id_solicitud, "suficiencia"
+                                    )
+                                }
+                                className="text-red-700"
+                                >
+                                    Cambiar estatus
+                                </button>
+                                    
                                 <br></br>
                                 <Link
                                     className="text-orange-500 hover:underline"
@@ -113,6 +143,13 @@ const TablaSolicitudes: React.FC<{
                                     onClick={() => handleDetalleClick(solicitud.id_solicitud)}
                                     >
                                     Detalle de solicitudes
+                                </Link>
+                                <Link
+                                    className="text-orange-500 hover:underline"
+                                    href="./detalle_solicitudes"
+                                    onClick={() => handleDetalleClick(solicitud.id_solicitud)}
+                                    >
+                                    Detalle de cómite
                                 </Link>
                             </td>
                         </tr>
@@ -126,7 +163,24 @@ const TablaSolicitudes: React.FC<{
                     <ModificarSolicitud idSolicitud={solicitudAEditar} onClose={closeEditModal} onSolicitudUpdated={onSolicitudAdded} />
                   </div>
                 </div>
-              )}
+            )}
+            {isAprobarModalOpen && solicitudAAprobar !== null && tipoOrigenModal !== null && (
+                <ModalConfirmacion
+                    idDoc={solicitudAAprobar}
+                    tipoOrigen={tipoOrigenModal}
+                    onClose={closeAprobarModal}
+                    onUpdateSuccess={onSolicitudAdded}
+                />
+            )}
+            {isFirmaModalOpen && solicitudAFirmar !== null && (
+            <ModalFirmaEnvio
+                idSolicitud={solicitudAFirmar}
+                onClose={closeFirmaModal}
+                onSuccess={onSolicitudAdded}
+            />
+            )}
+
+
         </div>
     );
 };

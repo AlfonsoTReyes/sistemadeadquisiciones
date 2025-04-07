@@ -12,6 +12,8 @@ import ModificarSolicitud from "../solicitudes/formularios/modificar";
 import ModalComentarios from "../../comentarios_documentos/modal";
 import ModalConfirmacion from "./formularios/modificarEstatus";
 import ModalEnvioConfirmacion from "./formularios/enviarSolicitud";
+import ModalRespuestasTecho from "./formularios/respuestaPreSuficiencia";
+
 
 
 const TablaSolicitudes: React.FC<{ 
@@ -37,6 +39,8 @@ const TablaSolicitudes: React.FC<{
     const [estatusDoc, setDocEstatus] = useState<number | null>(null);
     const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
     const [isEnviarConfirmModalOpen, setIsEnviarConfirmModalOpen] = useState(false);
+    const [isVerRespuestasModalOpen, setIsVerRespuestasModalOpen] = useState(false);
+
 
 
     type TipoPDF = "solicitud" | "justificacion" | "presupuesto";
@@ -145,7 +149,7 @@ const TablaSolicitudes: React.FC<{
         return <p className="text-gray-500">No hay detalles disponibles.</p>;
     }
 
-    const { solicitud, justificacion, techoPresupuestal, documentos_adicionales } = solicitudes;
+    const { solicitud, justificacion, techoPresupuestal, documentos_adicionales, techoPresupuestalRespuesta } = solicitudes;
 
     return (
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -164,9 +168,14 @@ const TablaSolicitudes: React.FC<{
                     Estatus: {solicitud.estatus}
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
-                    <button onClick={() => openEditModal(solicitud.id_solicitud)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
-                        Editar
-                    </button>
+                    {!["en revisión", "aprobada", "enviada para revisión"].includes(solicitud.estatus.toLowerCase()) && (
+                        <button 
+                            onClick={() => openEditModal(solicitud.id_solicitud)} 
+                            className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition"
+                        >
+                            Editar
+                        </button>
+                    )}
                     <button
                         onClick={() => generarPDF(solicitud.id_solicitud, "solicitud")}
                         className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
@@ -203,9 +212,15 @@ const TablaSolicitudes: React.FC<{
                         Estatus: {solicitud.estatus}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
-                        <button onClick={() => openEditJustModal(justificacion.id_justificacion)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
-                            Editar
-                        </button>
+                        {["en revisión", "aprobada", "enviada para revisión"].includes(justificacion.estatus.toLowerCase()) && (
+                            <button 
+                                onClick={() => openEditJustModal(justificacion.id_justificacion)} 
+                                className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition"
+                            >
+                                Editar
+                            </button>
+                        )}
+
                         <button
                             onClick={() => generarPDF(justificacion.id_justificacion, "justificacion")}
                             className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
@@ -248,19 +263,39 @@ const TablaSolicitudes: React.FC<{
 
             {/* Card de Techo Presupuestal */}
             {techoPresupuestal ? (
-                <div className="bg-white shadow-xl rounded-xl p-6 border border-gray-200 hover:shadow-2xl transition duration-300">
+                <div className={`shadow-xl rounded-xl p-6 border transition duration-300 ${
+                    techoPresupuestalRespuesta 
+                      ? "bg-white border-gray-200 hover:shadow-2xl" 
+                      : "bg-red-100 border-red-300 text-red-800"
+                  }`}>
                     <div className="text-5xl text-center mb-4">💰</div>
                     <h2 className="text-xl font-bold text-center text-gray-800 mb-4">Solicitud Pre-suficiencia</h2>
                     <p><strong>Fecha de creación:</strong> {new Date(techoPresupuestal.created_at).toLocaleString()}</p>
                     <p><strong>No. Folio:</strong> {techoPresupuestal.oficio}</p>
-                    <p><strong>Fecha Aprobación:</strong> {new Date(techoPresupuestal.fecha_aprobacion).toLocaleString() || "Sin contestación"}</p>
+                    <p><strong>Fecha Aprobación:</strong> {new Date(techoPresupuestal.fecha_contestacion).toLocaleString() || "Sin contestación"}</p>
                     <p className={`font-semibold ${techoPresupuestal.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
                         Estatus: {techoPresupuestal.estatus}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
-                        <button onClick={() => openEditPreModal(techoPresupuestal.id_suficiencia)} className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition">
-                            Editar
-                        </button>
+                        {!["atendido", "enviado para atender"].includes(techoPresupuestal.estatus.toLowerCase()) && (
+                            <>
+                                <button 
+                                onClick={() => openEditPreModal(techoPresupuestal.id_suficiencia)} 
+                                className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition"
+                                >
+                                Editar
+                                </button>
+                                <button
+                                onClick={() =>
+                                    abrirModalEnvioConfirmacion(techoPresupuestal.id_suficiencia, "aquisicion")
+                                }
+                                className="bg-blue-600 text-white py-2 rounded-xl shadow hover:bg-blue-700 transition"
+                                >
+                                Enviar solicitud
+                                </button>
+                            </>
+                        )}
+
                         <button
                             onClick={() => generarPDF(techoPresupuestal.id_suficiencia, "presupuesto")}
                             className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
@@ -273,16 +308,6 @@ const TablaSolicitudes: React.FC<{
                             >
                             Ver Comentarios
                         </button>
-                        <button
-                            onClick={() =>
-                                abrirModalEnvioConfirmacion(
-                                techoPresupuestal.id_suficiencia, "aquisicion"
-                                )
-                            }
-                            className="bg-blue-600 text-white py-2 rounded-xl shadow hover:bg-blue-700 transition"
-                            >
-                            Enviar solicitud
-                        </button>
 
                         <button
                             onClick={() =>
@@ -294,6 +319,15 @@ const TablaSolicitudes: React.FC<{
                             >
                                 Actualizar estatus
                         </button>
+                        {techoPresupuestalRespuesta && (
+                            <button
+                                onClick={() => setIsVerRespuestasModalOpen(true)}
+                                className="bg-indigo-600 text-white py-2 rounded-xl shadow hover:bg-indigo-700 transition"
+                            >
+                                Ver respuestas
+                            </button>
+                        )}
+
                     </div>
                 </div>
             ) : (
@@ -342,9 +376,15 @@ const TablaSolicitudes: React.FC<{
                             >
                                 Ver Comentarios
                             </button>
-                            <button onClick={() => openEditDocModal(doc.id_doc_solicitud)} className="bg-red-500 text-white py-2 px-4 rounded-xl shadow hover:bg-red-600 transition">
-                                Eliminar
-                            </button>
+                            {!["en revisión", "aprobada", "enviada para revisión"].includes(doc.estatus.toLowerCase()) && (
+                                <button 
+                                    onClick={() => openEditDocModal(doc.id_doc_solicitud)} 
+                                    className="bg-red-500 text-white py-2 px-4 rounded-xl shadow hover:bg-red-600 transition"
+                                >
+                                    Eliminar
+                                </button>
+                            )}
+
                             <button
                                 onClick={() =>
                                     abrirModalConfirmacion(
@@ -490,15 +530,6 @@ const TablaSolicitudes: React.FC<{
                 />
             )}
 
-            {/* {isEnviarConfirmModalOpen && estatusDoc !== null && tipoOrigenModal !== null && (
-                <ModalEnvioConfirmacion
-                    idDoc={estatusDoc}
-                    tipoOrigen={tipoOrigenModal}
-                    onClose={cerrarModalConfirmacion}
-                    onUpdateSuccess={onSolicitudAdded}
-                />
-            )} */}
-
             {isEnviarConfirmModalOpen && estatusDoc !== null &&(
                 <ModalEnvioConfirmacion
                     idDoc={estatusDoc}
@@ -508,6 +539,16 @@ const TablaSolicitudes: React.FC<{
                 />
             )}
 
+            {isVerRespuestasModalOpen && techoPresupuestalRespuesta && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl">
+                <ModalRespuestasTecho
+                    respuestas={[techoPresupuestalRespuesta]} // si luego lo conviertes en array completo
+                    onClose={() => setIsVerRespuestasModalOpen(false)}
+                />
+                </div>
+            </div>
+            )}
 
 
         </div>

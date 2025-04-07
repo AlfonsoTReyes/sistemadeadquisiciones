@@ -25,9 +25,31 @@ export const getDetallesSolicitudPorId = async (id: number) => {
       SELECT * FROM solicitud_suficiencia WHERE id_solicitud = ${id}
     `;
 
-    const documentoPresupuestal = await sql`
-      SELECT * FROM techo_presupuestal WHERE id_solicitud = ${id}
-    `;
+    const techoPresupuestalR = techoPresupuestal.rows[0];
+
+let documentoPresupuestal = { rows: [] };
+
+if (techoPresupuestalR) {
+  documentoPresupuestal = await sql`
+    SELECT 
+      ds.id_documento_suficiencia,
+      ds.id_suficiencia,
+      ds.nombre_original,
+      ds.ruta_archivo,
+      ds.comentario,
+      ds.estatus,
+      ds.id_usuario,
+      u.nombre || ' ' || u.apellidos AS nombre_usuario,
+      ds.tipo,
+      ds.created_at,
+      ds.updated_at,
+      ds.fecha_respuesta
+    FROM documento_suficiencia ds
+    LEFT JOIN usuarios u ON ds.id_usuario = u.id_usuario
+    WHERE ds.id_suficiencia = ${techoPresupuestalR.id_suficiencia}
+  `;
+}
+  
 
     const documentos_adicionales = await sql`
       SELECT * FROM documentos_solicitud WHERE id_solicitud = ${id}
@@ -37,7 +59,7 @@ export const getDetallesSolicitudPorId = async (id: number) => {
     return {
       solicitud: solicitud.rows[0] || null,
       justificacion: justificacion.rows[0] || null,
-      justificacionDoc: documentoPresupuestal.rows[0] || null,
+      techoPresupuestalRespuesta: documentoPresupuestal.rows[0] || null,
       techoPresupuestal: techoPresupuestal.rows[0] || null,
       documentos_adicionales: documentos_adicionales.rows || null
     };

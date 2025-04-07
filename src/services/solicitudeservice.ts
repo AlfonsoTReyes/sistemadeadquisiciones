@@ -163,3 +163,45 @@ export const updateSolicitudEstatus = async (
     throw error;
   }
 };
+
+
+export const updateSolicitudEstatusFirma = async (
+  idSolicitud: number
+) => {
+  try {
+    const result = await sql`
+      UPDATE solicitud_adquisicion 
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+    const resultj = await sql`
+      UPDATE justificacion_solicitud
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+    const resulta = await sql`
+      UPDATE documentos_solicitud
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+  
+
+    return result.rows[0];
+  } catch (error) {
+    console.log(error);
+    console.error("error al actualizar solicitud:", error);
+    throw error;
+  }
+};

@@ -206,7 +206,42 @@ export const getPreSuficienciasPendientes = async () => {
       LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
       LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
       LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
-      WHERE ss.estatus != 'Pendiente';
+      WHERE ss.estatus != 'Pendiente' and ss.tipo='Pre-suficiencia';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener suficiencias:", error);
+    throw error;
+  }
+};
+
+
+export const getSuficienciasPendientes = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+        ss.id_suficiencia,
+        s.nombre AS nombre_secretaria,
+        ss.oficio,
+        ss.asunto,
+        ss.lugar,
+        ss.fecha,
+        ss.hora,
+        ss.cuenta,
+        ss.cantidad,
+        ss.motivo,
+        u.nombre || ' ' || u.apellidos AS nombre_usuario,
+        d.nombre AS nombre_dependencia,
+        ss.created_at,
+        ss.updated_at,
+        ss.id_solicitud,
+        ss.estatus,
+        ss.tipo
+      FROM public.solicitud_suficiencia ss
+      LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
+      LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
+      LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
+      WHERE ss.estatus != 'Pendiente' and ss.tipo='Suficiencia';
     `;
     return result.rows;
   } catch (error) {
@@ -337,6 +372,18 @@ export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) 
     return { success: true };
   } catch (error) {
     console.error("error al obtener documentos por solicitud:", error);
+    throw error;
+  }
+};
+
+export const getSuficienciasBySolicitudID = async (idSolicitud: number) => {
+  try {
+    const result = await sql`
+      SELECT 1 FROM solicitud_suficiencia WHERE id_solicitud = ${idSolicitud} LIMIT 1;
+    `;
+    return !!result.rowCount;
+  } catch (error) {
+    console.error("error al obtener suficiencias:", error);
     throw error;
   }
 };
