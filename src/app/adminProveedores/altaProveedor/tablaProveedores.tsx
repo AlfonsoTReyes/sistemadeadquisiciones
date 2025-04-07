@@ -1,16 +1,15 @@
-// src/components/administradorProveedores/tablaAdministradorProveedores.tsx
 import React from 'react';
 // Asegúrate que la ruta a tu interfaz sea correcta
 import { ProveedorData } from './interface'; // O donde la tengas definida
 
 interface TablaProps {
   proveedores: ProveedorData[];
-  //onViewDocuments: (id: number) => void;
+  onViewDocuments: (id: number) => void; // <-- DESCOMENTAR esta prop
   onChangeStatus: (id: number, currentStatus: boolean) => void;
   isLoadingStatusChange: { [key: number]: boolean };
 }
 
-// Función auxiliar para capitalizar el tipo
+// Función auxiliar para capitalizar el tipo (sin cambios)
 const formatTipoProveedor = (tipo: string | undefined | null): string => {
     if (!tipo) return 'Desconocido';
     return tipo.charAt(0).toUpperCase() + tipo.slice(1);
@@ -18,7 +17,7 @@ const formatTipoProveedor = (tipo: string | undefined | null): string => {
 
 const TablaAdministradorProveedores: React.FC<TablaProps> = ({
   proveedores,
-  //onViewDocuments,
+  onViewDocuments, // <-- Recibir la prop
   onChangeStatus,
   isLoadingStatusChange
 }) => {
@@ -37,6 +36,10 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
             <th scope="col" className="px-6 py-3">
               Correo Electrónico
             </th>
+            {/* Añadir Columna Teléfono (si la necesitas - asegúrate que 'telefono' exista en ProveedorData) */}
+            <th scope="col" className="px-6 py-3">
+              Teléfono
+            </th>
             <th scope="col" className="px-6 py-3">
               Tipo
             </th>
@@ -51,7 +54,6 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
         <tbody>
           {proveedores.map((proveedor) => {
              const isLoading = isLoadingStatusChange[proveedor.id_proveedor] ?? false;
-             // Usamos directamente el tipo_proveedor que viene de la API/Servicio
              const tipoProveedorDisplay = formatTipoProveedor(proveedor.tipo_proveedor);
 
              return (
@@ -62,12 +64,16 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
                 <td className="px-6 py-4">
                   {proveedor.correo ?? 'N/A'}
                 </td>
+                 {/* Añadir Celda Teléfono (si la necesitas) */}
                 <td className="px-6 py-4">
-                  {tipoProveedorDisplay} {/* <-- Usamos el tipo directo */}
+                  {proveedor.telefono ?? 'N/A'}
+                </td>
+                <td className="px-6 py-4">
+                  {tipoProveedorDisplay}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    proveedor.estatus // Asume que estatus es booleano
+                    proveedor.estatus
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
@@ -75,16 +81,19 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center space-x-2">
-                  {/*
+                  {/* --- BOTÓN DOCUMENTOS HABILITADO --- */}
                   <button
-                    onClick={() => onViewDocuments(proveedor.id_proveedor)}
+                    onClick={() => onViewDocuments(proveedor.id_proveedor)} // Llama a la función del padre
                     className="font-medium text-blue-600 hover:underline disabled:opacity-50"
-                    disabled={isLoading}
+                    disabled={isLoading} // Deshabilitar si se está cambiando estado
                     aria-label={`Ver documentos del proveedor ${proveedor.rfc}`}
+                    title="Ver Documentos" // Tooltip
                   >
                     Documentos
                   </button>
-                   */}
+                  {/* --- FIN BOTÓN DOCUMENTOS --- */}
+
+                  {/* Botón Cambiar Estatus (sin cambios) */}
                   <button
                     onClick={() => onChangeStatus(proveedor.id_proveedor, proveedor.estatus)}
                     className={`font-medium ${

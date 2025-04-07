@@ -1,83 +1,74 @@
-// src/app/api/proveedores/route.ts (Revisado para claridad y consistencia de nombres)
-
+// src/app/api/admin/proveedores/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-// Asegúrate que la ruta y nombres de funciones sean correctos según tu servicio ACTUAL
+// Ajusta la ruta a tu archivo de servicio
 import {
-    getProveedorById, // Asumiendo que aún existe o la necesitas para el GET por id_proveedor
-    getProveedorByUserId,
-    updateProveedorEstatus // Nombre actual de la función que SÓLO actualiza estatus
-    // updateProveedorCompleto // Si necesitas una función para actualización completa para este PUT
-} from '../../../services/adminproveedoresservice'; // AJUSTA RUTA
+    getAllProveedoresForAdmin, // Para GET (obtener todos)
+    updateProveedorEstatus     // Para PUT (actualizar estatus)
 
-// --- GET (Obtener UN proveedor por ID o UserID) ---
+ } from '@/services/adminproveedoresservice';
+
+// --- GET: Obtener TODOS los proveedores para la tabla de admin ---
 export async function GET(req: NextRequest) {
-    // ... (Tu lógica GET existente está bien para obtener un solo proveedor)
+    console.log("DEBUG API GET /api/admin/proveedores: Request received.");
     try {
-      const { searchParams } = new URL(req.url);
-      const id_proveedor  = searchParams.get('id_proveedor');
-      const id_usuario_proveedor = searchParams.get('id_usuario_proveedor');
+        // Llama a la función específica del servicio para la tabla de admin
+        const proveedores = await getAllProveedoresForAdmin();
 
-      if (id_usuario_proveedor) {
-        const userIdNum = parseInt(id_usuario_proveedor, 10);
-        if (isNaN(userIdNum)) return NextResponse.json({ message: 'ID de usuario proveedor inválido' }, { status: 400 });
-        const proveedor = await getProveedorByUserId(userIdNum); // Llama a servicio
-        if (!proveedor) return NextResponse.json({ message: 'Perfil no encontrado' }, { status: 404 });
-        return NextResponse.json(proveedor);
-
-      } else if (id_proveedor) {
-         const providerIdNum = parseInt(id_proveedor, 10);
-         if (isNaN(providerIdNum)) return NextResponse.json({ message: 'ID de proveedor inválido' }, { status: 400 });
-         // Necesitas asegurarte que getProveedorById exista y funcione si usas esta rama
-         // const proveedor = await getProveedorById(providerIdNum); // Llama a servicio
-         // if (!proveedor) return NextResponse.json({ message: 'Proveedor no encontrado' }, { status: 404 });
-         // return NextResponse.json(proveedor);
-         // Si getProveedorById no existe o no es relevante aquí, elimina esta rama o ajústala
-          return NextResponse.json({ message: 'GET por id_proveedor no implementado o servicio no disponible' }, { status: 501 });
-
-
-      } else {
-         return NextResponse.json({ message: 'Se requiere id_proveedor o id_usuario_proveedor' }, { status: 400 });
-      }
-
-  } catch (error: any) {
-     console.error("GET /api/proveedores Error:", error);
-     return NextResponse.json({ message: 'Error al obtener proveedor', error: error.message }, { status: 500 });
-  }
-}
-
-// --- PUT (Actualización desde el dashboard del proveedor - ¡REVISAR SERVICIO!) ---
-export async function PUT(req: NextRequest) {
-    try {
-        const data = await req.json();
-        const { id_proveedor, estatus, ...restoData } = data; // Separar ID, estatus y el resto
-
-        console.log(`DEBUG PUT /api/proveedores - ID: ${id_proveedor}, Estatus recibido: ${estatus}`);
-
-        if (!id_proveedor || typeof id_proveedor !== 'number') {
-            return NextResponse.json({ message: 'ID de proveedor inválido' }, { status: 400 });
-        }
-
-        // --- INCONSISTENCIA POTENCIAL ---
-        // La función del servicio 'updateProveedorEstatus' SÓLO actualiza el estatus.
-        // Si este PUT debe hacer una actualización completa (usando restoData),
-        // NECESITAS llamar a una función de servicio diferente (ej: updateProveedorCompleto).
-        // Por ahora, llamará a la función de estatus si 'estatus' está presente.
-        if (typeof estatus === 'boolean') {
-             const proveedorActualizado = await updateProveedorEstatus(id_proveedor, estatus);
-             return NextResponse.json(proveedorActualizado);
-        } else {
-            // Aquí iría la lógica para llamar a updateProveedorCompleto(id_proveedor, restoData)
-            // si esa funcionalidad es necesaria para este endpoint PUT.
-             console.warn(`PUT /api/proveedores - Recibió datos pero no un estatus booleano claro. No se realizó acción de estatus. Implementar actualización completa si es necesario.`);
-             return NextResponse.json({ message: 'Operación PUT no configurada para actualización completa o estatus inválido.' }, { status: 400 });
-        }
-        // --- FIN INCONSISTENCIA ---
+        console.log(`DEBUG API GET /api/admin/proveedores: Found ${proveedores.length} providers.`);
+        return NextResponse.json(proveedores);
 
     } catch (error: any) {
-        console.error("ERROR PUT /api/proveedores:", error);
-        if (error.message.includes("no encontrado para actualizar")) {
-             return NextResponse.json({ message: error.message }, { status: 404 });
+        console.error("ERROR GET /api/admin/proveedores:", error);
+        return NextResponse.json(
+            { message: error.message || 'Error al obtener la lista de proveedores para administración.', error: error.message },
+            { status: 500 }
+        );
+    }
+}
+
+// --- PUT: Actualizar el ESTATUS de UN proveedor ---
+// Espera { "id_proveedor": number, "estatus": boolean } en el cuerpo
+export async function PUT(req: NextRequest) {
+    console.log(`DEBUG API PUT /api/admin/proveedores: Request received for status update.`);
+    try {
+        // 1. Leer el cuerpo de la solicitud
+        const data = await req.json();
+        const { id_proveedor, estatus } = data; // Extraer ID y estatus del body
+
+        console.log(`DEBUG API PUT /api/admin/proveedores - Received Body:`, data);
+
+        // 2. Validar los datos recibidos del body
+        if (typeof id_proveedor !== 'number' || isNaN(id_proveedor)) {
+             console.log("DEBUG API PUT: Invalid or missing 'id_proveedor' in body.");
+             return NextResponse.json({ message: 'Se requiere un "id_proveedor" numérico válido en el cuerpo de la solicitud.' }, { status: 400 });
         }
-        return NextResponse.json({ message: 'Error al procesar la solicitud PUT', error: error.message }, { status: 500 });
+        if (typeof estatus !== 'boolean') {
+            console.log("DEBUG API PUT: Invalid or missing 'estatus' in body.");
+            return NextResponse.json({ message: 'Se requiere un valor booleano para "estatus" en el cuerpo de la solicitud.' }, { status: 400 });
+        }
+
+        console.log(`DEBUG API PUT: Calling service updateProveedorEstatus for ID ${id_proveedor} to ${estatus}`);
+        // 3. Llamar al servicio con los datos del body
+        const proveedorActualizado = await updateProveedorEstatus(id_proveedor, estatus);
+
+        console.log(`DEBUG API PUT: Service call successful for ID ${id_proveedor}.`);
+        // 4. Devolver respuesta exitosa
+        return NextResponse.json(proveedorActualizado);
+
+    } catch (error: any) {
+        console.error("ERROR PUT /api/admin/proveedores:", error);
+        // Manejar error si el proveedor no se encontró para actualizar
+        if (error.message.includes("no encontrado para actualizar")) {
+            // Intenta obtener el ID del error si está disponible en el mensaje
+            const failedIdMatch = error.message.match(/ID (\d+)/);
+            const failedId = failedIdMatch ? failedIdMatch[1] : 'desconocido';
+            console.log(`DEBUG API PUT: Provider not found (ID: ${failedId})`);
+            return NextResponse.json({ message: error.message }, { status: 404 });
+        }
+        // Error genérico
+        return NextResponse.json(
+            { message: error.message || 'Error al actualizar el estatus del proveedor.', error: error.message },
+            { status: 500 }
+        );
     }
 }

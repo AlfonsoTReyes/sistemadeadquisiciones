@@ -13,13 +13,10 @@ export interface DocumentoData {
 // También necesitarás la interfaz ProveedorData en este archivo o importada
 // src/types/Proveedor.ts
 export interface ProveedorData {
-    id_proveedor: number;
-    rfc: string;
-    correo?: string | null;
-    estatus: boolean;
-    tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-    // Incluye otros campos que devuelva fetchProveedorDetallesPorId si los necesitas mostrar
-    razon_social?: string | null;
-    nombre_fisica?: string | null;
-    // ...
-}
+       id_proveedor: number;
+       rfc: string;
+       correo: string | null;
+       estatus: boolean;
+       telefono: string | null;
+       tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
+   }

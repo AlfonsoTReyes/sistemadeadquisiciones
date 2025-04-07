@@ -1,169 +1,221 @@
-/*
-"use client";
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Pie from "../../pie"; // Ajusta ruta
-import TablaAdministradorProveedores from './tablaProveedores'; // Ajusta ruta
-import { ProveedorData } from './interface'; // Ajusta ruta a tu interfaz
-
-// --- IMPORTA LAS NUEVAS FUNCIONES FETCH ---
-import { fetchAllProveedores, updateProveedorStatus } from './formularios/fetchAltaProveedor'; // <-- AJUSTA RUTA/NOMBRE DE ARCHIVO
-*/
-
-// src/app/administradorProveedores/documentos/[id]/page.tsx
 
 "use client"; // Necesario para hooks de cliente
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation'; // Importa useParams y useRouter
+
+import React, { useState, useEffect, useMemo } from 'react'; // Añade useMemo
+import { useRouter } from 'next/navigation'; // Para navegación
 import Pie from "../../pie"; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 import TablaDocumentos from './tablaProveedores';
-import { ProveedorData } from './interface'; // Ajusta ruta a tu interfaz de proveedor
+import { ProveedorData, DocumentoData } from './interface'; // Ajusta ruta a tu interfaz de proveedor
 
-// Importa las funciones fetch CORRECTAS para esta página
+// Importa las funciones fetch CORRECTAS para la página de admin
 import {
     fetchAllProveedores,
     updateProveedorStatus
 } from './formularios/fetchAltaProveedor'; // Ajusta ruta/nombre de archivo fetch
 
-export default function DocumentosProveedorPage() {
+export default function AdministradorProveedoresPage() {
     const router = useRouter();
-    const params = useParams();
 
-    // Estados específicos para esta página
-    const [idProveedor, setIdProveedor] = useState<number | null>(null); // ID obtenido de la URL
-    const [providerInfo, setProviderInfo] = useState<ProveedorData | null>(null); // Info del proveedor actual
-    const [documentos, setDocumentos] = useState<DocumentoData[]>([]); // Lista de documentos
-    const [loading, setLoading] = useState(true); // Estado de carga general
-    const [error, setError] = useState<string | null>(null); // Estado de error general
-
-    // 1. Efecto para obtener y validar el ID de la URL
+    // Estados para la lista de proveedores, carga y errores
+    const [proveedores, setProveedores] = useState<ProveedorData[]>([]);
+    const [loading, setLoading] = useState(true); // Carga inicial de la lista
+    const [error, setError] = useState<string | null>(null); // Errores generales o de fetch
+    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({}); // Para botones Activar/Desactivar
+    // --- NUEVOS ESTADOS PARA FILTROS ---
+    const [filtroRfc, setFiltroRfc] = useState('');
+    const [filtroCorreo, setFiltroCorreo] = useState('');
+    // --- 1. EFECTO PARA CARGAR LA LISTA INICIAL DE PROVEEDORES ---
     useEffect(() => {
-        const idParam = params?.id; // Obtiene el valor de [id] de la URL
-        // console.log("Documentos Page - Raw ID param:", idParam); // Debug
-
-        if (idParam) {
-            const parsedId = parseInt(idParam as string, 10);
-            if (!isNaN(parsedId)) {
-                setIdProveedor(parsedId);
-                // console.log("Documentos Page - Parsed ID:", parsedId); // Debug
-            } else {
-                setError("El ID del proveedor en la URL es inválido.");
-                setLoading(false);
-            }
-        } else {
-            // Esto no debería ocurrir si la ruta está bien definida, pero por si acaso
-            setError("No se encontró el ID del proveedor en la URL.");
-            setLoading(false);
-        }
-    }, [params?.id]); // Se ejecuta cuando cambia el parámetro id de la URL
-
-    // 2. Efecto para cargar los datos una vez que tenemos un ID válido
-    useEffect(() => {
-        // Solo ejecutar si tenemos un idProveedor válido
-        if (idProveedor === null) {
-             if (!loading && !error) { // Si no está cargando y no hay error previo, muestra mensaje
-                 setError("Esperando ID de proveedor...");
-             }
-             return; // No hacer fetch si no hay ID
-        }
-
-        const loadData = async (id: number) => {
+        const fetchProveedoresData = async () => {
+            // console.log("Admin Page - Fetching initial provider list..."); // Debug
             setLoading(true);
-            setError(null); // Limpia errores previos
-            setProviderInfo(null); // Limpia datos previos
-            setDocumentos([]);
-            // console.log(`Documentos Page - Fetching data for ID: ${id}`); // Debug
-
+            setError(null);
             try {
-                // Llama a las dos funciones fetch en paralelo
-                const [provData, docsData] = await Promise.all([
-                    fetchProveedorDetallesPorId(id),
-                    fetchDocumentosDelProveedor(id)
-                ]);
-
-                // --- Validación de datos del proveedor ---
-                if (provData && provData.id_proveedor) {
-                    setProviderInfo(provData);
-                } else {
-                     // Si no se encontraron datos del proveedor, aún podríamos mostrar documentos si existen,
-                     // pero es mejor lanzar un error o mostrar un mensaje claro.
-                    console.warn("No se encontró información detallada del proveedor con ID:", id);
-                    throw new Error(`No se encontró información para el proveedor con ID ${id}.`);
-                }
-
-                // Asigna los documentos (puede ser un array vacío)
-                setDocumentos(docsData || []);
-                 // console.log("Documentos Page - Data loaded:", { provData, docsData }); // Debug
-
-            } catch (err: any) {
-                console.error("Error fetching data for documents page:", err);
-                setError(err.message || 'Error al cargar los datos.');
-                 setProviderInfo(null); // Limpia en caso de error
-                 setDocumentos([]);
+                // Llama a la función fetch que obtiene TODOS los proveedores para admin
+                const data = await fetchAllProveedores();
+                setProveedores(data || []); // Asegura que sea un array
+                // console.log("Admin Page - Providers loaded:", data.length); // Debug
+            } catch (err) {
+                console.error("Error fetching provider list for admin:", err);
+                setError((err as Error).message || 'Error al cargar la lista de proveedores.');
+                setProveedores([]); // Limpia en caso de error
             } finally {
                 setLoading(false);
             }
         };
 
-        loadData(idProveedor);
+        fetchProveedoresData();
+    }, []); // El array vacío [] asegura que se ejecute solo una vez al montar
 
-    }, [idProveedor]); // Dependencia: se ejecuta cuando idProveedor cambia (después de parsear)
+    // --- 2. HANDLER PARA VER DOCUMENTOS ---
+    const handleViewDocuments = (idProveedor: number) => {
+        if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
+             console.error("handleViewDocuments - ID inválido:", idProveedor);
+             alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
+             return;
+        }
+        console.log("Admin Page - Preparing to view documents for Provider ID:", idProveedor);
 
-    // Función para volver a la página anterior (lista de proveedores)
-    const handleGoBack = () => {
-        router.back(); // Navegación simple hacia atrás
+        // Guarda el ID del PROVEEDOR seleccionado en sessionStorage
+        // Usamos una clave específica para esta acción desde admin
+        sessionStorage.setItem('adminSelectedProveedorId', idProveedor.toString());
+
+        // Navega a la página (estática) de documentos
+        router.push('/administradorProveedores/documentos'); // Ajusta si la ruta es diferente
     };
 
-    // --- Renderizado de la página ---
+    // --- 3. HANDLER PARA CAMBIAR ESTATUS ---
+    const handleChangeStatus = async (idProveedor: number, currentStatus: boolean) => {
+        if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
+             console.error("handleChangeStatus - ID inválido:", idProveedor);
+             alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
+             return;
+        }
+
+        const newStatus = !currentStatus;
+        const proveedorSeleccionado = proveedores.find(p => p.id_proveedor === idProveedor);
+        const confirmationText = newStatus
+            ? `¿Estás seguro de que deseas ACTIVAR al proveedor con RFC ${proveedorSeleccionado?.rfc ?? idProveedor}?`
+            : `¿Estás seguro de que deseas DESACTIVAR al proveedor con RFC ${proveedorSeleccionado?.rfc ?? idProveedor}?`;
+
+        if (window.confirm(confirmationText)) {
+            setLoadingStatusChange(prev => ({ ...prev, [idProveedor]: true })); // Inicia carga para esta fila
+            setError(null); // Limpia errores previos específicos de esta acción
+
+            // console.log(`Admin Page - Attempting status change for ID ${idProveedor} to ${newStatus}`); // Debug
+
+            try {
+                // Llama a la función fetch que usa PUT /api/admin/proveedores
+                await updateProveedorStatus(idProveedor, newStatus);
+                // console.log(`Admin Page - Status updated for ID ${idProveedor}. Refreshing list...`); // Debug
+
+                // Vuelve a cargar la lista completa para reflejar el cambio
+                // (Llamamos a la misma función del useEffect inicial)
+                await fetchAllProveedores().then(data => {
+                    setProveedores(data || []);
+                }).catch(err => {
+                     // Maneja error específico del refresh si ocurre
+                     console.error("Error refreshing provider list after status change:", err);
+                     setError((err as Error).message || 'Error al refrescar la lista después de actualizar.');
+                });
+
+
+            } catch (err) {
+                 const updateError = `Error al cambiar el estado del proveedor ${idProveedor}: ${(err as Error).message}`;
+                 console.error(updateError);
+                 setError(updateError); // Muestra error en la UI
+                 // Podrías usar un toast aquí
+            } finally {
+                setLoadingStatusChange(prev => ({ ...prev, [idProveedor]: false })); // Finaliza carga para esta fila
+            }
+        }
+    };
+    // --- NUEVA LÓGICA PARA FILTRAR ---
+    // Usamos useMemo para evitar recalcular la lista filtrada en cada renderizado
+    // si los proveedores o los filtros no han cambiado.
+    const proveedoresFiltrados = useMemo(() => {
+        // Si no hay filtros, devuelve la lista completa
+        if (!filtroRfc && !filtroCorreo) {
+            return proveedores;
+        }
+
+        // Normaliza los filtros (minúsculas y sin espacios extra)
+        const rfcLower = filtroRfc.toLowerCase().trim();
+        const correoLower = filtroCorreo.toLowerCase().trim();
+
+        return proveedores.filter(proveedor => {
+            // Comprueba si el RFC coincide (si hay filtro RFC)
+            const rfcMatch = rfcLower
+                ? proveedor.rfc.toLowerCase().includes(rfcLower)
+                : true; // Si no hay filtro RFC, siempre coincide
+
+            // Comprueba si el Correo coincide (si hay filtro Correo)
+            // Maneja el caso de correo null/undefined
+            const correoMatch = correoLower
+                ? (proveedor.correo || '').toLowerCase().includes(correoLower)
+                : true; // Si no hay filtro Correo, siempre coincide
+
+            // El proveedor debe coincidir con AMBOS filtros activos
+            return rfcMatch && correoMatch;
+        });
+    }, [proveedores, filtroRfc, filtroCorreo]); // Dependencias del memo
+    // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
-            
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop: 100 }}> {/* Ajusta margen si es necesario */}
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop: 100 }}>
+                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
+                    Administración de Proveedores
+                </h1>
 
-                {/* Botón para Volver */}
-                <button
-                    onClick={handleGoBack}
-                    className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200 shadow"
-                >
-                    ← Volver a Proveedores
-                </button>
+                {/* --- SECCIÓN DE FILTROS --- */}
+                <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                        <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
+                            Filtrar por RFC:
+                        </label>
+                        <input
+                            type="text"
+                            id="filtroRfc"
+                            name="filtroRfc"
+                            value={filtroRfc}
+                            onChange={(e) => setFiltroRfc(e.target.value)}
+                            placeholder="Escriba RFC a buscar..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">
+                            Filtrar por Correo:
+                        </label>
+                        <input
+                            type="email"
+                            id="filtroCorreo"
+                            name="filtroCorreo"
+                            value={filtroCorreo}
+                            onChange={(e) => setFiltroCorreo(e.target.value)}
+                            placeholder="Escriba correo a buscar..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                    </div>
+                </div>
+                {/* --- FIN SECCIÓN DE FILTROS --- */}
 
-                {/* Indicador de Carga */}
-                {loading && <p className="text-center text-lg text-blue-600 py-4">Cargando información...</p>}
 
-                {/* Mensaje de Error */}
+                {/* Mensaje de Error General */}
                 {error && (
-                    <p className="text-center text-red-600 bg-red-100 p-4 rounded border border-red-400 my-4">
+                    <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">
                         Error: {error}
                     </p>
                 )}
 
-                {/* Contenido Principal: Título e Información del Proveedor + Tabla de Documentos */}
-                {/* Se muestra solo si no hay carga, no hay error, y tenemos info del proveedor */}
-                {!loading && !error && providerInfo && (
-                    <div>
-                        <h1 className="text-2xl md:text-3xl text-center font-bold mb-2 text-gray-800">
-                            Gestión de Documentos
-                        </h1>
-                        <p className="text-center text-lg text-gray-600 mb-6">
-                            Proveedor: <span className="font-semibold">{providerInfo.rfc}</span> ({providerInfo.tipo_proveedor?.charAt(0).toUpperCase() + providerInfo.tipo_proveedor?.slice(1)})
-                        </p>
-
-                        {/* Componente de Tabla para mostrar los documentos */}
-                        <TablaDocumentos documentos={documentos} />
-                    </div>
+                {/* Indicador de Carga Inicial */}
+                {loading && !error && (
+                    <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>
                 )}
 
-                 {/* Mensaje si terminó de cargar pero no encontró proveedor */}
-                 {!loading && !error && !providerInfo && idProveedor && (
-                     <p className="text-center text-orange-500 mt-6">
-                         No se pudo cargar la información del proveedor con ID {idProveedor}.
-                     </p>
+                {/* Tabla de Proveedores (AHORA USA DATOS FILTRADOS) */}
+                {!loading && !error && (
+                    <TablaDocumentos
+                        proveedores={proveedoresFiltrados} // <-- Pasa la lista filtrada
+                        onViewDocuments={handleViewDocuments}
+                        onChangeStatus={handleChangeStatus}
+                        isLoadingStatusChange={loadingStatusChange}
+                    />
+                )}
+
+                 {/* Mensaje si NO hay resultados DESPUÉS de filtrar (y no hay error/carga) */}
+                 {!loading && !error && proveedoresFiltrados.length === 0 && (filtroRfc || filtroCorreo) && (
+                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores que coincidan con los filtros aplicados.</p>
+                 )}
+
+                 {/* Mensaje si NO hay proveedores en TOTAL (y no hay error/carga) */}
+                 {!loading && !error && proveedores.length === 0 && !(filtroRfc || filtroCorreo) && (
+                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores registrados.</p>
                  )}
 
             </div>
-            <Pie /> {/* Pie de página */}
+            <Pie />
         </div>
     );
-}
+};
