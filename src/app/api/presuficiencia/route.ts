@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_pre");
     const id_pdf = searchParams.get("id");
+
     const tipo = searchParams.get("tipo");
 
 
@@ -26,12 +27,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (id_pdf) {
+
       const suficiencia = await getSuficienciaByIdPDF(parseInt(id_pdf));
       if (!suficiencia) {
         return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
       }
       return NextResponse.json(suficiencia);
     }
+
 
     if (tipo === "suf") {
       const suficiencias = await getSuficienciasPendientes(); // ← consulta de solicitudes de suficiencia

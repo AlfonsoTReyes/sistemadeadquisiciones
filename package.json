@@ -27,6 +27,10 @@
     "face-api.js": "^0.22.2",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
+ 
+
+
+
     "jspdf-autotable": "^5.0.2",
 
     "next": "15.1.7",
