@@ -14,8 +14,6 @@ import ModalConfirmacion from "./formularios/modificarEstatus";
 import ModalEnvioConfirmacion from "./formularios/enviarSolicitud";
 import ModalRespuestasTecho from "./formularios/respuestaPreSuficiencia";
 
-
-
 const TablaSolicitudes: React.FC<{ 
     solicitudes: DetallesSolicitud;
     onSolicitudAdded: () => Promise<void>;
@@ -149,7 +147,7 @@ const TablaSolicitudes: React.FC<{
         return <p className="text-gray-500">No hay detalles disponibles.</p>;
     }
 
-    const { solicitud, justificacion, techoPresupuestal, documentos_adicionales, techoPresupuestalRespuesta } = solicitudes;
+    const { solicitud, justificacion, techoPresupuestal, documentos_adicionales, techoPresupuestalRespuesta, techoPresupuestalOficial, techoPresupuestalRespuestaOficial } = solicitudes;
 
     return (
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -425,6 +423,74 @@ const TablaSolicitudes: React.FC<{
                         className="bg-green-500 text-white py-2 px-4 rounded-xl shadow hover:bg-green-600 transition"
                     >
                         Dar de alta
+                    </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Card de Suficiencia Oficial */}
+            {techoPresupuestalOficial ? (
+                <div className={`shadow-xl rounded-xl p-6 border transition duration-300 ${
+                    techoPresupuestalRespuestaOficial 
+                        ? "bg-white border-gray-200 hover:shadow-2xl" 
+                        : "bg-red-100 border-red-300 text-red-800"
+                    }`}>
+                    <div className="text-5xl text-center mb-4">✅</div>
+                    <h2 className="text-xl font-bold text-center text-gray-800 mb-4">Suficiencia Oficial</h2>
+                    <p><strong>Folio:</strong> {techoPresupuestalOficial.oficio}</p>
+                    <p><strong>Fecha creación:</strong> {new Date(techoPresupuestalOficial.created_at).toLocaleString()}</p>
+                    <p><strong>Fecha aprobación:</strong> {techoPresupuestalOficial.fecha_contestacion ? new Date(techoPresupuestalOficial.fecha_contestacion).toLocaleString() : "Sin contestar"}</p>
+                    <p className={`font-semibold ${techoPresupuestalOficial.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                        Estatus: {techoPresupuestalOficial.estatus}
+                    </p>
+                    <div className="mt-4 flex flex-col gap-2">
+                    <button
+                        onClick={() => openEditPreModal(techoPresupuestalOficial.id_suficiencia)}
+                        className="bg-yellow-500 text-white py-2 rounded-xl shadow hover:bg-yellow-600 transition"
+                    >
+                        Editar
+                    </button>
+                    <button
+                        onClick={() =>
+                        abrirModalEnvioConfirmacion(techoPresupuestalOficial.id_suficiencia, "suficiencia_oficial")
+                        }
+                        className="bg-blue-600 text-white py-2 rounded-xl shadow hover:bg-blue-700 transition"
+                    >
+                        Enviar solicitud
+                    </button>
+                    <button
+                        onClick={() => generarPDF(techoPresupuestalOficial.id_suficiencia, "presupuesto")}
+                        className="bg-rose-500 text-white py-2 rounded-xl shadow hover:bg-rose-600 transition"
+                    >
+                        Generar pdf
+                    </button>
+                    <button
+                        onClick={() => openCommentsModal(techoPresupuestalOficial.id_suficiencia, "suficiencia_oficial", techoPresupuestalOficial.id_solicitud)}
+                        className="bg-purple-500 text-white py-2 rounded-xl shadow hover:bg-purple-600 transition"
+                    >
+                        Ver Comentarios
+                    </button>
+                    <button
+                        onClick={() =>
+                        abrirModalConfirmacion(techoPresupuestalOficial.id_suficiencia, "suficiencia_oficial")
+                        }
+                        className="bg-green-500 text-white py-2 rounded-xl shadow hover:bg-green-600 transition"
+                    >
+                        Actualizar estatus
+                    </button>
+                    </div>
+                </div>
+                ) : (
+                <div className="bg-yellow-100 shadow-xl rounded-xl p-6 border border-yellow-300 text-yellow-800">
+                    <div className="text-5xl text-center mb-4">⚠️</div>
+                    <h2 className="text-xl font-bold text-center mb-2">Suficiencia oficial pendiente</h2>
+                    <p className="text-center">Aún no se ha generado una suficiencia oficial para esta solicitud.</p>
+                    <div className="mt-4 text-center">
+                    <button
+                        onClick={() => setSuficienciaModalOpen(true)} // o usa un nuevo modal si lo manejas por separado
+                        className="bg-rose-500 text-white py-2 px-4 rounded-xl shadow hover:bg-rose-600 transition"
+                    >
+                        Generar suficiencia oficial
                     </button>
                     </div>
                 </div>

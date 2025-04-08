@@ -107,22 +107,22 @@ const TablaSolicitudes: React.FC<{
                             <td className="border px-4 py-2">{solicitud.estatus}</td>
                             <td className="border px-4 py-2">
                                 {!["en revisión", "aprobada"].includes(solicitud.estatus.toLowerCase()) && (
-                                <>
-                                    <button
-                                        onClick={() => openFirmaModal(solicitud.id_solicitud)}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        Firmar y enviar
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => openFirmaModal(solicitud.id_solicitud)}
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            Firmar y enviar
+                                        </button>
 
-                                    <br />
-                                    <button
-                                        onClick={() => openEditModal(solicitud.id_solicitud)}
-                                        className="text-yellow-600 hover:underline"
-                                    >
-                                        Editar
-                                    </button>
-                                    <br />
+                                        <br />
+                                        <button
+                                            onClick={() => openEditModal(solicitud.id_solicitud)}
+                                            className="text-yellow-600 hover:underline"
+                                        >
+                                            Editar
+                                        </button>
+                                        <br />
                                     </>
                                 )}
                                 <button
@@ -144,13 +144,16 @@ const TablaSolicitudes: React.FC<{
                                     >
                                     Detalle de solicitudes
                                 </Link>
-                                <Link
-                                    className="text-orange-500 hover:underline"
-                                    href="./detalle_solicitudes"
-                                    onClick={() => handleDetalleClick(solicitud.id_solicitud)}
-                                    >
-                                    Detalle de cómite
-                                </Link>
+                                <br></br>
+                                {["en revisión", "aprobada"].includes(solicitud.estatus.toLowerCase()) && (
+                                    <Link
+                                        className="text-dark-500 hover:underline"
+                                        href="./detalle_solicitudes"
+                                        onClick={() => handleDetalleClick(solicitud.id_solicitud)}
+                                        >
+                                        Detalle de cómite
+                                    </Link>
+                                )}
                             </td>
                         </tr>
                     ))}
