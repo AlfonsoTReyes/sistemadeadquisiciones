@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PieP from "../../pie";
-import DynamicMenu from "../../dinamicMenu";
+import DynamicMenu from "../../menu";
 import ProveedorData from './formularios/ProveedorInfo';
 import { getProveedorForUser } from './formularios/fetchdashboard'; // Import fetch function
 

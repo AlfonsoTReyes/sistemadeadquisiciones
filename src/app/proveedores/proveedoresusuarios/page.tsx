@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Menu from '../../menu';
+import Menu from '../../menu_principal';
 import Pie from '../../pie';
 import FormularioLoginProveedor from './formularios/FormularioLoginProveedor'; // Adjust path
 
