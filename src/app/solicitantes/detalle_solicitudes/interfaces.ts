@@ -39,11 +39,23 @@ export interface TechoPresupuestal {
     id_documento: number;
     contendio: string;
     firma_digital_finanzas: string;
-    fecha_aprobacion: string;
+    fecha_contestacion: string;
     estatus: string;
     comentario: string;
     created_at: string;
     updated_at: string;
+}
+
+export interface TechoPresupuestalRespuesta {
+    id_documento_suficiencia: number;
+    id_suficiencia: number;
+    nombre_original: string;
+    ruta_archivo: string;
+    nombre_usuario: string;
+    tipo: string;
+    created_at: string;
+    updated_at: string;
+    fecha_respuesta: string;
 }
 
 export interface DocumentosAdicionales {
@@ -58,9 +70,41 @@ export interface DocumentosAdicionales {
     updated_at: string;
 }
 
+export interface TechoPresupuestalOficial {
+    id_suficiencia: number;
+    id_solicitud: number;
+    id_usuario: number;
+    monto_aprobado: number;
+    oficio: string;
+    id_documento: number;
+    contendio: string;
+    firma_digital_finanzas: string;
+    fecha_contestacion: string;
+    estatus: string;
+    comentario: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TechoPresupuestalRespuestaOficial {
+    id_documento_suficiencia: number;
+    id_suficiencia: number;
+    nombre_original: string;
+    ruta_archivo: string;
+    nombre_usuario: string;
+    tipo: string;
+    created_at: string;
+    updated_at: string;
+    fecha_respuesta: string;
+}
+
 export interface DetallesSolicitud {
     solicitud: Solicitud | null;
     justificacion: Justificacion | null;
     techoPresupuestal: TechoPresupuestal | null;
+    techoPresupuestalRespuesta: TechoPresupuestalRespuesta | null;
+    techoPresupuestalOficial: TechoPresupuestalOficial | null;
+    techoPresupuestalRespuestaOficial: TechoPresupuestalRespuestaOficial | null;
+
     documentos_adicionales: DocumentosAdicionales[] | null;
 }

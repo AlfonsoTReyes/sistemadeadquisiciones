@@ -33,7 +33,6 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const { idDoc, tipoOrigen, nuevoEstatus } = body;
-
     if (!idDoc || !tipoOrigen || !nuevoEstatus) {
       return NextResponse.json(
         { message: "faltan datos para actualizar. contacte con el administrador." },
@@ -44,8 +43,13 @@ export async function PUT(req: NextRequest) {
     let resultado;
 
     // según el tipo de documento se llama a una función distinta
+
+    console.log(tipoOrigen, nuevoEstatus);
     switch (tipoOrigen) {
+      
       case "suficiencia":
+    console.log(tipoOrigen, nuevoEstatus);
+
         resultado = await updateSolicitudEstatus(idDoc, nuevoEstatus);
         break;
 

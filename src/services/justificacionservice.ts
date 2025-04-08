@@ -302,3 +302,15 @@ export const updateJustificacionEstatus = async (
     throw error;
   }
 };
+
+export const getJustificacionBySolicitud = async (idSolicitud: number): Promise<boolean> => {
+  try {
+    const result = await sql`
+      SELECT 1 FROM justificacion_solicitud WHERE id_solicitud = ${idSolicitud} LIMIT 1;
+    `;
+    return !!result.rowCount;
+  } catch (error) {
+    console.error("Error al validar justificación:", error);
+    throw error;
+  }
+};

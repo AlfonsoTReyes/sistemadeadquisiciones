@@ -1,11 +1,10 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Menu from '../menu_solicitante';
-import Pie from '../../pie';
+import Pie from '../pie';
 import TablaSolicitudes from './tablaSolicitudes';
 import AltaSolicitud from './formularios/alta';
-import MenuPrincipal from "../../menu";
-import { fetchSolicitudes } from '../../peticiones_api/peticionSolicitudes';
+import MenuPrincipal from "../menu";
+import { fetchSolicitudes } from '../peticiones_api/peticionSolicitudes';
 
 const SolicitudPage = () => {
     const [solicitudes, setSolicitudes] = useState([]);

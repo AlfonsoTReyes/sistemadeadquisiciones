@@ -105,3 +105,16 @@ export const updateDocumentoEstatus = async (
     throw error;
   }
 };
+
+
+export const getDocsBySolicitud = async (idSolicitud: number) => {
+  try {
+    const result = await sql`
+      SELECT COUNT(*)::int AS total FROM documentos_solicitud WHERE id_solicitud = ${idSolicitud};
+    `;
+    return result.rows[0]?.total || 0;
+  } catch (error) {
+    console.error("error al obtener documentos por solicitud:", error);
+    throw error;
+  }
+};

@@ -1,4 +1,5 @@
 const API_URL = "/api/solicitudes";
+const API_URL_FIRMA = "/api/firmaEnvia";
 
 
 /** Obtiene la lista de roles desde la API */
@@ -68,3 +69,27 @@ export const updateSolicitud = async (solicitudData) => {
     throw new Error(error.message || "Error desconocido");
   }
 };
+
+export const createFirma = async (solicitudData) => {
+  try {
+    const response = await fetch(API_URL_FIRMA, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(solicitudData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { ok: false, message: data.message || "Error al firmar." };
+    }
+
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Error en createFirma:", err);
+    return { ok: false, message: err.message || "Error desconocido." };
+  }
+};
+
