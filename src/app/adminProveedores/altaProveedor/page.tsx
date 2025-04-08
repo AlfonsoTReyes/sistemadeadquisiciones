@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'; // Añade useMemo
 import { useRouter } from 'next/navigation'; // Para navegación
-import Menu from '../../menu';
+import Menu from '../../menu_principal';
 import Pie from "../../pie"; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 import TablaDocumentos from './tablaProveedores';

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; // Import useRouter for potential redirects
 import PieP from "../../pie";
-import DynamicMenu from "../../dinamicMenu";
+import DynamicMenu from "../../menu_principal";
 import FormularioRegistroProveedor from './formularios/FormularioRegistroProveedor';
 
 export default function PageRegistroProveedorDatos() {
