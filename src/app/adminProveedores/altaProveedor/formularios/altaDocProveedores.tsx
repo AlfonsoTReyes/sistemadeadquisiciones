@@ -1,14 +1,11 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
-//import { createSolicitud } from '../../../peticiones_api/peticionSolicitudesDetalle';
-//import { getUserById } from '../../../peticiones_api/fetchUsuarios';
 
 // Importa las funciones API relevantes para documentos de proveedores y usuarios
 import {
   fetchDocumentosPorProveedor,
   uploadDocumentoProveedor,
   deleteDocumentoProveedor,
-  getProveedor
 } from "./fetchDocumentosProveedores"; // Ajusta la ruta si es necesario
 //import { getUserById } from "../../../peticiones_api/fetchUsuarios"; // Para obtener el ID del usuario
 
@@ -332,10 +329,9 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
 
   // --- Renderizado ---
   return (
-    <div className="p-4 md:p-6 max-h-[85vh] overflow-y-auto"> {/* Control de altura y scroll */}
-        <div className="flex justify-between items-center mb-4">
+    <div className="p-4 md:p-6">
+        <div className="flex justify-between items-center mb-4 pb-3 border-b">
              <h1 className="text-xl font-semibold">Gestionar Documentos Proveedor (ID: {idProveedor} - {tipoProveedor})</h1>
-             <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">×</button>
         </div>
 
 

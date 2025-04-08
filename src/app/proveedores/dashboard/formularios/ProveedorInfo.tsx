@@ -1,9 +1,10 @@
 // --- START OF FILE src/components/proveedores/dashboard/ProveedorInfo.tsx ---
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import { updateProveedor } from './fetchdashboard';
 import ModalActualizarProveedor from './modalActualizarProveedor';
+import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor'; // <-- AJUSTA LA RUTA si es necesario
+import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores'; // <-- AJUSTA LA RUTA si es necesario
 
 
 // 1. Define la interfaz para los datos del proveedor (basado en tu servicio)
@@ -70,7 +71,8 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   const [modalAbierto, setModalAbierto] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Estado para feedback de actualización
   const [updateError, setUpdateError] = useState<string | null>(null); // Estado para errores de actualización
-
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   // --- Handlers para el Modal ---
   const handleOpenModal = () => {
       if (providerData) {
@@ -85,8 +87,53 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   const handleCloseModal = () => {
       setModalAbierto(false);
   };
-  const handleDetalleClick = (id_proveedor: number) => {
-    sessionStorage.setItem("usuarioProveedorid", id_proveedor.toString()); // Convierte el ID a string
+  // --- HANDLER QUE LLAMA A LA FUNCIÓN EXTERNA ---
+  const handleGeneratePdfClick = async () => {
+    if (!providerData) {
+        setPdfError("No hay datos de proveedor para generar el PDF.");
+        return;
+    }
+
+    setIsGeneratingPdf(true);
+    setPdfError(null);
+
+    try {
+        // Llama a la función externa, pasando los datos del proveedor
+        await generateProveedorPdfClientSide(providerData);
+        console.log("PDF generado exitosamente (llamada externa).");
+        // No necesitas hacer más nada aquí, la función externa maneja la descarga
+
+    } catch (err: any) {
+        console.error("Error al generar el PDF desde la función externa:", err);
+        // Muestra el error que la función externa rechazó
+        setPdfError(err.message || "Ocurrió un error inesperado al generar el PDF.");
+    } finally {
+        setIsGeneratingPdf(false);
+    }
+};
+  // --- HANDLER QUE LLAMA A LA FUNCIÓN EXTERNA ---
+  const handleRevalidadProveedores = async () => {
+    if (!providerData) {
+        setPdfError("No hay datos de proveedor para generar el PDF.");
+        return;
+    }
+
+    setIsGeneratingPdf(true);
+    setPdfError(null);
+
+    try {
+        // Llama a la función externa, pasando los datos del proveedor
+        await revalidacionProveedores(providerData);
+        console.log("PDF generado exitosamente (llamada externa).");
+        // No necesitas hacer más nada aquí, la función externa maneja la descarga
+
+    } catch (err: any) {
+        console.error("Error al generar el PDF desde la función externa:", err);
+        // Muestra el error que la función externa rechazó
+        setPdfError(err.message || "Ocurrió un error inesperado al generar el PDF.");
+    } finally {
+        setIsGeneratingPdf(false);
+    }
 };
   const handleSaveUpdate = async (updatedDataFromModal: any) => { // Renombrado para claridad
     // La validación de providerData no es estrictamente necesaria aquí
@@ -148,7 +195,13 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   const { tipo_proveedor } = providerData;
 
   return (
+    
       <div className="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto">
+          {pdfError && (
+              <div className="my-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  <strong>Error de PDF:</strong> {pdfError}
+              </div>
+          )}
           <h1 className="text-2xl font-semibold mb-4 text-gray-800">Información del Proveedor</h1>
 
           {/* Datos Generales */}
@@ -191,14 +244,12 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                )}
           </div>
 
-          {/* Registros Adicionales */}
           <div className="mb-6">
                <h2 className="text-xl font-medium mb-2 text-gray-700">Registros</h2>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <p><strong>Cámara Comercial:</strong> {providerData.camara_comercial ?? 'N/A'}</p>
                   <p><strong>No. Reg. Cámara:</strong> {providerData.numero_registro_camara ?? 'N/A'}</p>
                   <p><strong>No. Reg. IMSS:</strong> {providerData.numero_registro_imss ?? 'N/A'}</p>
-                  {/* Fechas (formatear si es necesario) */}
                   <p><strong>Fecha Solicitud:</strong> {providerData.fecha_solicitud ? providerData.fecha_solicitud : 'N/A'}</p>
                   <p><strong>Última Actualización:</strong> {providerData.updated_at ? new Date(providerData.updated_at).toLocaleString() : 'N/A'}</p>
                </div>
@@ -211,19 +262,24 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                   className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
               >
                   Modificar Información
-                  
               </button>
               <button
-                  onClick={() => onPdfClick(providerData.id_proveedor)}
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
-              >
-                  Generar PDF
-              </button>
+                   onClick={handleGeneratePdfClick} // <-- Llama al handler actualizado
+                   className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   disabled={isGeneratingPdf || isUpdating}
+               >
+                   {isGeneratingPdf ? 'Generando...' : 'Generar Solicitud'}
+               </button>
+               <button
+                   onClick={handleRevalidadProveedores} // <-- Llama al handler actualizado
+                   className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   disabled={isGeneratingPdf || isUpdating}
+               >
+                   {isGeneratingPdf ? 'Generando...' : 'Generar Revalidacion'}
+               </button>
               <button
              onClick={onManageDocumentsClick} // <-- Usar la nueva prop
-             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
-             // Opcional: deshabilitar si falta id_proveedor explícitamente
-             // disabled={!providerData?.id_proveedor}
+             className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
          >
              Gestionar Documentos
          </button>

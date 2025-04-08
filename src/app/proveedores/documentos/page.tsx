@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import DynamicMenu from "../../../app/dinamicMenu"; // Ajusta ruta
+import Menu from '../../menu';
+import { useRouter } from 'next/navigation';
 import Pie from '../../../app/pie'; // Ajusta ruta
 import TablaDocumentosProveedor from './tablaDocProveedores'; // Ajusta ruta
 import GestionDocumentosProveedor from './formularios/altaDocProveedores'; // Ajusta ruta
@@ -10,6 +11,7 @@ import ModalDoc from '../../../componentes/ModalDoc/modalDoc';
 
 
 const DocumentosProveedorPage = () => {
+    const router = useRouter();
   const [idProveedor, setIdProveedor] = useState<number | null>(null);
   const [tipoProveedor, setTipoProveedor] = useState<string | null>(null);
   const [idUsuarioLogueado, setIdUsuarioLogueado] = useState<number | null>(null); // Estado para el ID del usuario
@@ -143,12 +145,27 @@ const DocumentosProveedorPage = () => {
     }
 };
 
+const handleRegresar = () => {
+  router.push('/proveedores/dashboard');
+};
+
+  // --- NUEVA FUNCIÓN: Cierra el modal Y recarga la página ---
+  const handleCloseAndReload = () => {
+    closeModal(); // Llama a la función original para cerrar
+    // Forzar recarga de la página actual
+    // Usamos un pequeño delay por si acaso el cierre del modal necesita un instante
+    // aunque generalmente no es estrictamente necesario.
+    setTimeout(() => {
+        window.location.reload();
+    }, 50); // 50ms delay (opcional)
+};
+
   return (
     <div>
-<DynamicMenu />
+<Menu />
       <div className="min-h-screen p-4 md:p-8" style={{ marginTop: '80px' }}>
         <h1 className="text-2xl text-center sm:text-left font-bold mb-6">
-          Documentos del Proveedor {idProveedor ? `(ID: ${idProveedor} - ${tipoProveedor || 'Tipo Desconocido'})` : ''}
+          Documentos del Proveedor
         </h1>
 
         {loadingPage && <p>Cargando...</p>}
@@ -159,6 +176,22 @@ const DocumentosProveedorPage = () => {
                 <span className="block sm:inline">{errorPage}</span>
             </div>
         )}
+                {!loadingPage && idProveedor && !errorPage && (
+             <div className="mt-6 pt-6 border-t text-center flex justify-between">
+                <button
+                    onClick={handleRegresar}
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-6 rounded shadow"
+                >
+                    Regresar
+                </button>
+                <button
+                    onClick={handleOpenDocumentsModal}
+                    className="bg-indigo-500 hover:bg-indigo-800 text-white font-bold py-2 px-6 rounded shadow"
+                >
+                    Gestionar Documentos
+                </button>
+            </div>
+        )}
                 {!errorPage && idProveedor ? (
             <TablaDocumentosProveedor documentos={documentos} isLoading={loadingPage} />
         ) : !idProveedor && !loadingPage ? (
@@ -166,22 +199,14 @@ const DocumentosProveedorPage = () => {
              <p className="text-center text-gray-500 mt-10">No se ha especificado un proveedor.</p>
         ) : null /* Evita mostrar tabla o mensaje de "no docs" mientras carga ID */}
 
-        {!loadingPage && idProveedor && !errorPage && (
-             <div className="mt-6 pt-6 border-t text-center">
-                <button
-                    onClick={handleOpenDocumentsModal}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow"
-                >
-                    Gestionar Documentos
-                </button>
-            </div>
-        )}
+
         <ModalDoc isOpen={isModalOpen} onClose={closeModal}> {/* <-- Cambiado de <Modal> a <ModalDoc> */}
           {idProveedor && tipoProveedor ? (
               <GestionDocumentosProveedor
                   idProveedor={idProveedor}
                   tipoProveedor={tipoProveedor}
-                  onClose={closeModal}
+                  onClose={handleCloseAndReload} // <--- ¡Aquí se pasa la función que recarga!
+                  
               />
           ) : (
              <div className="p-6 text-center">

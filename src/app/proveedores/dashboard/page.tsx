@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PieP from "../../pie";
-import DynamicMenu from "../../dinamicMenu";
+import DynamicMenu from "../../menu";
 import ProveedorData from './formularios/ProveedorInfo';
 import { getProveedorForUser } from './formularios/fetchdashboard'; // Import fetch function
 
@@ -25,10 +25,8 @@ export default function PageProveedorDashboard() {
         setUserId(userIdNum);
         fetchProviderData(userIdNum); // Llama a fetch aquí si está bien
       } else {
-         setError("ID de usuario inválido en sesión.");
-         setLoading(false);
-         // Considera si redirigir aquí o solo mostrar error
-         // router.push('/proveedores/proveedoresusuarios');
+        setError("ID de usuario inválido en sesión.");
+        setLoading(false);
       }
     } else {
       setError("Usuario no autenticado. Por favor, inicie sesión.");
@@ -91,21 +89,6 @@ export default function PageProveedorDashboard() {
       }
     };
 
-  // Placeholder functions for buttons
-  const handleUpdateClick = () => {
-      console.log("Update button clicked");
-      // Logic to open update modal would go here
-      // Example: router.push(`/proveedores/actualizar/${providerData?.id_proveedor}`); // Or open a modal
-       alert("Funcionalidad de Actualizar no implementada aún.");
-  };
-
-  const handlePdfClick = () => {
-       console.log("PDF button clicked");
-       // Logic to generate PDF would go here
-       alert("Funcionalidad de Generar PDF no implementada aún.");
-  };
-
-
   return (
     <div>
       <DynamicMenu />
@@ -114,8 +97,7 @@ export default function PageProveedorDashboard() {
             providerData={providerData}
             loading={loading}
             error={error}
-            onUpdateClick={handleUpdateClick}
-            onPdfClick={handlePdfClick} 
+            //onPdfClick={handlePdfClick} 
             onManageDocumentsClick={handleManageDocumentsClick}
          />
       </div>
