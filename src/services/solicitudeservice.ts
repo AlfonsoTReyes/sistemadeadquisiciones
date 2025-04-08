@@ -116,7 +116,6 @@ export const updateSolicitud = async (
 ) => {
   try {
     const { folio, lugar, asunto, necesidad, cotizacion, compra_servicio, motivo, monto, id_adjudicacion, tipo } = solicitudData;
-
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
@@ -148,7 +147,6 @@ export const updateSolicitudEstatus = async (
     estatus: string
 ) => {
   try {
-
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
@@ -157,6 +155,48 @@ export const updateSolicitudEstatus = async (
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
+
+    return result.rows[0];
+  } catch (error) {
+    console.log(error);
+    console.error("error al actualizar solicitud:", error);
+    throw error;
+  }
+};
+
+
+export const updateSolicitudEstatusFirma = async (
+  idSolicitud: number
+) => {
+  try {
+    const result = await sql`
+      UPDATE solicitud_adquisicion 
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+    const resultj = await sql`
+      UPDATE justificacion_solicitud
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+    const resulta = await sql`
+      UPDATE documentos_solicitud
+      SET 
+        estatus = 'Enviado para revisión',
+        updated_at = NOW()
+      WHERE id_solicitud = ${idSolicitud} 
+      RETURNING *;
+    `;
+
+  
 
     return result.rows[0];
   } catch (error) {

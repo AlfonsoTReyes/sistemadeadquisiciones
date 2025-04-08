@@ -3,7 +3,9 @@ import {
   getSuficienciaById,
   getSuficienciaByIdPDF,
   createSuficiencia,
-  updateSuficiencia
+  updateSuficiencia,
+  getPreSuficienciasPendientes,
+  getSuficienciasPendientes
 } from "../../../services/suficienciaService";
 
 // GET: obtener todas o una suficiencia
@@ -12,7 +14,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_pre");
     const id_pdf = searchParams.get("id");
-    console.log("AAA");
+
+    const tipo = searchParams.get("tipo");
+
 
     if (id) {
       const suficiencia = await getSuficienciaById(parseInt(id));
@@ -23,8 +27,25 @@ export async function GET(req: NextRequest) {
     }
 
     if (id_pdf) {
-      console.log("AAA");
+
       const suficiencia = await getSuficienciaByIdPDF(parseInt(id_pdf));
+      if (!suficiencia) {
+        return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
+      }
+      return NextResponse.json(suficiencia);
+    }
+
+
+    if (tipo === "suf") {
+      const suficiencias = await getSuficienciasPendientes(); // ← consulta de solicitudes de suficiencia
+        if (!suficiencias) {
+          return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(suficiencias);
+    }
+
+    if (tipo === "pre") {
+      const suficiencia = await getPreSuficienciasPendientes();
       if (!suficiencia) {
         return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
       }
@@ -72,7 +93,8 @@ export async function POST(req: NextRequest) {
       cuenta,
       cantidad,
       motivo,
-      estatus: 'pendiente'
+      estatus: 'Pendiente',
+      tipo: 'Pre-suficiencia'
     });
 
     return NextResponse.json(nueva);

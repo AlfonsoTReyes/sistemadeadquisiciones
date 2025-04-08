@@ -149,8 +149,8 @@ const TablaPreSuficiencia: React.FC<{
                         <th className="px-4 py-2 text-left">Asunto</th>
                         <th className="px-4 py-2 text-left">Fecha y hora</th>
                         <th className="px-4 py-2 text-left">Usuario</th>
-                        <th className="px-4 py-2 text-left">Tipo</th>
                         <th className="px-4 py-2 text-left">Estatus</th>
+
                         <th className="px-4 py-2 text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -162,7 +162,6 @@ const TablaPreSuficiencia: React.FC<{
                             <td className="border px-4 py-2">{dato.asunto}</td>
                             <td className="border px-4 py-2">{new Date(dato.fecha).toLocaleString()}</td>
                             <td className="border px-4 py-2">{dato.nombre_usuario}</td>
-                            <td className="border px-4 py-2">{dato.tipo}</td>
                             <td className="border px-4 py-2">{dato.estatus}</td>
                             <td className="border px-4 py-2 text-center space-y-2">
                             <button

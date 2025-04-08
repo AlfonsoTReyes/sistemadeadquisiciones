@@ -56,7 +56,7 @@ const SolicitudPage = () => {
         {loading && <p>Cargando solicitudes...</p>}
         {error && <p>Error: {error}</p>}
 
-        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null }} onSolicitudAdded={fetchData} />
+        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null, techoPresupuestalRespuesta: null }} onSolicitudAdded={fetchData} />
 
       </div>
       <Pie />

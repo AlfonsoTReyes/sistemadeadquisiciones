@@ -82,8 +82,8 @@ export const getPermissionsByRole = async (roleId: number) => {
     const result = await sql
       `SELECT p.nombre_permiso FROM permisos p
        JOIN rolpermiso rp ON p.id_permiso = rp.id_permiso WHERE rp.id_rol = ${roleId} AND rp.estatus = 'true'`;
-       
-    return result.rows.map(row => row.nombre);
+
+    return result.rows.map(row => row.nombre_permiso);
   } catch (error) {
     console.error('Error al obtener permisos:', error);
   }

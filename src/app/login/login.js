@@ -18,6 +18,7 @@ const useLoginService = () => {
       }
 
       const data = await res.json();
+      console.log(data);
       sessionStorage.setItem("userPermissions", JSON.stringify(data));
       
 
@@ -27,7 +28,7 @@ const useLoginService = () => {
     }
   };
 
-  // función para determinar la ruta de redirección según el sistema
+
   const getRedirectPath = (sistema) => {
     switch (sistema.toLowerCase()) {
       case "finanzas":
