@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Ajusta la ruta a tu archivo de servicio
 import {
     getAllProveedoresForAdmin, // Para GET (obtener todos)
-    updateProveedorEstatus     // Para PUT (actualizar estatus)
-
+    updateProveedorEstatus,     // Para PUT (actualizar estatus)
  } from '@/services/adminproveedoresservice';
 
 // --- GET: Obtener TODOS los proveedores para la tabla de admin ---

@@ -62,7 +62,7 @@ export default function AdministradorProveedoresPage() {
         sessionStorage.setItem('adminSelectedProveedorId', idProveedor.toString());
 
         // Navega a la página (estática) de documentos
-        router.push('/administradorProveedores/documentos'); // Ajusta si la ruta es diferente
+        router.push('/adminProveedores/documentos'); // Ajusta si la ruta es diferente
     };
 
     // --- 3. HANDLER PARA CAMBIAR ESTATUS ---
