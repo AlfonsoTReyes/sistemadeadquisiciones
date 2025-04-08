@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'; // Añade useMemo
 import { useRouter } from 'next/navigation'; // Para navegación
+import Menu from '../../menu';
 import Pie from "../../pie"; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 import TablaDocumentos from './tablaProveedores';
@@ -143,7 +144,8 @@ export default function AdministradorProveedoresPage() {
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop: 100 }}>
+                <Menu />
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100">
                 <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
                     Administración de Proveedores
                 </h1>

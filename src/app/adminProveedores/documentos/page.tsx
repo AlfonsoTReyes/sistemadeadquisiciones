@@ -3,6 +3,8 @@
 "use client"; // Necesario para hooks de cliente y sessionStorage
 import React, { useState, useEffect, useCallback } from 'react'; // Añade useCallback
 import { useRouter } from 'next/navigation';
+import Menu from '../../menu';
+
 import Pie from '../../../app/pie'; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 // Importa el componente que SÓLO muestra y permite editar estatus
@@ -100,7 +102,8 @@ export default function DocumentosProveedorAdminPage() {
     // --- Renderizado ---
     return (
         <div>
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop: 100 }}>
+            <Menu />
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100">
 
                 <button
                     onClick={handleGoBack}

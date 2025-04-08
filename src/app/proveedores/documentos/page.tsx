@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import DynamicMenu from "../../../app/dinamicMenu"; // Ajusta ruta
+import Menu from '../../menu';
 import { useRouter } from 'next/navigation';
 import Pie from '../../../app/pie'; // Ajusta ruta
 import TablaDocumentosProveedor from './tablaDocProveedores'; // Ajusta ruta
@@ -162,7 +162,7 @@ const handleRegresar = () => {
 
   return (
     <div>
-<DynamicMenu />
+<Menu />
       <div className="min-h-screen p-4 md:p-8" style={{ marginTop: '80px' }}>
         <h1 className="text-2xl text-center sm:text-left font-bold mb-6">
           Documentos del Proveedor
