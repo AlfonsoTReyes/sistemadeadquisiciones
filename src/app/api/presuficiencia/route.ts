@@ -73,10 +73,11 @@ export async function POST(req: NextRequest) {
       hora,
       cuenta,
       cantidad,
-      motivo
+      motivo,
+      tipo
     } = await req.json();
 
-    if (!id_secretaria || !id_dependencia || !id_usuario || !oficio || !asunto || !lugar || !fecha || !hora || !cuenta || !cantidad || !motivo || !id_solicitud) {
+    if (!id_secretaria || !id_dependencia || !id_usuario || !oficio || !asunto || !lugar || !fecha || !hora || !cuenta || !cantidad || !motivo || !id_solicitud || !tipo) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
 
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
       cantidad,
       motivo,
       estatus: 'Pendiente',
-      tipo: 'Pre-suficiencia'
+      tipo
     });
 
     return NextResponse.json(nueva);

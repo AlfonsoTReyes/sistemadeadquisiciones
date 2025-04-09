@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(solicitud);
     }
 
-    if(sistema !=='UNIVERSAL'){
+    if(sistema =='UNIVERSAL'){
       if (secretaria) {
         const solicitud = await getSolicitudes(parseInt(secretaria));
         if (!solicitud) {
