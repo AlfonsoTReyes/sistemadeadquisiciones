@@ -3,7 +3,7 @@
 "use client"; // Necesario para hooks de cliente y sessionStorage
 import React, { useState, useEffect, useCallback } from 'react'; // Añade useCallback
 import { useRouter } from 'next/navigation';
-import Menu from '../../menu';
+import Menu from '../../menu_principal';
 
 import Pie from '../../../app/pie'; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario

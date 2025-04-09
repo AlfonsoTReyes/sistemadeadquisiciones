@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback  } from 'react'; // Añade useMemo
 import { useRouter } from 'next/navigation'; // Para navegación
-import Menu from '../../menu';
+import Menu from '../../menu_principal';
 import Pie from "../../pie"; // Ajusta ruta
 import TablaDocumentos from './tablaProveedores';
 import { ProveedorData, DocumentoData } from './interface';
