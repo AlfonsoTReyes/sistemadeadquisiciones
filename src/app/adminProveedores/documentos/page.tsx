@@ -95,7 +95,7 @@ export default function DocumentosProveedorAdminPage() {
     // Función para volver a la lista de administración
     const handleGoBack = () => {
         // Opcional: limpiar el ID de sesión al volver
-        // sessionStorage.removeItem('adminSelectedProveedorId');
+        sessionStorage.removeItem('adminSelectedProveedorId');
         router.push('/adminProveedores/altaProveedor'); // Ir a la página de la lista
     };
 
@@ -103,15 +103,7 @@ export default function DocumentosProveedorAdminPage() {
     return (
         <div>
             <Menu />
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100">
-
-                <button
-                    onClick={handleGoBack}
-                    className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200 shadow"
-                >
-                    ← Volver a Lista de Proveedores
-                </button>
-
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop : '50px' }}>
                 {/* Indicador de Carga INICIAL (ID y Detalles del Proveedor) */}
                 {loadingPage && <p className="text-center text-lg text-blue-600 py-4">Cargando información del proveedor...</p>}
 
@@ -122,13 +114,12 @@ export default function DocumentosProveedorAdminPage() {
                     </p>
                 )}
 
-                {/* Contenido: Título + Componente de Documentos */}
-                {/* Se muestra solo si NO hay carga inicial, NO hay error inicial, y TENEMOS un ID de proveedor */}
                 {!loadingPage && !errorPage && idProveedor && (
-                    <div>
+                    <div className="min-h-screen p-4 md:p-8 bg-gray-100">
                         <h1 className="text-2xl md:text-3xl text-center font-bold mb-2 text-gray-800">
                             Revisión de Documentos
                         </h1>
+
                         {/* Muestra info del proveedor si ya se cargó */}
                         {providerInfo ? (
                             <p className="text-center text-lg text-gray-600 mb-6">
@@ -137,7 +128,12 @@ export default function DocumentosProveedorAdminPage() {
                         ) : (
                             <p className="text-center text-gray-500 mb-6">Cargando detalles del proveedor...</p>
                         )}
-
+                        <button
+                    onClick={handleGoBack}
+                    className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200 shadow"
+                >
+                    ← Volver a Lista de Proveedores
+                </button>
                         {/* Componente que carga y muestra la tabla de documentos */}
                         {/* Le pasamos el idProveedor para que cargue sus propios datos */}
                         <VistaDocumentosAdmin idProveedor={idProveedor} />

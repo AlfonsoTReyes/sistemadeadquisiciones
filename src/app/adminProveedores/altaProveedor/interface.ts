@@ -20,3 +20,13 @@ export interface ProveedorData {
        telefono: string | null;
        tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
    }
+
+export interface UsuarioProveedorData {
+    id_usuario: number;
+    usuario: string;
+    nombre: string;
+    apellido_p: string;
+    apellido_m: string;
+    correo: string;
+    estatus: string;
+  }

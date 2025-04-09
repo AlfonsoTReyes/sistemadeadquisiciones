@@ -64,11 +64,9 @@ export async function GET(req: NextRequest) {
 
 // PUT: Actualizar ESTATUS o PERFIL COMPLETO de un proveedor o usuario proveedor
 export async function PUT(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const idProveedorParam = searchParams.get('id_proveedor');
   try {
     const data = await req.json();
-    console.log("LLEGO PUT " + idProveedorParam);
+    console.log("PUT "+data);
     if (!data.id_proveedor || isNaN(data.id_proveedor)) {
       return NextResponse.json({ message: 'Se requiere un "id_proveedor" numérico válido.' }, { status: 400 });
     }

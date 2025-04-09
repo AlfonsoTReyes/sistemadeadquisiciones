@@ -126,9 +126,6 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({ documento, onStatusChange }
                             {STATUS_OPTIONS.map(option => (
                                 <option key={option} value={option}>{option}</option>
                             ))}
-                            {/* Si usas boolean: */}
-                            {/* <option value="true">Aprobado</option> */}
-                            {/* <option value="false">Pendiente/Rechazado</option> */}
                         </select>
                         <button onClick={handleSaveStatus} disabled={isLoadingStatus} className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50" title="Guardar">
                             <FontAwesomeIcon icon={isLoadingStatus ? faSpinner : faSave} spin={isLoadingStatus} />
@@ -143,13 +140,20 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({ documento, onStatusChange }
             </td>
              {/* Acciones: Ver y Editar Estatus */}
              <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-3">
-                <button
-                  onClick={handleViewClick}
-                  className="font-medium text-blue-600 hover:underline"
-                  title="Ver/Descargar Documento"
-                >
-                  <FontAwesomeIcon icon={faEye} className="mr-1" /> Ver
-                </button>
+             <a
+    href={`/${documento.ruta_archivo}`} // Asume que ruta_archivo es algo como 'uploads/docs/mi_archivo.pdf'
+                                        // y está dentro de la carpeta 'public' de Next.js.
+                                        // El '/' inicial lo hace relativo a la raíz del sitio web.
+    target="_blank"                     // Abre en una nueva pestaña
+    rel="noopener noreferrer"           // Buenas prácticas de seguridad para target="_blank"
+    className="text-blue-600 hover:text-blue-800 hover:underline" // Clases de estilo (ej. Tailwind)
+    title={`Ver/Descargar ${documento.nombre_original || 'documento'}`} // Texto al pasar el mouse
+>
+    {/* Puedes poner texto o un icono aquí */}
+    Ver Documento
+    {/* O podrías mostrar el nombre del archivo como enlace: */}
+    {/* {documento.nombre_original} */}
+</a>
                 {!isEditingStatus && (
                     <button
                     onClick={handleStatusEditToggle}

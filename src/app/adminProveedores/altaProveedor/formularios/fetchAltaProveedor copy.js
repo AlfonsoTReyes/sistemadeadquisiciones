@@ -253,13 +253,12 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor) => { // Renomb
  * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
  */
 export const updateUsuarioProveedor = async (usuarioData) => {
-    console.log(`DEBUG Fetch: Calling updateUsuarioProveedor for user ID ${usuarioData?.id_usuario}`);
-    console.log(` LLEGO ACA updateUsuarioProveedor ${usuarioData?.id_usuario}`);
+    console.log(`DEBUG Fetch: Calling updateUsuarioProveedor for user ID ${usuarioData?.id_usuario_proveedor}`);
     const apiUrl = ADMIN_PROVEEDORES_API_URL; // Usa la nueva URL base
 
     // Validación crucial: el ID del *usuario* debe estar
     //if (!usuarioData || typeof usuarioData.id_usuario_proveedor !== 'number' || isNaN(usuarioData.id_usuario_proveedor)) {
-    if (!usuarioData || isNaN(usuarioData.id_usuario)) {
+    if (!usuarioData || isNaN(usuarioData.id_usuario_proveedor)) {
     
       const errorMsg = 'Fetch Error: id_usuario_proveedor es requerido y debe ser un número válido en usuarioData para updateUsuarioProveedor';
        console.error(errorMsg, "Data received:", usuarioData);
@@ -286,7 +285,7 @@ export const updateUsuarioProveedor = async (usuarioData) => {
 
     } catch (err) {
         const errorToThrow = err instanceof Error ? err : new Error(String(err));
-        console.error(`Fetch Error in updateUsuarioProveedor for user ID ${usuarioData?.id_usuario_proveedor}AAAAAA:`, errorToThrow);
+        console.error(`Fetch Error in updateUsuarioProveedor for user ID ${usuarioData?.id_usuario_proveedor}:`, errorToThrow);
         throw errorToThrow;
     }
 };

@@ -59,9 +59,9 @@ const TablaDocumentosProveedor: React.FC<TablaDocumentosProveedorProps> = ({ doc
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                  {/* Puedes añadir lógica para mostrar colores según el estatus */}
                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    doc.estatus === 'aprobado' ? 'bg-green-100 text-green-800' :
-                    doc.estatus === 'rechazado' ? 'bg-red-100 text-red-800' :
-                    doc.estatus === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                    doc.estatus === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                    doc.estatus === 'Rechazado' ? 'bg-red-100 text-red-800' :
+                    doc.estatus === 'Solicitar Corrección' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-gray-100 text-gray-800' // Default
                 }`}>
                     {doc.estatus || 'N/A'}

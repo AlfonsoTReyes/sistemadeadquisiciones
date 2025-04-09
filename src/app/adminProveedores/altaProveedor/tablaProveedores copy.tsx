@@ -4,10 +4,8 @@ import { ProveedorData } from './interface'; // O donde la tengas definida
 
 interface TablaProps {
   proveedores: ProveedorData[];
-  onViewDocuments: (idProveedor: number) => void;
-  onChangeStatus: (idProveedor: number, currentStatus: boolean) => void;
-  onEditProfile: (idProveedor: number) => void; // Recibe la función para editar perfil
-  onEditUser: (idProveedor: number) => void;    // Recibe la función para editar usuario
+  onViewDocuments: (id: number) => void; // <-- DESCOMENTAR esta prop
+  onChangeStatus: (id: number, currentStatus: boolean) => void;
   isLoadingStatusChange: { [key: number]: boolean };
 }
 
@@ -21,8 +19,6 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
   proveedores,
   onViewDocuments, // <-- Recibir la prop
   onChangeStatus,
-  onEditProfile,   // <--- Recibir nueva prop
-  onEditUser,      // <--- Recibir nueva prop
   isLoadingStatusChange
 }) => {
   if (!proveedores || proveedores.length === 0) {
@@ -94,25 +90,6 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
                     title="Ver Documentos" // Tooltip
                   >
                     Documentos
-                  </button>
-                                    {/* Botón Editar Perfil (NUEVO) */}
-                                    <button
-                    onClick={() => onEditProfile(proveedor.id_proveedor)} // Llama a la nueva función del padre
-                    className="font-medium text-indigo-600 hover:underline disabled:opacity-50"
-                    disabled={isLoading}
-                    title="Editar Perfil del Proveedor"
-                  >
-                    Perfil
-                  </button>
-
-                   {/* Botón Editar Usuario (NUEVO) */}
-                   <button
-                    onClick={() => onEditUser(proveedor.id_proveedor)} // Llama a la nueva función del padre
-                    className="font-medium text-purple-600 hover:underline disabled:opacity-50"
-                    disabled={isLoading}
-                    title="Editar Usuario Asociado"
-                  >
-                    Usuario
                   </button>
                   {/* --- FIN BOTÓN DOCUMENTOS --- */}
 

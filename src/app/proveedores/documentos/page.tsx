@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import Menu from '../../menu';
+import Menu from '../../menu_principal';
 import { useRouter } from 'next/navigation';
 import Pie from '../../../app/pie'; // Ajusta ruta
 import TablaDocumentosProveedor from './tablaDocProveedores'; // Ajusta ruta

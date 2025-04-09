@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PieP from "../pie";
-import DynamicMenu from "../dinamicMenu";
+import DynamicMenu from "../menu_principal";
 
 const Dashboard = () => {
   return (

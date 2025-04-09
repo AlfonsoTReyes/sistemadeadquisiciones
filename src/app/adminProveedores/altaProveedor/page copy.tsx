@@ -229,32 +229,26 @@ export default function AdministradorProveedoresPage() {
     };
 
     const handleSaveUserUpdate = async (payloadFromModal: any) => {
-      console.log("AdminPage recibió payload del modal de usuario:", payloadFromModal);
-  
-      // *** VALIDACIÓN CLAVE (CORREGIDA) ***
-      if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') { // <-- Buscando 'id_usuario'
-          console.error("ERROR: El payload del modal de usuario no contiene un 'id_usuario' válido."); // <-- Mensaje consistente
-          setUpdateUserError("Error interno: No se pudo identificar al usuario a actualizar (ID faltante o inválido).");
-          return; // Detener si falta el ID o no es número
-      }
-  
+        console.log("AdminPage recibió payload del modal de usuario:", payloadFromModal); // <-- Verifica el payload recibido
+        // *** VALIDACIÓN CLAVE ***
+        if (!payloadFromModal?.id_usuario) {
+            console.error("ERROR: El payload del modal de usuario no contiene 'id_usuario'.");
+            setUpdateUserError("Error interno: No se pudo identificar al usuario a actualizar.");
+            return; // Detener si falta el ID
+        }
       setIsUpdatingUser(true);
       setUpdateUserError(null);
       try {
-          // Llama a la función fetch que ahora espera 'id_usuario'
-          await updateUsuarioProveedor(payloadFromModal); // Asumiendo una función fetch separada
-          handleCloseEditUserModal();
-          alert("Usuario del proveedor actualizado exitosamente.");
-          // Recargar datos
+        await updateUsuarioProveedor(payloadFromModal);
+        handleCloseEditUserModal();
+        alert("Usuario del proveedor actualizado exitosamente.");
       } catch (err: any) {
-          console.error("Error saving user:", err);
-          const errorMessage = err.response?.data?.message || err.message || "Ocurrió un error al actualizar.";
-          setUpdateUserError(errorMessage);
+        console.error("Error saving user:", err);
+        setUpdateUserError(err.message);
       } finally {
-          setIsUpdatingUser(false);
+        setIsUpdatingUser(false);
       }
-  };
-  
+    };
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
