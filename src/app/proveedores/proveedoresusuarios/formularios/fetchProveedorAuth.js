@@ -25,7 +25,7 @@ export const loginProveedor = async (credentials) => {
       throw new Error(err.message);
     }
   };
-  
+
   /** Registers a new provider user */
 export const signupProveedor = async (userData) => {
     const { usuario, nombre, apellidoPaterno, apellidoMaterno, correo, contraseña } = userData;
