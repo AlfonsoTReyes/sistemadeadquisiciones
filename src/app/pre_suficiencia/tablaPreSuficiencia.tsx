@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ModalComentarios from "../comentarios_documentos/modal";
 import ModalConfirmacion from "./formularios/cambiarEstatus";
 import ModalRespuesta from "./formularios/altaPre";
@@ -41,6 +41,8 @@ const TablaPreSuficiencia: React.FC<{
         const [idSuficienciaSeleccionada, setIdSuficienciaSeleccionada] = useState<number | null>(null);
         const [isModalDocsOpen, setIsModalDocsOpen] = useState(false);
         const [idDocsSuficiencia, setIdDocsSuficiencia] = useState<number | null>(null);
+        const [permisos, setPermisos] = useState<string[]>([]);
+
 
         const registrosPorPagina = 10;
 
@@ -103,6 +105,12 @@ const TablaPreSuficiencia: React.FC<{
         setTipoOrigenModal("");
     };
 
+    useEffect(() => {
+        const storedPermisos = sessionStorage.getItem("userPermissions");
+        if (storedPermisos) {
+            setPermisos(JSON.parse(storedPermisos));
+        }
+        }, []);
     type TipoPDF = "solicitud" | "justificacion" | "presupuesto";
 
     const generarPDF = async (id: number, tipo: TipoPDF) => {
@@ -165,12 +173,15 @@ const TablaPreSuficiencia: React.FC<{
                             <td className="border px-4 py-2">{dato.tipo}</td>
                             <td className="border px-4 py-2">{dato.estatus}</td>
                             <td className="border px-4 py-2 text-center space-y-2">
+                            {permisos.includes('ver_respuesta_suficiencia_fin') && (
                             <button
                                 onClick={() => abrirModalDocs(dato.id_suficiencia)}
                                 className="text-indigo-800 hover:underline"
                                 >
                                 Ver documentos
                             </button>
+                            )}
+                            {permisos.includes('adjuntar_respuesta_suficiencia_fin') && (
 
                             <button
                                 onClick={() => abrirModalRespuesta(dato.id_suficiencia)}
@@ -178,8 +189,10 @@ const TablaPreSuficiencia: React.FC<{
                                 >
                                 Adjuntar respuesta
                             </button>
+                            )}
 
                             <br></br>
+                            {permisos.includes('cambiar_estatus_suficiencia_adquisicion') && (
                             <button
                                 onClick={() =>
                                     abrirModalConfirmacion(dato.id_suficiencia, "aquisicion")
@@ -188,14 +201,18 @@ const TablaPreSuficiencia: React.FC<{
                                 >
                                 Actualizar estatus
                             </button>
+                            )}
                             <br></br>
+                            {permisos.includes('generar_pdf_sufiencia_adquisicion') && (
                             <button
                                 onClick={() => generarPDF(dato.id_suficiencia, "presupuesto")}
                                 className="text-red-800 hover:underline"
                                 >
                                 Generar pdf
                             </button>
+                            )}
                             <br></br>
+                            {permisos.includes('ver_comentarios_suficiencia_adquisicion') && (
                             <button
                                 key={dato.id_suficiencia}
                                 onClick={() => openCommentsModal(dato.id_suficiencia, "adquisicion", dato.id_suficiencia)}
@@ -203,6 +220,7 @@ const TablaPreSuficiencia: React.FC<{
                             >
                                 Ver Comentarios
                             </button>
+                            )}
                             </td>
                         </tr>
                     ))}

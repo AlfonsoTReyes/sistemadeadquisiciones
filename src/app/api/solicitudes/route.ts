@@ -9,7 +9,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_solicitud");
     const id_s = searchParams.get("id");
-
     const secretaria = searchParams.get("secretaria");
     const sistema = searchParams.get("sistema");
 
@@ -29,7 +28,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(solicitud);
     }
 
-    if(sistema =='UNIVERSAL'){
+    if(sistema !=='UNIVERSAL'){
       if (secretaria) {
         const solicitud = await getSolicitudes(parseInt(secretaria));
         if (!solicitud) {
@@ -38,6 +37,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(solicitud);
       }
     }else{
+
       const solicitud = await getSolicitudesAll();
         if (!solicitud) {
           return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });

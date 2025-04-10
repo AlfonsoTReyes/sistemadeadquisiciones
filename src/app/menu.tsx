@@ -632,7 +632,7 @@ export default function Menu() {
             {permissions.includes('menu_ver_suficiencias_pre_aprobadas') && (
               <li className="mb-1">
                 <Link
-                  href="/requirente"
+                  href="/pre_suficiencia"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
                   <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Suficiencias pre aprobadas

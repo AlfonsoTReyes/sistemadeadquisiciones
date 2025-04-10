@@ -14,10 +14,21 @@ const SolicitudPage = () => {
   const [detallesSolicitud, setDetallesSolicitud] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userSecre, setUserSecre] = useState<string | null>(null);
+  const [userSistema, setUserSistema] = useState<string | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
-    const storedId = sessionStorage.getItem("solicitudId");
-    if (storedId) setIdSolicitud(storedId);
+    if (typeof window !== "undefined") {
+      const secre = sessionStorage.getItem("userSecre");
+      const sistema = sessionStorage.getItem("userSistema");
+      const storedId = sessionStorage.getItem("solicitudId");
+
+      setUserSecre(secre);
+      setUserSistema(sistema);
+      if (storedId) setIdSolicitud(storedId);
+      setSessionLoaded(true); // ✅ Indica que sessionStorage fue leído
+    }
   }, []);
 
   const fetchData = async () => {
@@ -25,9 +36,9 @@ const SolicitudPage = () => {
     try {
       let data;
       if (tipo === "suf") {
-        data = await fetchSoliSuficiencia(tipo);
+        data = await fetchSoliSuficiencia(tipo, userSecre, userSistema);
       } else {
-        data = await fetchSoliPreSuficiencia(tipo);
+        data = await fetchSoliPreSuficiencia(tipo, userSecre, userSistema);
       }
       setDetallesSolicitud(data);
     } catch (err) {
@@ -38,9 +49,12 @@ const SolicitudPage = () => {
     }
   };
 
+  // Espera a que se cargue la sesión antes de llamar fetchData
   useEffect(() => {
-    if (tipo) fetchData();
-  }, [idSolicitud, tipo]);
+    if (sessionLoaded && userSecre && userSistema) {
+      fetchData();
+    }
+  }, [sessionLoaded, userSecre, userSistema, tipo, idSolicitud]);
 
   return (
     <div>

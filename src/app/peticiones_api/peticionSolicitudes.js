@@ -5,7 +5,7 @@ const API_URL_FIRMA = "/api/firmaEnvia";
 /** Obtiene la lista de roles desde la API */
 export const fetchSolicitudes = async (userSecre, userSistema) => {
   try {
-    const response = await fetch(`${API_URL}?secretaria=${userSecre}?sistema=${userSistema}`);
+    const response = await fetch(`${API_URL}?secretaria=${userSecre}&sistema=${userSistema}`);
     if (!response.ok) {
       throw new Error("Error al obtener las solicitudes");
     }
