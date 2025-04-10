@@ -1,14 +1,9 @@
 
 const ADMIN_PROVEEDORES_API_URL = '/api/adminProveedores';
 
+
 /**
  * Obtiene la lista completa de proveedores desde la API de administración.
- * Llama a GET /api/admin/proveedores
- * @returns {Promise<ProveedorData[]>} - Una promesa que resuelve a un array de proveedores.
- */
-/**
- * Obtiene la lista completa de proveedores desde la API de administración.
- * Llama a GET /api/admin/proveedores
  * @returns {Promise<Array<object>>} - Una promesa que resuelve a un array de proveedores.
  */
 export const fetchAllProveedores = async () => {
@@ -42,12 +37,10 @@ export const fetchAllProveedores = async () => {
 
 /**
  * Actualiza el estatus (activo/inactivo) de un proveedor específico.
- * Llama a PUT /api/admin/proveedores enviando ID y estatus en el cuerpo.
  * @param {number} idProveedor - El ID del proveedor a actualizar.
  * @param {boolean} newStatus - El nuevo estado (true para activo, false para inactivo).
  * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
  */
-// AJUSTADO para coincidir con PUT /api/admin/proveedores
 export const updateProveedorStatus = async (idProveedor, newStatus) => {
   console.log(`DEBUG Fetch: Calling updateProveedorStatus for ID ${idProveedor} with status ${newStatus}`);
   // --- Usa la URL BASE ---
@@ -201,9 +194,6 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor) => { // Renomb
 
   // *** CAMBIO CLAVE AQUÍ: Usa un parámetro diferente ***
   const apiUrl = `/api/admin/proveedores?getUsuarioForProveedorId=${idDelProveedor}`;
-  // Antes probablemente era: `/api/admin/proveedores?id_proveedor=${idDelProveedor}` o similar
-  // O si usabas la ruta /api/admin/usuarios-proveedor era: `/api/admin/usuarios-proveedor?idProveedor=${idDelProveedor}`
-  // Asegúrate que la URL base sea '/api/admin/proveedores' ahora.
 
   console.log(`DEBUG Fetch: Target API URL for user: ${apiUrl}`);
 
@@ -247,53 +237,78 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor) => { // Renomb
 };
 
 /**
- * Actualiza los datos de un USUARIO proveedor.
- * Llama a PUT /api/admin/usuarios-proveedor (enviando el objeto completo con id_usuario_proveedor)
- * @param {object} usuarioData - Objeto con los datos actualizados, DEBE incluir id_usuario_proveedor.
- * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
+ * Actualiza los datos de un usuario asociado a un proveedor.
+ * Llama a PUT /api/adminProveedores (o la URL configurada) enviando los datos del usuario.
+ * @param {object} usuarioData - Objeto con los datos actualizados, DEBE incluir 'id_usuario'.
+ * @returns {Promise<object>} - Una promesa que resuelve con los datos del usuario actualizado devueltos por la API.
+ * @throws {Error} - Lanza un error si la validación falla o la llamada fetch/API falla.
  */
 export const updateUsuarioProveedor = async (usuarioData) => {
-    console.log(`DEBUG Fetch: Calling updateUsuarioProveedor for user ID ${usuarioData?.id_usuario}`);
-    console.log(` LLEGO ACA updateUsuarioProveedor ${usuarioData?.id_usuario}`);
-    const apiUrl = ADMIN_PROVEEDORES_API_URL; // Usa la nueva URL base
+  // Log inicial para rastrear la llamada y el ID
+  console.log(`FETCH: Iniciando actualización para usuario ID: ${usuarioData?.id_usuario}`);
+  // Loguear el payload completo puede ser útil para depurar qué se está enviando exactamente
+  console.log(`FETCH: Payload a enviar:`, JSON.stringify(usuarioData, null, 2));
 
-    // Validación crucial: el ID del *usuario* debe estar
-    //if (!usuarioData || typeof usuarioData.id_usuario_proveedor !== 'number' || isNaN(usuarioData.id_usuario_proveedor)) {
-    if (!usuarioData || isNaN(usuarioData.id_usuario)) {
-    
-      const errorMsg = 'Fetch Error: id_usuario_proveedor es requerido y debe ser un número válido en usuarioData para updateUsuarioProveedor';
-       console.error(errorMsg, "Data received:", usuarioData);
-       throw new Error(errorMsg);
-    }
+  // Define la URL del endpoint. Usa una constante si es posible.
+  const apiUrl = '/api/adminProveedores'; // Asegúrate que esta es la ruta correcta de tu API
+  // const apiUrl = ADMIN_PROVEEDORES_API_URL; // Si usas una constante
 
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'PUT', // Asume PUT para actualizar el usuario
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(usuarioData), // Envía el objeto completo
-        });
+  // Validación crucial del ID del usuario antes de enviar
+  if (!usuarioData || typeof usuarioData.id_usuario !== 'number' || isNaN(usuarioData.id_usuario)) {
+      const errorMsg = `Fetch Error: El campo 'id_usuario' es requerido y debe ser un número válido para la función updateUsuarioProveedor. Datos recibidos: ${JSON.stringify(usuarioData)}`;
+      console.error(errorMsg);
+      // Lanzar un error detiene la ejecución aquí y será capturado por el .catch en el componente que llama
+      throw new Error(errorMsg);
+  }
 
-        if (!response.ok) {
-            let errorData;
-            try { errorData = await response.json(); } catch (e) { /* ignore */ }
-            console.error(`Fetch Error PUT ${apiUrl}: Status ${response.status} updating user ID ${usuarioData.id_usuario_proveedor}. Response:`, errorData);
-            throw new Error(errorData?.message || `Error al actualizar el usuario proveedor: ${response.statusText}`);
-        }
+  try {
+      // Realizar la solicitud PUT a la API Route
+      const response = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json',
+              // Aquí podrías añadir otros headers si fuesen necesarios (ej. Authorization: `Bearer ${token}`)
+          },
+          // Enviar el objeto usuarioData completo, ya que la API Route lo espera
+          body: JSON.stringify(usuarioData),
+      });
 
-        const data = await response.json();
-        console.log(`DEBUG Fetch: updateUsuarioProveedor successful for user ID ${usuarioData.id_usuario_proveedor}`);
-        return data; // Podría ser mensaje de éxito o datos actualizados
+      // --- Manejo de la Respuesta ---
 
-    } catch (err) {
-        const errorToThrow = err instanceof Error ? err : new Error(String(err));
-        console.error(`Fetch Error in updateUsuarioProveedor for user ID ${usuarioData?.id_usuario_proveedor}AAAAAA:`, errorToThrow);
-        throw errorToThrow;
-    }
+      // Si la respuesta NO es exitosa (status code no es 2xx)
+      if (!response.ok) {
+          let errorData = { message: `Error ${response.status}: ${response.statusText}` }; // Mensaje por defecto
+          try {
+              // Intenta parsear el cuerpo de la respuesta por si la API envía un JSON con un mensaje de error
+              errorData = await response.json();
+          } catch (parseError) {
+              // Si el cuerpo no es JSON o está vacío, nos quedamos con el mensaje por defecto
+              console.warn(`FETCH: No se pudo parsear el cuerpo de la respuesta de error como JSON. Status: ${response.status}`);
+          }
+
+          const errorMessage = errorData.message || `Error desconocido al actualizar usuario (Status: ${response.status})`;
+          console.error(`FETCH Error PUT ${apiUrl}: Status ${response.status}. Mensaje: "${errorMessage}". User ID: ${usuarioData.id_usuario}.`, errorData);
+          // Lanzar un error con el mensaje obtenido de la API (o el genérico)
+          throw new Error(errorMessage);
+      }
+
+      // Si la respuesta es exitosa (status code 2xx)
+      const updatedUserData = await response.json(); // Parsea la respuesta JSON exitosa
+      console.log(`FETCH: Actualización de usuario ID ${usuarioData.id_usuario} exitosa. Respuesta recibida:`, updatedUserData);
+      return updatedUserData; // Devuelve los datos actualizados
+
+  } catch (error) {
+      // Captura errores de red (ej. servidor caído) o los errores lanzados desde el bloque `if (!response.ok)`
+      // Asegurarnos de que siempre lanzamos un objeto Error
+      const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception durante actualización para usuario ID ${usuarioData?.id_usuario}:`, errorToThrow.message);
+      // Propagar el error para que el componente que llama (page.tsx en handleSaveUserUpdate) pueda manejarlo
+      throw errorToThrow;
+  }
 };
 
 /**
  * Obtiene el usuario proveedor asociado a un proveedor específico por su ID.
- * Llama a GET /api/admin/proveedores?id_proveedor_usuario={idProveedor}
  * @param {number} idProveedor - El ID del proveedor para obtener el usuario asociado.
  * @returns {Promise<object|null>} - Una promesa que resuelve con los datos del usuario o null si no se encuentra.
  */

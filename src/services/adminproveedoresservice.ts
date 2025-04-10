@@ -309,45 +309,91 @@ export const getUsuarioProveedorByProveedorId = async (idProveedor: number) => {
         throw new Error("Error al obtener el usuario asociado al proveedor desde el servicio.");
     }
 };
-
-export const updateUsuarioProveedor = async (usuarioData: any) => {
+export const updateUsuarioProveedor = async (usuarioData: any): Promise<any> => {
     const idUsuario = usuarioData.id_usuario;
-    console.log(`SERVICE: updateUsuarioProveedor called for user ID ${idUsuario}`);
+    console.log(`SERVICE: updateUsuarioProveedor (Full Update w/ COALESCE) called for user ID ${idUsuario}`);
+    console.log(`SERVICE: Received data:`, JSON.stringify(usuarioData, null, 2));
 
+    // Validación básica del ID
     if (typeof idUsuario !== 'number' || isNaN(idUsuario)) {
-        throw new Error("ID de usuario es requerido para actualizar usuario proveedor.");
+        console.error("SERVICE ERROR: Invalid or missing id_usuario.", usuarioData);
+        throw new Error("ID de usuario inválido o faltante para actualizar.");
     }
 
-    try {
-        const hashedPassword = usuarioData.contraseña ? await bcrypt.hash(usuarioData.contraseña, 10) : undefined;
+    // Validación básica de campos requeridos (puedes añadir más si es necesario)
+    const requiredFields = ['usuario', 'nombre', 'apellido_p', 'correo', 'estatus'];
+    for (const field of requiredFields) {
+        if (!usuarioData[field]) {
+             console.error(`SERVICE ERROR: Missing required field '${field}'.`, usuarioData);
+            throw new Error(`El campo '${field}' es requerido.`);
+        }
+    }
 
+
+    try {
+        let newHashedPassword: string | null = null; // Tipo explícito
+
+        // Hashear la contraseña SOLO si se proporcionó una nueva y no está vacía
+        if (usuarioData.contraseña && usuarioData.contraseña.trim() !== '') {
+            console.log("SERVICE: Hashing new password provided.");
+            const saltRounds = 10;
+            newHashedPassword = await bcrypt.hash(usuarioData.contraseña, saltRounds);
+            console.log("SERVICE: New password hashed.");
+        } else {
+            console.log("SERVICE: No new password provided, existing password will be kept.");
+            // newHashedPassword permanece null
+        }
+
+        // Construir y ejecutar la consulta UPDATE
+        // COALESCE(${newHashedPassword}, contraseña) significa:
+        // Si newHashedPassword NO es NULL (es decir, se proporcionó y hasheó una nueva), usa ese valor.
+        // Si newHashedPassword ES NULL (no se proporcionó nueva contraseña), usa el valor actual de la columna 'contraseña'.
+        console.log("SERVICE: Preparing SQL statement...");
         const result = await sql`
             UPDATE usuarios_proveedores
             SET
                 usuario = ${usuarioData.usuario},
                 nombre = ${usuarioData.nombre},
-                apellido_p = ${usuarioData.apellidoPaterno || usuarioData.apellido_p},
-                apellido_m = ${usuarioData.apellidoMaterno || usuarioData.apellido_m},
+                apellido_p = ${usuarioData.apellido_p},
+                apellido_m = ${usuarioData.apellido_m ?? null}, -- Permite null si no se envía
                 correo = ${usuarioData.correo},
-                ${hashedPassword ? sql`contraseña = ${hashedPassword},` : sql``}
-                estatus = ${usuarioData.estatus ?? 'activo'},
+                estatus = ${usuarioData.estatus},
+                contraseña = COALESCE(${newHashedPassword}, contraseña), -- Lógica clave aquí
                 updated_at = NOW()
             WHERE id_usuario = ${idUsuario}
-            RETURNING *;
+            RETURNING
+                id_usuario, usuario, nombre, apellido_p, apellido_m, correo, estatus, created_at, updated_at; -- Excluye contraseña del retorno
         `;
+
+        console.log("SERVICE: SQL statement executed.");
 
         if (result.rowCount === 0) {
             console.warn(`SERVICE: User not found for update. ID: ${idUsuario}`);
-            throw new Error(`Usuario proveedor con ID ${idUsuario} no encontrado para actualizar.`);
+            throw new Error(`Usuario proveedor con ID ${idUsuario} no encontrado.`); // Esto resultará en un 404 en la API Route
         }
 
-        console.log(`SERVICE: User updated successfully for ID ${idUsuario}`);
-        return result.rows[0];
+        console.log(`SERVICE: User updated successfully for ID ${idUsuario}. Rows affected: ${result.rowCount}`);
+        return result.rows[0]; // Devuelve los datos actualizados (sin la contraseña)
+
     } catch (error: any) {
         console.error(`SERVICE ERROR in updateUsuarioProveedor for user ID ${idUsuario}:`, error);
-        if (error.message.includes('constraint')) {
-            throw new Error(`Error de base de datos al actualizar usuario (posiblemente correo o usuario duplicado).`);
+
+        // Clasifica y relanza el error para la API Route
+        if (error.code === '23505') { // Violación de unicidad (e.g., usuario o correo duplicado)
+             const constraint = error.constraint;
+             let field = 'campo único';
+             if (constraint?.includes('usuario')) field = 'usuario';
+             else if (constraint?.includes('correo')) field = 'correo electrónico';
+            throw new Error(`Error: El ${field} '${usuarioData[field.split(' ')[0]] || ''}' ya está en uso.`); // Intenta obtener el valor conflictivo
+        } else if (error.code === '42703') { // Columna no encontrada
+             throw new Error(`Error de base de datos: La columna referenciada no existe (${error.message}). Revisa los nombres de columna.`);
+        } else if (error.code === '42601') { // Error de sintaxis
+             throw new Error(`Error de sintaxis en la consulta SQL: ${error.message}.`);
+        } else if (error.message.includes('no encontrado')) { // Error de 'no encontrado' lanzado explícitamente
+             throw error; // Re-lanzar para que la API route devuelva 404
+        } else {
+            // Error genérico
+            throw new Error(`Error interno del servidor al actualizar usuario: ${error.message || 'Desconocido'}`);
         }
-        throw error;
     }
 };

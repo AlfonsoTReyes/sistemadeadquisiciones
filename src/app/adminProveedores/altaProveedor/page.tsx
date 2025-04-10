@@ -1,22 +1,30 @@
-"use client"; // Necesario para hooks de cliente
-
-import React, { useState, useEffect, useMemo, useCallback  } from 'react'; // Añade useMemo
-import { useRouter } from 'next/navigation'; // Para navegación
+"use client";
+import React, { useState, useEffect, useMemo, useCallback  } from 'react'; 
+import { useRouter } from 'next/navigation';
 import Menu from '../../menu_principal';
-import Pie from "../../pie"; // Ajusta ruta
+import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores';
-import { ProveedorData, DocumentoData } from './interface';
+import { ProveedorData } from './interface';
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
 import ModalActualizarUsuarioProveedor from './formularios/modalActualizarUsuario';
 import {
     fetchAllProveedores,
     updateProveedorStatus,
     getProveedorProfileById,
-    updateProveedorProfile,         // Renombrado en fetch -> updateProveedorProfileForAdmin
-    getUsuarioProveedorAsociado,
+    updateProveedorProfile,
     updateUsuarioProveedor,
     getUsuarioProveedorByProveedorId
-} from './formularios/fetchAltaProveedor'; // Ajusta ruta/nombre de archivo fetch
+} from './formularios/fetchAltaProveedor';
+
+ interface UsuarioProveedorData {
+   id_usuario: number;
+   usuario: string;
+   nombre: string;
+   apellido_p: string;
+   apellido_m: string;
+   correo: string;
+   estatus: string;
+ }
 
 export default function AdministradorProveedoresPage() {
     const router = useRouter();
@@ -39,10 +47,9 @@ export default function AdministradorProveedoresPage() {
 
   // Estado para el modal de USUARIO proveedor
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Usa la interfaz
-  const [isUpdatingUser, setIsUpdatingUser] = useState(false); // Guardado del modal de usuario
-  const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Error del modal de usuario
-
+  const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Estado para los datos del *usuario* a editar
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false); // Estado de carga para la actualización del *usuario*
+  const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Estado de error para la actualización del *usuario*
   // Estado para carga de cambio de estatus individual
   const [isLoadingStatusChange, setIsLoadingStatusChange] = useState<{ [key: number]: boolean }>({});
 
@@ -51,7 +58,7 @@ export default function AdministradorProveedoresPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchAllProveedores(); // Usa la función correcta del servicio
+      const data = await fetchAllProveedores();
       setProveedores(data);
     } catch (err: any) {
       setError(err.message);
@@ -102,7 +109,6 @@ export default function AdministradorProveedoresPage() {
             // console.log(`Admin Page - Attempting status change for ID ${idProveedor} to ${newStatus}`); // Debug
 
             try {
-                // Llama a la función fetch que usa PUT /api/admin/proveedores
                 await updateProveedorStatus(idProveedor, newStatus);
                 // console.log(`Admin Page - Status updated for ID ${idProveedor}. Refreshing list...`); // Debug
 
@@ -127,9 +133,7 @@ export default function AdministradorProveedoresPage() {
             }
         }
     };
-    // --- NUEVA LÓGICA PARA FILTRAR ---
-    // Usamos useMemo para evitar recalcular la lista filtrada en cada renderizado
-    // si los proveedores o los filtros no han cambiado.
+    // --- FILTRAR ---
     const proveedoresFiltrados = useMemo(() => {
       // Si no hay filtros, devuelve la lista completa
       if (!filtroRfc && !filtroCorreo) {
@@ -200,61 +204,74 @@ export default function AdministradorProveedoresPage() {
 
   // --- Editar USUARIO Proveedor ---
   const handleEditUserClick = async (idProveedor: number) => {
-    console.log("Abriendo modal de usuario para proveedor ID:", idProveedor);
-    setIsFetchingEditData(true); // Reutiliza estado de carga
+    console.log("PAGE: Buscando usuario asociado al proveedor ID:", idProveedor);
+    setIsFetchingEditData(true);
     setUpdateUserError(null);
     setEditingUserData(null);
     try {
-      const data = await getUsuarioProveedorByProveedorId(idProveedor); // Llama a la función de servicio
-      if (data) { // Verifica si se encontró un usuario
-        setEditingUserData(data); // Guarda los datos del usuario
-        setIsEditUserModalOpen(true); // Abre el modal de usuario
-      } else {
-        // Informa si no hay usuario asociado (no necesariamente un error)
-        alert("Este proveedor no tiene un usuario asociado registrado.");
-        // O establece un error si prefieres:
-        // setUpdateUserError("No se encontró un usuario asociado para este proveedor.");
-      }
+        // Llama a la función fetch para obtener los datos del USUARIO asociado por el ID del PROVEEDOR
+        const data = await getUsuarioProveedorByProveedorId(idProveedor);
+        console.log("PAGE: Datos del USUARIO recibidos para modal:", data); // Verifica qué llega aquí
+        if (data && typeof data.id_usuario === 'number') { // Verifica que obtuvo un usuario válido
+            // Guarda los datos que contienen 'id_usuario'
+            setEditingUserData(data as UsuarioProveedorData); // Forzar tipo si es necesario
+            setIsEditUserModalOpen(true); // Abre el modal de usuario
+        } else {
+            // Manejo si no se encuentra usuario o la respuesta es inesperada
+            console.warn("PAGE: No se encontró usuario asociado o respuesta inválida para proveedor ID:", idProveedor, data);
+            alert("Este proveedor no tiene un usuario asociado o no se pudieron cargar los datos.");
+            // setUpdateUserError("No se encontró un usuario asociado para este proveedor.");
+        }
     } catch (err: any) {
-      setUpdateUserError(err.message); // Muestra error si falla la carga
+        console.error("PAGE: Error al obtener datos del usuario para editar:", err);
+        setUpdateUserError(err.message || 'Error al cargar datos del usuario.');
     } finally {
-      setIsFetchingEditData(false);
+        setIsFetchingEditData(false);
     }
-  };
+};
 
-    const handleCloseEditUserModal = () => {
-        setIsEditUserModalOpen(false);
-        setEditingUserData(null);
-        setUpdateUserError(null);
-    };
-
+const handleCloseEditUserModal = () => {
+    setIsEditUserModalOpen(false);
+    setEditingUserData(null);
+    setUpdateUserError(null);
+};
+    // Esta función recibe el payload DEL MODAL, que YA debe contener 'id_usuario'
     const handleSaveUserUpdate = async (payloadFromModal: any) => {
-      console.log("AdminPage recibió payload del modal de usuario:", payloadFromModal);
-  
-      // *** VALIDACIÓN CLAVE (CORREGIDA) ***
-      if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') { // <-- Buscando 'id_usuario'
-          console.error("ERROR: El payload del modal de usuario no contiene un 'id_usuario' válido."); // <-- Mensaje consistente
-          setUpdateUserError("Error interno: No se pudo identificar al usuario a actualizar (ID faltante o inválido).");
-          return; // Detener si falta el ID o no es número
+      console.log("PAGE: Recibido payload del modal de usuario:", JSON.stringify(payloadFromModal, null, 2));
+
+      // Validación: Asegurarse que el payload del modal tiene el id_usuario
+      if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') {
+          const errorMsg = "Error Interno (Page): El payload recibido del modal no contiene un 'id_usuario' numérico válido.";
+          console.error(errorMsg, payloadFromModal);
+          setUpdateUserError(errorMsg); // Mostrar error en el modal
+          return; // Detener si falta el ID
       }
-  
+
       setIsUpdatingUser(true);
-      setUpdateUserError(null);
+      setUpdateUserError(null); // Limpiar error previo
       try {
-          // Llama a la función fetch que ahora espera 'id_usuario'
-          await updateUsuarioProveedor(payloadFromModal); // Asumiendo una función fetch separada
+          // Llama a la función FETCH (updateUsuarioProveedor de fetchAltaProveedor.js)
+          // que se encarga de hacer el PUT a /api/adminProveedores
+          // Esta función ya tiene la validación interna y manejo de errores fetch
+          const updatedUser = await updateUsuarioProveedor(payloadFromModal);
+
+          console.log("PAGE: Usuario actualizado exitosamente via fetch. Respuesta:", updatedUser);
           handleCloseEditUserModal();
           alert("Usuario del proveedor actualizado exitosamente.");
-          // Recargar datos
+          // Opcional pero recomendado: Recargar la lista principal si la tabla muestra info del usuario (como nombre/correo)
+          await cargarProveedores();
+
       } catch (err: any) {
-          console.error("Error saving user:", err);
-          const errorMessage = err.response?.data?.message || err.message || "Ocurrió un error al actualizar.";
-          setUpdateUserError(errorMessage);
+          // Captura errores lanzados por la función updateUsuarioProveedor (fetch)
+          console.error("PAGE: Error al guardar usuario (capturado desde fetch):", err);
+          // El mensaje de error ya debería venir formateado desde la función fetch o la API
+          setUpdateUserError(err.message || "Ocurrió un error desconocido al actualizar el usuario.");
       } finally {
-          setIsUpdatingUser(false);
+          setIsUpdatingUser(false); // Termina el estado de carga
       }
   };
-  
+
+
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
@@ -343,15 +360,15 @@ export default function AdministradorProveedoresPage() {
       )}
 
       {/* Renderizar Modal Editar USUARIO Proveedor */}
-       {isEditUserModalOpen && editingUserData && (
-         <ModalActualizarUsuarioProveedor 
-         userData={editingUserData} 
-         onClose={handleCloseEditUserModal}
-         onSubmit={handleSaveUserUpdate}
-         isLoading={isUpdatingUser}
-         error={updateUserError}
-         />
-       )}
+         {isEditUserModalOpen && editingUserData && (
+          <ModalActualizarUsuarioProveedor
+              userData={editingUserData} // Pasa los datos del usuario con id_usuario
+              onClose={handleCloseEditUserModal}
+              onSubmit={handleSaveUserUpdate} // Llama a la función que usa fetch
+              isLoading={isUpdatingUser || isFetchingEditData} // Puede estar cargando datos o guardando
+              error={updateUserError} // Muestra el error específico del modal de usuario
+          />
+      )}
             </div>
             <Pie />
         </div>
