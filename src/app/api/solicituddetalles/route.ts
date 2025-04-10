@@ -48,12 +48,11 @@ export async function PUT(req: NextRequest) {
     switch (tipoOrigen) {
       
       case "suficiencia":
-    console.log(tipoOrigen, nuevoEstatus);
-
         resultado = await updateSolicitudEstatus(idDoc, nuevoEstatus);
         break;
 
       case "justificacion":
+        console.log(idDoc,tipoOrigen, nuevoEstatus);
         resultado = await updateJustificacionEstatus(idDoc, nuevoEstatus);
         break;
 

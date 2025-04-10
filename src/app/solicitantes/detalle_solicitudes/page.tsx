@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import DynamicMenu from "../../dinamicMenu";
+import DynamicMenu from "../../menu";
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaDetalle';
 import AltaSolicitud from './formularios/alta';
@@ -56,7 +56,7 @@ const SolicitudPage = () => {
         {loading && <p>Cargando solicitudes...</p>}
         {error && <p>Error: {error}</p>}
 
-        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null, techoPresupuestalRespuesta: null }} onSolicitudAdded={fetchData} />
+        <TablaSolicitudes solicitudes={detallesSolicitud ?? { solicitud: null, justificacion: null, techoPresupuestal: null, documentos_adicionales: null, techoPresupuestalRespuesta: null, techoPresupuestalOficial: null, techoPresupuestalRespuestaOficial: null }} onSolicitudAdded={fetchData} />
 
       </div>
       <Pie />

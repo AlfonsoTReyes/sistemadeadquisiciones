@@ -5,7 +5,9 @@ import {
   createSuficiencia,
   updateSuficiencia,
   getPreSuficienciasPendientes,
-  getSuficienciasPendientes
+  getSuficienciasPendientes,
+  getSuficienciasPorSecretaria,
+  getPreSuficienciasPorSecretaria
 } from "../../../services/suficienciaService";
 
 // GET: obtener todas o una suficiencia
@@ -14,7 +16,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id_pre");
     const id_pdf = searchParams.get("id");
-
+    const sistema = searchParams.get("sistema");
+    const secretaria = searchParams.get("secretaria");
     const tipo = searchParams.get("tipo");
 
 
@@ -37,19 +40,35 @@ export async function GET(req: NextRequest) {
 
 
     if (tipo === "suf") {
-      const suficiencias = await getSuficienciasPendientes(); // ← consulta de solicitudes de suficiencia
+      if (sistema === "UNIVERSAL") {
+        const suficiencias = await getSuficienciasPendientes();
         if (!suficiencias) {
           return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
         }
         return NextResponse.json(suficiencias);
+      } else {
+        const sufPorSecretaria = await getSuficienciasPorSecretaria(secretaria || "");
+        if (!sufPorSecretaria) {
+          return NextResponse.json({ message: "suficiencia no encontrada para la secretaría" }, { status: 404 });
+        }
+        return NextResponse.json(sufPorSecretaria);
+      }
     }
 
     if (tipo === "pre") {
-      const suficiencia = await getPreSuficienciasPendientes();
-      if (!suficiencia) {
-        return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
+      if (sistema === "UNIVERSAL") {
+        const preSuf = await getPreSuficienciasPendientes();
+        if (!preSuf) {
+          return NextResponse.json({ message: "suficiencia no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(preSuf);
+      } else {
+        const prePorSecretaria = await getPreSuficienciasPorSecretaria(secretaria || "");
+        if (!prePorSecretaria) {
+          return NextResponse.json({ message: "pre-suficiencia no encontrada para la secretaría" }, { status: 404 });
+        }
+        return NextResponse.json(prePorSecretaria);
       }
-      return NextResponse.json(suficiencia);
     }
 
   } catch (error) {
@@ -73,10 +92,11 @@ export async function POST(req: NextRequest) {
       hora,
       cuenta,
       cantidad,
-      motivo
+      motivo,
+      tipo
     } = await req.json();
 
-    if (!id_secretaria || !id_dependencia || !id_usuario || !oficio || !asunto || !lugar || !fecha || !hora || !cuenta || !cantidad || !motivo || !id_solicitud) {
+    if (!id_secretaria || !id_dependencia || !id_usuario || !oficio || !asunto || !lugar || !fecha || !hora || !cuenta || !cantidad || !motivo || !id_solicitud || !tipo) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
 
@@ -94,7 +114,7 @@ export async function POST(req: NextRequest) {
       cantidad,
       motivo,
       estatus: 'Pendiente',
-      tipo: 'Pre-suficiencia'
+      tipo
     });
 
     return NextResponse.json(nueva);

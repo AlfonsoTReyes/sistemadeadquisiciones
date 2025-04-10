@@ -32,13 +32,13 @@ const useLoginService = () => {
   const getRedirectPath = (sistema) => {
     switch (sistema.toLowerCase()) {
       case "finanzas":
-        return "/finanzas";
+        return "/dashboard";
       case "adquisiciones":
-        return "/adquisiciones";
+        return "/dashboard";
       case "proveedores":
-        return "/proveedores";
+        return "/dashboard";
       case "solicitantes":
-        return "/solicitantes";
+        return "/dashboard";
       default:
         return "/dashboard"; // ruta por defecto si el sistema no está definido
     }

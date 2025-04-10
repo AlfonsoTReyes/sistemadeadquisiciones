@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Menu from '../menu_solicitante';
 import Pie from '../../pie';
 import TablaSolicitudes from './tablaSolicitudes';
 import AltaSolicitud from './formularios/alta';
@@ -34,7 +33,6 @@ const SolicitudPage = () => {
         try {
             const data = await fetchSolicitudes(userSecre, userSistema);
             setSolicitudes(data);
-            console.log("Solicitudes cargadas:", data);
         } catch (err) {
             setError((err as Error).message);
         } finally {

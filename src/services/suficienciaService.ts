@@ -215,6 +215,42 @@ export const getPreSuficienciasPendientes = async () => {
   }
 };
 
+export const getPreSuficienciasPorSecretaria = async (nombreSecretaria: string) => {
+  try {
+    const result = await sql`
+      SELECT 
+        ss.id_suficiencia,
+        s.nombre AS nombre_secretaria,
+        ss.oficio,
+        ss.asunto,
+        ss.lugar,
+        ss.fecha,
+        ss.hora,
+        ss.cuenta,
+        ss.cantidad,
+        ss.motivo,
+        u.nombre || ' ' || u.apellidos AS nombre_usuario,
+        d.nombre AS nombre_dependencia,
+        ss.created_at,
+        ss.updated_at,
+        ss.id_solicitud,
+        ss.estatus,
+        ss.tipo
+      FROM public.solicitud_suficiencia ss
+      LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
+      LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
+      LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
+      WHERE ss.estatus != 'Pendiente'
+        AND ss.tipo = 'Pre-suficiencia'
+        AND s.id_secretaria = ${nombreSecretaria};
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener pre-suficiencias por secretaría:", error);
+    throw error;
+  }
+};
+
 
 export const getSuficienciasPendientes = async () => {
   try {
@@ -246,6 +282,42 @@ export const getSuficienciasPendientes = async () => {
     return result.rows;
   } catch (error) {
     console.error("error al obtener suficiencias:", error);
+    throw error;
+  }
+};
+
+export const getSuficienciasPorSecretaria = async (nombreSecretaria: string) => {
+  try {
+    const result = await sql`
+      SELECT 
+        ss.id_suficiencia,
+        s.nombre AS nombre_secretaria,
+        ss.oficio,
+        ss.asunto,
+        ss.lugar,
+        ss.fecha,
+        ss.hora,
+        ss.cuenta,
+        ss.cantidad,
+        ss.motivo,
+        u.nombre || ' ' || u.apellidos AS nombre_usuario,
+        d.nombre AS nombre_dependencia,
+        ss.created_at,
+        ss.updated_at,
+        ss.id_solicitud,
+        ss.estatus,
+        ss.tipo
+      FROM public.solicitud_suficiencia ss
+      LEFT JOIN public.secretarias s ON ss.id_secretaria = s.id_secretaria
+      LEFT JOIN public.usuarios u ON ss.id_usuario = u.id_usuario
+      LEFT JOIN public.dependencias d ON ss.id_dependencia = d.id_dependencia
+      WHERE ss.estatus != 'Pendiente'
+        AND ss.tipo = 'Suficiencia'
+        AND s.id_secretaria = ${nombreSecretaria};
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener suficiencias por secretaría:", error);
     throw error;
   }
 };

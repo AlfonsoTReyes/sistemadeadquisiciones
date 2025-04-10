@@ -7,9 +7,10 @@ interface AltaSuficienciaProps {
     onClose: () => void;
     onSubmit: (data: any) => void;
     idSolicitud: number; 
+    tipo: "pre-suficiencia" | "suficiencia";
   }
 
-const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, idSolicitud  }) => {
+const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, idSolicitud, tipo  }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [oficio, setOficio] = useState("");
   const [asunto, setAsunto] = useState("");
@@ -82,13 +83,13 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
       cantidad: parseFloat(cantidad),
       motivo,
       id_solicitud: idSolicitud,
+      tipo
     };
 
 
     try {
       await createSoliPreSuficiencia(suficienciaData);
       setSuccessMessage("Suficiencia registrada correctamente.");
-      
       setTimeout(() => onClose(), 1000);
     } catch (err) {
       setError((err as Error).message);
