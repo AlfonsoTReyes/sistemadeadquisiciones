@@ -9,6 +9,8 @@ export const crearEventoComite = async ({
   estatus,
   color,
   id_usuario,
+  nomenclatura,
+  anio,
 }: {
   titulo: string;
   descripcion: string;
@@ -18,6 +20,8 @@ export const crearEventoComite = async ({
   estatus: string;
   color: string;
   id_usuario: number;
+  nomenclatura: string;
+  anio:string;
 }) => {
   try {
     const result = await sql`
@@ -30,6 +34,8 @@ export const crearEventoComite = async ({
         estatus,
         id_usuario,
         color,
+        nomenclatura,
+        año,
         created_at,
         updated_at
       ) VALUES (
@@ -41,6 +47,8 @@ export const crearEventoComite = async ({
         ${estatus},
         ${id_usuario},
         ${color},
+        ${nomenclatura},
+        ${anio},
         NOW(),
         NOW()
       )
@@ -90,7 +98,9 @@ export const actualizarEventoComite = async (
     fecha_inicio,
     fecha_fin,
     estatus,
-    color
+    color,
+    nomenclatura,
+    anio,
   }: {
     titulo: string;
     descripcion: string;
@@ -99,6 +109,8 @@ export const actualizarEventoComite = async (
     fecha_fin: string;
     estatus: string;
     color: string;
+    nomenclatura:string;
+    anio:string;
   }
 ) => {
   try {
@@ -111,6 +123,8 @@ export const actualizarEventoComite = async (
         fecha_fin = ${fecha_fin},
         color=${color},
         estatus = ${estatus},
+        nomenclatura = ${nomenclatura},
+        año = ${anio},
         updated_at = NOW()
       WHERE id_evento = ${id_evento}
       RETURNING *;

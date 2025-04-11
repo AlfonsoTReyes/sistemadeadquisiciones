@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
       tipo_evento,
       estatus,
       color,
-      id_usuario
+      id_usuario,
+      nomenclatura,
+      anio
     } = await req.json();
 
     if (!titulo || !fecha_inicio || !fecha_fin || !tipo_evento || !id_usuario) {
@@ -55,7 +57,9 @@ export async function POST(req: NextRequest) {
       tipo_evento,
       estatus: estatus || 'activo',
       color,
-      id_usuario
+      id_usuario,
+      nomenclatura,
+      anio
     });
 
     return NextResponse.json(nuevo);
@@ -76,7 +80,9 @@ export async function PUT(req: NextRequest) {
       fecha_fin,
       tipo_evento,
       estatus,
-      color
+      color,
+      nomenclatura,
+      anio
     } = await req.json();
 
     if (!id_evento) {
@@ -90,7 +96,9 @@ export async function PUT(req: NextRequest) {
       fecha_fin,
       tipo_evento,
       estatus,
-      color
+      color,
+      nomenclatura,
+      anio
     });
 
     if (!actualizado) {
