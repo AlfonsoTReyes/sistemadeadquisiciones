@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getEventoById, modificarEvento } from "@/app/peticiones_api/peticionEventos";
+import sesionesComite from "../sesiones.json";
 
 interface Props {
   evento: { id_evento: number };
@@ -27,16 +28,19 @@ const ModificarEvento: React.FC<Props> = ({
 }) => {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [nomenclatura, setNomenclatura] = useState("");
   const [fechaInicio, setFechaInicio] = useState(fechaSeleccionada);
   const [fechaFin, setFechaFin] = useState(fechaSeleccionada);
   const [tipoEvento, setTipoEvento] = useState("ordinario");
   const [estatus, setEstatus] = useState("programado");
   const [isLoading, setIsLoading] = useState(false);
+  const [usaSesionOrdinaria, setUsaSesionOrdinaria] = useState<boolean | null>(null);
+  const anioActual = new Date().getFullYear();
+  const [anio, setAnio] = useState(anioActual.toString());
 
   const formatDateForInput = (dateStr: string): string => {
     const date = new Date(dateStr);
-    const iso = date.toISOString();
-    return iso.slice(0, 16); 
+    return date.toISOString().slice(0, 16);
   };
 
   useEffect(() => {
@@ -46,14 +50,24 @@ const ModificarEvento: React.FC<Props> = ({
         const datos = await getEventoById(evento.id_evento);
         if (datos) {
           setTitulo(datos.titulo || "");
+          setAnio(datos.anio || "");
           setDescripcion(datos.descripcion || "");
-          setFechaInicio(formatDateForInput(datos.fecha_inicio) || fechaSeleccionada);
-          setFechaFin(formatDateForInput(datos.fecha_fin) || fechaSeleccionada);
+          setFechaInicio(formatDateForInput(datos.fecha_inicio));
+          setFechaFin(formatDateForInput(datos.fecha_fin));
           setTipoEvento(datos.tipo_evento || "ordinario");
           setEstatus(datos.estatus || "programado");
+
+          const sesion = sesionesComite.find(s => s.nombre === datos.titulo);
+          if (sesion && datos.tipo_evento === "ordinario") {
+            setUsaSesionOrdinaria(true);
+            setNomenclatura(`${sesion.nomenclatura}-${anioActual}`);
+          } else {
+            setUsaSesionOrdinaria(false);
+            setNomenclatura(datos.clave_evento || "");
+          }
         }
       } catch (error) {
-        console.error("error al cargar evento:", error);
+        console.error("Error al cargar evento:", error);
       } finally {
         setIsLoading(false);
       }
@@ -71,17 +85,19 @@ const ModificarEvento: React.FC<Props> = ({
       id_evento: evento.id_evento,
       titulo,
       descripcion,
+      clave_evento: nomenclatura,
       fecha_inicio: fechaInicio,
       fecha_fin: fechaFin,
       tipo_evento: tipoEvento,
       estatus,
       id_usuario,
       color,
+      nomenclatura,
+      anio
     };
 
     try {
       const response = await modificarEvento(eventoData);
-
       if (response?.id_evento) {
         onSaveSuccess();
         onClose();
@@ -89,13 +105,13 @@ const ModificarEvento: React.FC<Props> = ({
         alert("No se pudo modificar el evento.");
       }
     } catch (error) {
-      console.error("error al modificar evento:", error);
+      console.error("Error al modificar evento:", error);
       alert("Ocurrió un error al modificar el evento.");
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-lg md:max-w-2xl shadow-xl overflow-y-auto max-h-[90vh]">
@@ -110,11 +126,102 @@ const ModificarEvento: React.FC<Props> = ({
           </div>
         )}
 
-        <label className="block mb-2 text-sm font-semibold">Título:</label>
+        {tipoEvento === "ordinario" && (
+          <>
+            <label className="block mb-2 text-sm font-semibold">¿Agregar número de sesión ordinaria?</label>
+            <div className="flex gap-4 mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="usaSesion"
+                  checked={usaSesionOrdinaria === true}
+                  onChange={() => {
+                    setUsaSesionOrdinaria(true);
+                    setTitulo("");
+                    setDescripcion("");
+                    setNomenclatura("");
+                  }}
+                />
+                Sí
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="usaSesion"
+                  checked={usaSesionOrdinaria === false}
+                  onChange={() => {
+                    setUsaSesionOrdinaria(false);
+                    setTitulo("");
+                    setDescripcion("");
+                    setNomenclatura("");
+                  }}
+                />
+                No
+              </label>
+            </div>
+          </>
+        )}
+
+        {tipoEvento === "ordinario" && usaSesionOrdinaria === true ? (
+          <>
+            <label className="block mb-2 text-sm font-semibold">Número de sesión ordinaria:</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={titulo}
+              onChange={(e) => {
+                const seleccion = sesionesComite.find((s) => s.nombre === e.target.value);
+                if (seleccion) {
+                  const claveGenerada = `${seleccion.nomenclatura}-${anioActual}`;
+                  setTitulo(seleccion.nombre);
+                  setDescripcion(`Sesión ordinaria del comité - ${claveGenerada}`);
+                  setNomenclatura(claveGenerada);
+                }
+              }}
+            >
+              <option value="">Selecciona una sesión</option>
+              {sesionesComite.map((sesion, idx) => (
+                <option key={idx} value={sesion.nombre}>
+                  {sesion.nombre}
+                </option>
+              ))}
+            </select>
+
+            <label className="block mb-2 text-sm font-semibold">Nomenclatura:</label>
+            <input
+              className="w-full border rounded p-2 mb-3"
+              value={nomenclatura}
+              onChange={(e) => setNomenclatura(e.target.value)}
+              placeholder="Ej: MSJR-CA-ORD-05-2025"
+            />
+          </>
+        ) : (
+          <>
+            <label className="block mb-2 text-sm font-semibold">Título:</label>
+            <input
+              className="w-full border rounded p-2 mb-3"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Ej: Evento especial de cierre"
+            />
+            
+            <label className="block mb-2 text-sm font-semibold">Nomenclatura:</label>
+            <input
+              className="w-full border rounded p-2 mb-3"
+              value={nomenclatura}
+              onChange={(e) => setNomenclatura(e.target.value)}
+              placeholder="Ej: MSJR-OTRO-999-2025"
+            />
+          </>
+        )}
+
+        <label className="block mb-2 text-sm font-semibold">Año:</label>
         <input
+          type="number"
           className="w-full border rounded p-2 mb-3"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
+          value={anio}
+          onChange={(e) => setAnio(e.target.value)}
+          min="2000"
+          max="2100"
         />
 
         <label className="block mb-2 text-sm font-semibold">Descripción:</label>
@@ -145,7 +252,10 @@ const ModificarEvento: React.FC<Props> = ({
         <select
           className="w-full border rounded p-2 mb-3"
           value={tipoEvento}
-          onChange={(e) => setTipoEvento(e.target.value)}
+          onChange={(e) => {
+            setTipoEvento(e.target.value);
+            setUsaSesionOrdinaria(null);
+          }}
         >
           <option value="ordinario">Ordinario</option>
           <option value="extraordinario">Extraordinario</option>

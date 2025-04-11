@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import { getUsers } from '../../../peticiones_api/fetchUsuarios';
+import { fetchEventos } from '../../../peticiones_api/peticionEventos';
+import { fetchAdjudicaciones } from '../../../peticiones_api/peticionCatalogoAdjudicaciones';
 
 interface ModalAdjudicarProps {
   idSolicitud: number;
@@ -64,14 +67,14 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     const fetchDatos = async () => {
       try {
         const [resFechas, resUsuarios, resAdjudicacion] = await Promise.all([
-          fetch("/api/eventoComite"),
-          fetch("/api/usuarios"),
-          fetch("/api/catalogoAdjudicaciones"),
+          fetchEventos(),
+          getUsers(),
+          fetchAdjudicaciones(),
         ]);
 
-        const fechas = await resFechas.json();
-        const usuariosData = await resUsuarios.json();
-        const adjudicacionData: Adjudicacion[] = await resAdjudicacion.json();
+        const fechas = resFechas;
+        const usuariosData =  resUsuarios;
+        const adjudicacionData: Adjudicacion[] = resAdjudicacion;
         setAdjudicaciones(adjudicacionData);
 
         setFechasDisponibles(fechas || []);
