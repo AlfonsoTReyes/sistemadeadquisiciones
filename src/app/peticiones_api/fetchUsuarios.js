@@ -95,3 +95,14 @@ export const updateUser = async (usuarioData) => {
     throw new Error(error.message || "Error desconocido");
   }
 };
+
+export const getUsers = async () => {
+  try {
+    const response = await fetch(`${API_URL}`);
+    if (!response.ok) throw new Error("Error al obtener los datos del usuario");
+    
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || "Error desconocido");
+  }
+};
