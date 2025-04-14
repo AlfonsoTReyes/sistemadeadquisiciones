@@ -48,6 +48,7 @@ next-env.d.ts
 /public/anexo técnico/
 /public/cotización/
 /public/suficiencia/
+/public/notas/
 
 public/dictamen/*
 !public/dictamen/.gitkeep
