@@ -1,0 +1,31 @@
+[
+    { "nombre": "Primera Ordinaria", "nomenclatura": "MSJR-CA-ORD-01" },
+    { "nombre": "Segunda Ordinaria", "nomenclatura": "MSJR-CA-ORD-02" },
+    { "nombre": "Tercera Ordinaria", "nomenclatura": "MSJR-CA-ORD-03" },
+    { "nombre": "Cuarta Ordinaria", "nomenclatura": "MSJR-CA-ORD-04" },
+    { "nombre": "Quinta Ordinaria", "nomenclatura": "MSJR-CA-ORD-05" },
+    { "nombre": "Sexta Ordinaria", "nomenclatura": "MSJR-CA-ORD-06" },
+    { "nombre": "Séptima Ordinaria", "nomenclatura": "MSJR-CA-ORD-07" },
+    { "nombre": "Octava Ordinaria", "nomenclatura": "MSJR-CA-ORD-08" },
+    { "nombre": "Novena Ordinaria", "nomenclatura": "MSJR-CA-ORD-09" },
+    { "nombre": "Décima Ordinaria", "nomenclatura": "MSJR-CA-ORD-10" },
+    { "nombre": "Décima Primera Ordinaria", "nomenclatura": "MSJR-CA-ORD-11" },
+    { "nombre": "Décima Segunda Ordinaria", "nomenclatura": "MSJR-CA-ORD-12" },
+    { "nombre": "Décima Tercera Ordinaria", "nomenclatura": "MSJR-CA-ORD-13" },
+    { "nombre": "Décima Cuarta Ordinaria", "nomenclatura": "MSJR-CA-ORD-14" },
+    { "nombre": "Décima Quinta Ordinaria", "nomenclatura": "MSJR-CA-ORD-15" },
+    { "nombre": "Décima Sexta Ordinaria", "nomenclatura": "MSJR-CA-ORD-16" },
+    { "nombre": "Décima Séptima Ordinaria", "nomenclatura": "MSJR-CA-ORD-17" },
+    { "nombre": "Décima Octava Ordinaria", "nomenclatura": "MSJR-CA-ORD-18" },
+    { "nombre": "Décima Novena Ordinaria", "nomenclatura": "MSJR-CA-ORD-19" },
+    { "nombre": "Vigésima Ordinaria", "nomenclatura": "MSJR-CA-ORD-20" },
+    { "nombre": "Vigésima Primera Ordinaria", "nomenclatura": "MSJR-CA-ORD-21" },
+    { "nombre": "Vigésima Segunda Ordinaria", "nomenclatura": "MSJR-CA-ORD-22" },
+    { "nombre": "Vigésima Tercera Ordinaria", "nomenclatura": "MSJR-CA-ORD-23" },
+    { "nombre": "Vigésima Cuarta Ordinaria", "nomenclatura": "MSJR-CA-ORD-24" },
+    { "nombre": "Vigésima Quinta Ordinaria", "nomenclatura": "MSJR-CA-ORD-25" },
+    { "nombre": "Vigésima Sexta Ordinaria", "nomenclatura": "MSJR-CA-ORD-26" },
+    { "nombre": "Vigésima Séptima Ordinaria", "nomenclatura": "MSJR-CA-ORD-27" }
+
+  ]
+  

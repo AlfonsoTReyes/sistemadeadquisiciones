@@ -1,4 +1,6 @@
 const API_URL = "/api/justificacion";
+const API_URL_DETALLE = "/api/justificacion/detalle_justificacion";
+
 
 
 export const fetchJustificacionBySolicitud = async (id_solicitud) => {
@@ -46,6 +48,8 @@ export const getJusitificacionById = async (id_just) => {
   }
 };
 
+
+
 export const updateJustificacion = async (solicitudData) => {
   try {
     const response = await fetch(`${API_URL}`, {
@@ -68,11 +72,11 @@ export const updateJustificacion = async (solicitudData) => {
 
 /********* PARA LA SUBIDA DE DOCUMENTOS DE DETALLE DE LA JUSTIFICACION ***********/
 
-export const fetchJustificacionDetalleBySolicitud = async (id_solicitud) => {
+export const getJustificacionDetalleBySolicitud = async (id_solicitud) => {
   try {
-    const response = await fetch(`${API_URL}?id_solicitudd=${id_solicitud}`);
+    const response = await fetch(`${API_URL_DETALLE}?id_just=${id_solicitud}`);
     if (!response.ok) {
-      throw new Error("Error al obtener las solicitudes de detalle");
+      throw new Error("Error al obtener los detalles de la justificacion");
     }
     return await response.json();
   } catch (err) {

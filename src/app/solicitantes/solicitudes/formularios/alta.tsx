@@ -195,6 +195,8 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
               <option value="">Selecciona adjudicación</option>
               <option value="1">Bienes y servicios</option>
               <option value="2">Obras públicas</option>
+              <option value="3">Arrendamiento</option>
+              <option value="4">Contrataciones </option>
             </select>
           </div>
         </div>

@@ -211,7 +211,7 @@ const TablaSolicitudes: React.FC<{
                                 <br></br>
                                 {permisos.includes('ver_detalles_solicitud_adquisicion_secretaria') && (
                                     <Link
-                                        className="text-orange-500 hover:underline"
+                                        className="text-blue-800 hover:underline"
                                         href="./detalle_solicitudes"
                                         onClick={() => handleDetalleClick(solicitud.id_solicitud)}
                                         >
@@ -228,7 +228,7 @@ const TablaSolicitudes: React.FC<{
                                                 solicitud.id_solicitud
                                                 )
                                             }
-                                            className="text-red-700"
+                                            className="text-purple-800 hover:underline"
                                             >
                                                 Adjudicar
                                         </button>

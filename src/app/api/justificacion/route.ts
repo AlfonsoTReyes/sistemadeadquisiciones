@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     const id_j = searchParams.get('id');
 
     if (id_j) {
-      console.log("sassasasaas");
       const justificacion = await getJustificacionByIdPDF(parseInt(id_j));
       if (!justificacion) {
         return NextResponse.json({ message: 'Justificación no encontrada' }, { status: 404 });
