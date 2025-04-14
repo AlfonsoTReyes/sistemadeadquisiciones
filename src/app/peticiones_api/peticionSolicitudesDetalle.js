@@ -77,10 +77,7 @@ export const createOtroAnexo = async (formData) => {
 
     const response = await fetch(API_URL_OTROS, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
+      body: formData,
     });
 
     if (!response.ok) {
