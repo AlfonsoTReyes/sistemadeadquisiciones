@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createJustificacion } from '../../peticiones_api/peticionJustificacion';
 
 interface JustificacionFormProps {
@@ -9,10 +9,15 @@ interface JustificacionFormProps {
 }
 
 const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, onSubmit, idSolicitud }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState("");
-    const [formData, setFormData] = useState({
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [usuario, setUsuario] = useState("");
+  const [comentariosArchivos, setComentariosArchivos] = useState<{ [seccion: string]: string }>({});
+  const [archivosPorSeccion, setArchivosPorSeccion] = useState<{ [seccion: string]: File[] }>({});
+  
+  
+  const [formData, setFormData] = useState({
       id_solicitud: idSolicitud,
       lugar: 'SAN JUAN DEL RÍO',
       fecha_hora: new Date().toISOString().slice(0, 16), // formato compatible con datetime-local
@@ -27,45 +32,48 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
       consecuencias: '',
       historicos_monetarios: '',
       marcas_especificas: '',
-      estatus: 'pendiente'
-    });
+      estatus: 'Pendiente',
+      id_usuario: ""
+  });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  useEffect(() => {
+    const userId = sessionStorage.getItem("userId") || "";
+    setUsuario(userId);
+    setFormData(prev => ({ ...prev, id_usuario: userId })); // asegúrate que también se guarda en formData
+  }, []);
+  
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       const { name, value } = e.target;
       setFormData(prev => ({ ...prev, [name]: value }));
-    };
+  };
 
-  const handleFileUploadMultiple = async (e: React.ChangeEvent<HTMLInputElement>, seccion: string) => {
+  const handleComentarioChange = (e: React.ChangeEvent<HTMLInputElement>, seccion: string) => {
+    const { value } = e.target;
+    setComentariosArchivos(prev => ({ ...prev, [seccion]: value }));
+  };
+
+  const handleFileUploadMultiple = (e: React.ChangeEvent<HTMLInputElement>, seccion: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
   
-    const idSolicitud = '123'; // ← pon aquí el id real
-    const idUsuario = '1';     // ← el id del usuario actual
-  
-    for (const file of Array.from(files)) {
-      const formDataFile = new FormData();
-      formDataFile.append('archivo', file);
-      formDataFile.append('seccion', seccion);
-      formDataFile.append('id_solicitud', idSolicitud);
-      formDataFile.append('id_usuario', idUsuario);
-  
-      try {
-        const res = await fetch('/php/subir_archivo_justificacion.php', {
-          method: 'POST',
-          body: formDataFile,
-        });
-  
-        const data = await res.json();
-        if (!data.success) {
-          console.error(`Error al subir ${file.name}`);
-        }
-      } catch (err) {
-        console.error(`Error en subida de ${file.name}`, err);
-      }
-    }
-  
-    alert("Todos los archivos se han subido");
+    setArchivosPorSeccion(prev => {
+      const prevArchivos = prev[seccion] || [];
+      return {
+        ...prev,
+        [seccion]: [...prevArchivos, ...Array.from(files)],
+      };
+    });
   };
+
+  const eliminarArchivo = (seccion: string, index: number) => {
+    setArchivosPorSeccion(prev => {
+      const nuevosArchivos = [...(prev[seccion] || [])];
+      nuevosArchivos.splice(index, 1);
+      return { ...prev, [seccion]: nuevosArchivos };
+    });
+  };
+  
   
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +83,36 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
     setIsLoading(true);
   
     try {
-      await createJustificacion(formData);
+      const nuevaJustificacion = await createJustificacion(formData);
+      const id_justificacion = nuevaJustificacion.id_justificacion;
+      for (const seccion in archivosPorSeccion) {
+        const archivos = archivosPorSeccion[seccion];
+        const comentario = comentariosArchivos[seccion] || "";
+
+        for (const file of archivos) {
+          const formDataFile = new FormData();
+          formDataFile.append("archivo", file);
+          formDataFile.append("seccion", seccion);
+          formDataFile.append("id_justificacion", id_justificacion);
+          formDataFile.append("id_usuario", usuario);
+          formDataFile.append("comentario", comentario);
+
+          try {
+            const res = await fetch("/api/justificacion/detalle_justificacion", {
+              method: "POST",
+              body: formDataFile,
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+              console.error(`Error al subir ${file.name} de la sección ${seccion}`);
+            }
+          } catch (err) {
+            console.error(`Error en subida de ${file.name} sección ${seccion}`, err);
+          }
+        }
+      }
+
   
       setSuccessMessage("Solicitud registrada correctamente");
       onSubmit(); // refresca desde el componente padre
@@ -126,11 +163,36 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
             <span className="text-red-500">*</span>
             <textarea name="fundamento_legal" className="border border-gray-300 p-2 rounded w-full" value={formData.fundamento_legal} onChange={handleChange} required />
             <input
+              type="text"
+              placeholder="Comentario sobre el archivo"
+              className="mt-1 border border-gray-300 p-1 rounded w-full text-sm"
+              onChange={(e) => handleComentarioChange(e, 'fundamento_legal')}
+              value={comentariosArchivos['fundamento_legal'] || ""}
+            />
+
+            <input
               type="file"
               multiple
               accept=".pdf,.jpg,.png,.doc,.docx"
               onChange={(e) => handleFileUploadMultiple(e, 'fundamento_legal')}
             />
+            {archivosPorSeccion['fundamento_legal'] && archivosPorSeccion['fundamento_legal'].length > 0 && (
+              <ul className="mt-2 text-sm text-gray-600">
+                {archivosPorSeccion['fundamento_legal'].map((file, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-100 p-2 mb-1 rounded">
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => eliminarArchivo('fundamento_legal', index)}
+                      className="text-red-500 text-xs hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
           </label>
 
           <label>Uso
@@ -143,22 +205,69 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
           <span className="text-red-500">*</span>
             <textarea name="planteamiento" className="border border-gray-300 p-2 rounded w-full" value={formData.planteamiento} onChange={handleChange} required />
             <input
+              type="text"
+              placeholder="Comentario sobre el archivo"
+              className="mt-1 border border-gray-300 p-1 rounded w-full text-sm"
+              onChange={(e) => handleComentarioChange(e, 'planteamiento')}
+              value={comentariosArchivos['planteamiento'] || ""}
+            />
+            <input
               type="file"
               multiple
               accept=".pdf,.jpg,.png,.doc,.docx"
               onChange={(e) => handleFileUploadMultiple(e, 'planteamiento')}
             />
+            {archivosPorSeccion['planteamiento'] && archivosPorSeccion['planteamiento'].length > 0 && (
+              <ul className="mt-2 text-sm text-gray-600">
+                {archivosPorSeccion['planteamiento'].map((file, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-100 p-2 mb-1 rounded">
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => eliminarArchivo('planteamiento', index)}
+                      className="text-red-500 text-xs hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
           </label>
 
           <label>Antecedente
             <span className="text-red-500">*</span>
             <textarea name="antecedente" className="border border-gray-300 p-2 rounded w-full" value={formData.antecedente} onChange={handleChange} required />
             <input
+              type="text"
+              placeholder="Comentario sobre el archivo"
+              className="mt-1 border border-gray-300 p-1 rounded w-full text-sm"
+              onChange={(e) => handleComentarioChange(e, 'antecedente')}
+              value={comentariosArchivos['antecedente'] || ""}
+            />
+            <input
               type="file"
               multiple
               accept=".pdf,.jpg,.png,.doc,.docx"
               onChange={(e) => handleFileUploadMultiple(e, 'antecedente')}
             />
+            {archivosPorSeccion['antecedente'] && archivosPorSeccion['antecedente'].length > 0 && (
+              <ul className="mt-2 text-sm text-gray-600">
+                {archivosPorSeccion['antecedente'].map((file, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-100 p-2 mb-1 rounded">
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => eliminarArchivo('antecedente', index)}
+                      className="text-red-500 text-xs hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </label>
 
           <label>Necesidad
@@ -175,11 +284,34 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
             <span className="text-red-500">*</span>
             <textarea name="historicos_monetarios" className="border border-gray-300 p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} required />
             <input
+              type="text"
+              placeholder="Comentario sobre el archivo"
+              className="mt-1 border border-gray-300 p-1 rounded w-full text-sm"
+              onChange={(e) => handleComentarioChange(e, 'historicos_monetarios')}
+              value={comentariosArchivos['historicos_monetarios'] || ""}
+            />
+            <input
               type="file"
               multiple
               accept=".pdf,.jpg,.png,.doc,.docx"
               onChange={(e) => handleFileUploadMultiple(e, 'historicos_monetarios')}
             />
+            {archivosPorSeccion['historicos_monetarios'] && archivosPorSeccion['historicos_monetarios'].length > 0 && (
+              <ul className="mt-2 text-sm text-gray-600">
+                {archivosPorSeccion['historicos_monetarios'].map((file, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-100 p-2 mb-1 rounded">
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => eliminarArchivo('historicos_monetarios', index)}
+                      className="text-red-500 text-xs hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </label>
 
           <label>Marcas específicas (en caso de ser necesario)
