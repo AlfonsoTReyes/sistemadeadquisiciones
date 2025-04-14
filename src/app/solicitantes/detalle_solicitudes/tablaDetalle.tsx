@@ -38,7 +38,7 @@ const TablaSolicitudes: React.FC<{
     const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
     const [isEnviarConfirmModalOpen, setIsEnviarConfirmModalOpen] = useState(false);
     const [isVerRespuestasModalOpen, setIsVerRespuestasModalOpen] = useState(false);
-    const [tipoSuficiencia, setTipoSuficiencia] = useState<"pre-suficiencia" | "suficiencia">("pre-suficiencia");
+    const [tipoSuficiencia, setTipoSuficiencia] = useState<"Pre-suficiencia" | "Suficiencia">("Pre-suficiencia");
     const [permisos, setPermisos] = useState<string[]>([]);
 
     useEffect(() => {
@@ -370,7 +370,7 @@ const TablaSolicitudes: React.FC<{
                     {permisos.includes('alta_solicitud_presuficiencia_secretaria') && (
                         <button
                             onClick={() => {
-                                setTipoSuficiencia("pre-suficiencia");
+                                setTipoSuficiencia("Pre-suficiencia");
                                 setSuficienciaModalOpen(true);
                             }}
                             className="bg-rose-500 text-white py-2 px-4 rounded-xl shadow hover:bg-rose-600 transition"
@@ -553,7 +553,7 @@ const TablaSolicitudes: React.FC<{
                         {permisos.includes('alta_solicitud_suficiencia_secretaria') && (
                             <button
                                 onClick={() => {
-                                    setTipoSuficiencia("suficiencia");
+                                    setTipoSuficiencia("Suficiencia");
                                     setSuficienciaModalOpen(true);
                                 }}
                                 className="bg-rose-500 text-white py-2 px-4 rounded-xl shadow hover:bg-rose-600 transition"
