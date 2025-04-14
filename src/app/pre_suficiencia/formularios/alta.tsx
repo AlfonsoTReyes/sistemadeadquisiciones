@@ -5,9 +5,9 @@ import { getUserById } from "../../peticiones_api/fetchUsuarios";
 
 interface AltaSuficienciaProps {
     onClose: () => void;
-    onSubmit: (data: any) => void;
+    onSubmit: () => void;
     idSolicitud: number; 
-    tipo: "pre-suficiencia" | "suficiencia";
+    tipo: "Pre-suficiencia" | "Suficiencia";
   }
 
 const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, idSolicitud, tipo  }) => {
@@ -90,6 +90,7 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
     try {
       await createSoliPreSuficiencia(suficienciaData);
       setSuccessMessage("Suficiencia registrada correctamente.");
+      onSubmit();
       setTimeout(() => onClose(), 1000);
     } catch (err) {
       setError((err as Error).message);
