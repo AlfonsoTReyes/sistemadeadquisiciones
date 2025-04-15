@@ -1,0 +1,83 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import DynamicMenu from "../menu";
+import Pie from "../pie";
+import TablaSolicitudes from "./tableOrdenDia";
+import ModalAdjudicar from "./formularios/adjudicar";
+import { fetchOrdenesDia } from "../peticiones_api/peticionOrdenDia";
+
+const SolicitudPage = () => {
+  const [idSolicitud, setIdSolicitud] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ordenes, setOrdenes] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedId = sessionStorage.getItem("solicitudId");
+      if (storedId) {
+        setIdSolicitud(storedId);
+      }
+    }
+  }, []);
+
+  const fetchData = async () => {
+    if (!idSolicitud) return;
+
+    setLoading(true);
+    try {
+        const data = await fetchOrdenesDia(idSolicitud);
+        console.log(data);
+        setOrdenes(data);
+    } catch (err) {
+        console.error("Error al obtener las órdenes del día:", err);
+        setError("No se pudo cargar la información.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [idSolicitud]);
+
+  return (
+    <div>
+      <DynamicMenu />
+      <div className="min-h-screen p-4" style={{ marginTop: 150 }}>
+        <h1 className="text-2xl text-center font-bold mb-4">Órdenes del día</h1>
+
+        {loading && <p className="text-center">Cargando órdenes...</p>}
+        {error && <p className="text-center text-red-500">{error}</p>}
+
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={openModal}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            + Nueva orden del día
+          </button>
+        </div>
+
+        <TablaSolicitudes ordenes={ordenes} onActualizar={fetchData} />
+      </div>
+
+      {isModalOpen && (
+        <ModalAdjudicar
+          idSolicitud={parseInt(idSolicitud!)}
+          onClose={closeModal}
+          onSuccess={fetchData}
+        />
+      )}
+
+      <Pie />
+    </div>
+  );
+};
+
+export default SolicitudPage;
