@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Menu from '../../menu_principal';
 import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores';
-import { ProveedorData } from './interface';
+import { ProveedorData, UsuarioProveedorData  } from './interface';
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
 import ModalActualizarUsuarioProveedor from './formularios/modalActualizarUsuario';
 import {
@@ -16,56 +16,48 @@ import {
     getUsuarioProveedorByProveedorId
 } from './formularios/fetchAltaProveedor';
 
- interface UsuarioProveedorData {
-   id_usuario: number;
-   usuario: string;
-   nombre: string;
-   apellido_p: string;
-   apellido_m: string;
-   correo: string;
-   estatus: string;
- }
-
 export default function AdministradorProveedoresPage() {
     const router = useRouter();
 
     // Estados para la lista de proveedores, carga y errores
-    const [proveedores, setProveedores] = useState<ProveedorData[]>([]);
-    const [loading, setLoading] = useState(true); // Carga inicial de la lista
-    const [error, setError] = useState<string | null>(null); // Errores generales o de fetch
-    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({}); // Para botones Activar/Desactivar
-    // --- NUEVOS ESTADOS PARA FILTROS ---
-    const [filtroRfc, setFiltroRfc] = useState('');
-    const [filtroCorreo, setFiltroCorreo] = useState('');
+    const [proveedores, setProveedores] = useState<ProveedorData[]>([]); // Lista para la tabla
+    const [loading, setLoading] = useState(true);          // Carga inicial
+    const [error, setError] = useState<string | null>(null); // Errores generales/fetch lista
+    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({}); // Carga cambio estatus
+    const [filtroRfc, setFiltroRfc] = useState('');       // Filtro RFC
+    const [filtroCorreo, setFiltroCorreo] = useState('');    // Filtro Correo
 
-  // Estado para el modal de PERFIL de proveedor
-  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [editingProviderData, setEditingProviderData] = useState<ProveedorData | null>(null);
-  const [isFetchingEditData, setIsFetchingEditData] = useState(false); // Carga de datos para *cualquier* modal
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false); // Guardado del modal de perfil
-  const [updateProfileError, setUpdateProfileError] = useState<string | null>(null); // Error del modal de perfil
+    // Estados para Modales y sus datos
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false); // Modal Perfil Proveedor
+    const [editingProviderData, setEditingProviderData] = useState<ProveedorData | null>(null); // Datos para editar perfil
+    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false); // Modal Usuario Proveedor
+    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Datos para editar usuario
 
-  // Estado para el modal de USUARIO proveedor
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Estado para los datos del *usuario* a editar
-  const [isUpdatingUser, setIsUpdatingUser] = useState(false); // Estado de carga para la actualización del *usuario*
-  const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Estado de error para la actualización del *usuario*
-  // Estado para carga de cambio de estatus individual
-  const [isLoadingStatusChange, setIsLoadingStatusChange] = useState<{ [key: number]: boolean }>({});
+    // Estados de Carga/Error específicos de los Modales
+    const [isFetchingEditData, setIsFetchingEditData] = useState(false); // Carga de datos *para* el modal
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false); // Guardado modal perfil
+    const [updateProfileError, setUpdateProfileError] = useState<string | null>(null); // Error modal perfil
+    const [isUpdatingUser, setIsUpdatingUser] = useState(false);       // Guardado modal usuario
+    const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Error modal usuario
 
-      // --- Carga Inicial de Proveedores ---
-  const cargarProveedores = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchAllProveedores();
-      setProveedores(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    // --- Carga Inicial de la Lista de Proveedores ---
+    const cargarProveedores = useCallback(async () => {
+        console.log("AdminPage: Iniciando carga de lista de proveedores...");
+        setLoading(true);
+        setError(null);
+        try {
+            // fetchAllProveedores devuelve la lista resumida
+            const data = await fetchAllProveedores();
+            console.log(`AdminPage: Lista de proveedores cargada (${data?.length || 0} registros).`);
+            // Asegúrate que la data coincida con la parte básica de ProveedorData
+            setProveedores(data || []);
+        } catch (err: any) {
+            console.error("AdminPage: Error cargando lista de proveedores:", err);
+            setError(err.message || "Error desconocido al cargar proveedores.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
   useEffect(() => {
     cargarProveedores();
@@ -161,46 +153,71 @@ export default function AdministradorProveedoresPage() {
       });
   }, [proveedores, filtroRfc, filtroCorreo]); // Dependencias del memo
 
-     // --- Editar PERFIL Proveedor ---
-  const handleEditProfileClick = async (idProveedor: number) => {
-    console.log("Abriendo modal de perfil para proveedor ID:", idProveedor);
-    setIsFetchingEditData(true); // Inicia carga de datos
-    setUpdateProfileError(null); // Limpia error previo
-    setEditingProviderData(null); // Limpia datos previos
-    try {
-      // Llama a la función del servicio para obtener perfil
-      const data = await getProveedorProfileById(idProveedor); // Asegúrate que esta sea la función importada correcta
-      console.log("DATOS RECIBIDOS DEL FETCH:", data); // <--- ¡AÑADE ESTE CONSOLE.LOG!
-      setEditingProviderData(data); // Guarda los datos obtenidos
-      setIsEditProfileModalOpen(true); // Abre el modal
-    } catch (err: any) {
-      setUpdateProfileError(err.message); // Muestra error si falla la carga
-    } finally {
-      setIsFetchingEditData(false); // Termina carga de datos
-    }
-  };
+    // --- Handlers para Modal Editar PERFIL Proveedor ---
+    const handleEditProfileClick = async (idProveedor: number) => {
+        console.log("AdminPage: Abriendo modal de perfil para proveedor ID:", idProveedor);
+        setIsFetchingEditData(true);
+        setUpdateProfileError(null); // Limpiar errores previos del modal de perfil
+        setEditingProviderData(null); // Limpiar datos anteriores
+        setIsEditProfileModalOpen(false); // Asegurar que esté cerrado mientras carga
+
+        try {
+            // LLAMA A getProveedorProfileById QUE YA DEVUELVE LOS NUEVOS CAMPOS
+            const data = await getProveedorProfileById(idProveedor);
+            if (!data) {
+                // Lanzar error si no se encontró el proveedor para editar
+                throw new Error(`No se encontró el perfil del proveedor con ID ${idProveedor}.`);
+            }
+            console.log("AdminPage: Datos COMPLETOS recibidos para editar perfil:", data); // Verifica que actividad_sat y proveedor_eventos estén aquí
+            // Guarda los datos COMPLETOS en el estado
+            setEditingProviderData(data as ProveedorData); // Asegurar el tipo
+            setIsEditProfileModalOpen(true); // Abrir el modal DESPUÉS de cargar los datos
+
+        } catch (err: any) {
+            console.error("AdminPage: Error cargando datos para editar perfil:", err);
+            // Mostrar error general, o uno específico si el modal no se abre
+            setError(err.message || 'Error al cargar los datos del proveedor para editar.');
+            // No abrir el modal si falló la carga
+        } finally {
+            setIsFetchingEditData(false); // Terminar la carga (para modal)
+        }
+    };
 
   const handleCloseEditProfileModal = () => {
     setIsEditProfileModalOpen(false);
-    setEditingProviderData(null);
-    setUpdateProfileError(null);
-  };
+    setEditingProviderData(null); // Limpiar datos al cerrar
+    setUpdateProfileError(null); // Limpiar error del modal al cerrar
+};
 
-  const handleSaveProfileUpdate = async (payloadFromModal: any) => {
-    setIsUpdatingProfile(true); // Inicia estado de guardado
-    setUpdateProfileError(null);
-    try {
-      await updateProveedorProfile(payloadFromModal); // Llama a la función de servicio para guardar
-      handleCloseEditProfileModal(); // Cierra el modal
-      await cargarProveedores(); // Recarga la lista principal para ver cambios
-      alert("Perfil del proveedor actualizado exitosamente."); // Feedback
-    } catch (err: any) {
-      console.error("Error saving profile:", err);
-      setUpdateProfileError(err.message); // Muestra error en el modal
-    } finally {
-      setIsUpdatingProfile(false); // Termina estado de guardado
-    }
-  };
+    // Handler para guardar cambios del PERFIL (SIN CAMBIOS FUNCIONALES NECESARIOS)
+    // Recibe el payload del modal (que ya debe incluir los nuevos campos si se editaron)
+    // y lo pasa a la función fetch 'updateProveedorProfile' que ya está preparada.
+    const handleSaveProfileUpdate = async (payloadFromModal: any) => {
+        // Validar payload básico recibido del modal
+         if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) {
+             console.error("AdminPage handleSaveProfileUpdate: Payload inválido desde el modal", payloadFromModal);
+             setUpdateProfileError("Error interno: Datos incompletos recibidos desde el formulario.");
+             return; // No continuar
+         }
+        setIsUpdatingProfile(true); // Inicia estado de guardado (para modal perfil)
+        setUpdateProfileError(null); // Limpia error previo del modal
+        try {
+            console.log("AdminPage: Enviando datos actualizados del perfil a fetch:", payloadFromModal);
+            await updateProveedorProfile(payloadFromModal); // Llama al fetch que ya maneja los nuevos campos
+            console.log("AdminPage: Perfil actualizado exitosamente.");
+            handleCloseEditProfileModal(); // Cierra el modal
+            await cargarProveedores(); // Recarga la lista principal
+            alert("Perfil del proveedor actualizado exitosamente.");
+
+        } catch (err: any) {
+            console.error("AdminPage: Error guardando perfil:", err);
+            // Mostrar el error DENTRO DEL MODAL
+            setUpdateProfileError(err.message || 'Error desconocido al guardar el perfil.');
+            // NO CERRAR el modal en caso de error
+        } finally {
+            setIsUpdatingProfile(false); // Termina estado de guardado (para modal perfil)
+        }
+    };
 
   // --- Editar USUARIO Proveedor ---
   const handleEditUserClick = async (idProveedor: number) => {
@@ -276,99 +293,96 @@ const handleCloseEditUserModal = () => {
     return (
         <div>
                 <Menu />
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100">
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
                 <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
                     Administración de Proveedores
                 </h1>
 
-                {/* --- SECCIÓN DE FILTROS --- */}
+                {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
-                        <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
-                            Filtrar por RFC:
-                        </label>
-                        <input
-                            type="text"
-                            id="filtroRfc"
-                            name="filtroRfc"
-                            value={filtroRfc}
-                            onChange={(e) => setFiltroRfc(e.target.value)}
-                            placeholder="Escriba RFC a buscar..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
+                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
+                         <input type="text" id="filtroRfc" value={filtroRfc} onChange={(e) => setFiltroRfc(e.target.value)} placeholder="Buscar RFC..." className="w-full input-style" />
                     </div>
                     <div className="flex-1">
-                        <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">
-                            Filtrar por Correo:
-                        </label>
-                        <input
-                            type="email"
-                            id="filtroCorreo"
-                            name="filtroCorreo"
-                            value={filtroCorreo}
-                            onChange={(e) => setFiltroCorreo(e.target.value)}
-                            placeholder="Escriba correo a buscar..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
+                        <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Correo:</label>
+                        <input type="email" id="filtroCorreo" value={filtroCorreo} onChange={(e) => setFiltroCorreo(e.target.value)} placeholder="Buscar correo..." className="w-full input-style" />
                     </div>
                 </div>
-                {/* --- FIN SECCIÓN DE FILTROS --- */}
 
+                {/* Error General */}
+                {error && !loading && ( <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p> )}
 
-                {/* Mensaje de Error General */}
-                {error && (
-                    <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">
-                        Error: {error}
-                    </p>
-                )}
+                {/* Carga Inicial */}
+                {loading && ( <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p> )}
 
-                {/* Indicador de Carga Inicial */}
-                {loading && !error && (
-                    <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>
-                )}
-
-                {/* Tabla de Proveedores (AHORA USA DATOS FILTRADOS) */}
+                {/* Tabla */}
                 {!loading && !error && (
-                    <TablaDocumentos
-                    proveedores={proveedoresFiltrados} // <-- Pasa la lista filtrada
-                    onViewDocuments={handleViewDocuments}     // <-- Prop para documentos
-                    onChangeStatus={handleChangeStatus}       // <-- Prop para estatus
-                    onEditProfile={handleEditProfileClick} // <--- ¡ASEGÚRATE QUE ESTA LÍNEA ESTÉ EXACTAMENTE ASÍ!
-                    onEditUser={handleEditUserClick}         // <-- Prop para usuario
-                    isLoadingStatusChange={isLoadingStatusChange}
+                    <TablaDocumentos // Renombrar este componente si es confuso (e.g., TablaProveedoresAdmin)
+                    proveedores={proveedoresFiltrados}
+                    onViewDocuments={handleViewDocuments}
+                    onChangeStatus={handleChangeStatus}
+                    onEditProfile={handleEditProfileClick} // Pasa la función correcta
+                    onEditUser={handleEditUserClick}
+                    isLoadingStatusChange={loadingStatusChange} // Pasar el estado de carga individual
+                    isFetchingEditData={isFetchingEditData} // Pasar estado de carga general para modales
                     />
                 )}
 
-                 {/* Mensaje si NO hay resultados DESPUÉS de filtrar (y no hay error/carga) */}
+                 {/* Mensajes "Sin resultados" */}
                 {!loading && !error && proveedoresFiltrados.length === 0 && (filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores que coincidan con los filtros aplicados.</p>
+                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
                 )}
-
-                 {/* Mensaje si NO hay proveedores en TOTAL (y no hay error/carga) */}
                 {!loading && !error && proveedores.length === 0 && !(filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores registrados.</p>
+                      <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
                 )}
-      {/* Renderizar Modal Editar PERFIL Proveedor */}
-      {isEditProfileModalOpen && editingProviderData && (
-          <ModalActualizarProveedor
-              datos={editingProviderData} // Pasa los datos cargados
-              onClose={handleCloseEditProfileModal}
-              onSubmit={handleSaveProfileUpdate} // Pasa el handler de guardado
-              isLoading={isUpdatingProfile} // Pasa el estado de carga de guardado
-              error={updateProfileError}
-          />
-      )}
 
-      {/* Renderizar Modal Editar USUARIO Proveedor */}
-         {isEditUserModalOpen && editingUserData && (
-          <ModalActualizarUsuarioProveedor
-              userData={editingUserData} // Pasa los datos del usuario con id_usuario
-              onClose={handleCloseEditUserModal}
-              onSubmit={handleSaveUserUpdate} // Llama a la función que usa fetch
-              isLoading={isUpdatingUser || isFetchingEditData} // Puede estar cargando datos o guardando
-              error={updateUserError} // Muestra el error específico del modal de usuario
-          />
-      )}
+                {/* --- MODALES --- */}
+                {/* Modal Editar PERFIL Proveedor */}
+                {/* Se renderiza si está abierto Y hay datos para editar */}
+                {isEditProfileModalOpen && editingProviderData && (
+                    <ModalActualizarProveedor
+                        // Props clave para el modal de perfil
+                        isOpen={isEditProfileModalOpen}
+                        onClose={handleCloseEditProfileModal}
+                        proveedorData={editingProviderData}
+                        onSubmit={handleSaveProfileUpdate} // <-- Cambiar nombre de la prop a 'onSubmit'
+                        isLoading={isUpdatingProfile} // Pasar el estado de carga correcto
+                        error={updateProfileError}    // Pasar el estado de error correcto
+                    />
+                )}
+
+                {/* Modal Editar USUARIO Proveedor */}
+                {isEditUserModalOpen && editingUserData && (
+                    <ModalActualizarUsuarioProveedor
+                        // Props clave para el modal de usuario
+                        isOpen={isEditUserModalOpen} // Controla visibilidad
+                        onClose={handleCloseEditUserModal} // Función para cerrar
+                        userData={editingUserData} // Datos del USUARIO para prellenar
+                        onSubmit={handleSaveUserUpdate} // Función a llamar al GUARDAR con éxito desde el modal
+                        // Pasar estados de carga/error específicos del modal de usuario
+                        // isLoading={isUpdatingUser}
+                        // error={updateUserError}
+                    />
+                )}
+
+                 {/* Estilos globales rápidos (mover a CSS/Tailwind config si es posible) */}
+                 <style jsx global>{`
+                    .input-style {
+                        display: block;
+                        width: 100%;
+                        padding: 0.5rem 0.75rem;
+                        border: 1px solid #d1d5db; /* gray-300 */
+                        border-radius: 0.375rem; /* rounded-md */
+                        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+                        outline: none;
+                    }
+                    .input-style:focus {
+                         border-color: #4f46e5; /* indigo-500 */
+                         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3); /* focus:ring-indigo-500 */
+                    }
+                 `}</style>
+
             </div>
             <Pie />
         </div>
