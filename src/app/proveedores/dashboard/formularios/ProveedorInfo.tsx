@@ -1,14 +1,12 @@
 // --- START OF FILE src/components/proveedores/dashboard/ProveedorInfo.tsx ---
 'use client';
 import React, { useState } from 'react';
-import { updateProveedor } from './fetchdashboard';
-import ModalActualizarProveedor from './modalActualizarProveedor';
-import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor'; // <-- AJUSTA LA RUTA si es necesario
-import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores'; // <-- AJUSTA LA RUTA si es necesario
+import { updateProveedor } from './fetchdashboard'; // Asegúrate que la ruta sea correcta
+import ModalActualizarProveedor from './modalActualizarProveedor'; // Importa el modal
+import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor'; // Ajusta ruta
+import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores'; // Ajusta ruta
 
-
-// 1. Define la interfaz para los datos del proveedor (basado en tu servicio)
-//    Asegúrate que coincida EXACTAMENTE con lo que retorna tu API/servicio
+// 1. Define la interfaz para los datos del proveedor (ACTUALIZADA)
 interface ProveedorData {
   id_proveedor: number;
   rfc: string;
@@ -26,274 +24,299 @@ interface ProveedorData {
   camara_comercial?: string | null;
   numero_registro_camara?: string | null;
   numero_registro_imss?: string | null;
-  fecha_inscripcion?: string | null; // Asumiendo que son strings de fecha/timestamp
+  fecha_inscripcion?: string | null;
   fecha_vigencia?: string | null;
   estatus?: boolean;
   created_at?: string;
   updated_at?: string;
   fecha_solicitud?: string;
   id_usuario_proveedor?: number;
-  tipo_proveedor: 'moral' | 'fisica' | 'desconocido'; // Incluido por el servicio
+  tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
 
-  // Campos Morales (pueden ser null si es física)
+  // **NUEVOS CAMPOS (snake_case como vienen de la API)**
+  actividad_sat?: string | null;
+  proveedor_eventos?: boolean | null;
+
+  // Campos Morales
   razon_social?: string | null;
   nombre_representante?: string | null;
   apellido_p_representante?: string | null;
   apellido_m_representante?: string | null;
 
-  // Campos Físicas (pueden ser null si es moral)
-  nombre_fisica?: string | null; // O simplemente 'nombre' si ajustaste el servicio/tipo
-  apellido_p_fisica?: string | null; // O simplemente 'apellido_p'
-  apellido_m_fisica?: string | null; // O simplemente 'apellido_m'
+  // Campos Físicas
+  nombre_fisica?: string | null;
+  apellido_p_fisica?: string | null;
+  apellido_m_fisica?: string | null;
   curp?: string | null;
+
+  // Permite otros campos si es necesario
+   [key: string]: any;
 }
 
-// 2. Define la interfaz para las Props del componente
+// 2. Define la interfaz para las Props (Ajustada)
 interface ProveedorInfoProps {
   providerData: ProveedorData | null;
   loading: boolean;
   error: string | null;
-  onUpdateClick: () => void; // Función del padre (actualmente placeholder)
-  onPdfClick: (id: number) => void; // Función del padre para PDF
-  onManageDocumentsClick: () => void; // <-- Nueva prop
-
+  // onUpdateClick ya no es necesaria porque este componente maneja la apertura
+  // onPdfClick puede quedarse si la lógica PDF se mantiene aquí
+  onManageDocumentsClick: () => void; // Para navegar a documentos
+   // Opcional: añadir onUpdateSuccess si page.tsx necesita saber del éxito
+   // onUpdateSuccess?: () => void;
 }
 
+// --- Componente Helper para mostrar info (Opcional pero útil) ---
+const InfoFieldDisplay: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+    <p className="text-sm text-gray-700 mb-1 break-words">
+        <span className="font-semibold text-gray-800">{label}:</span>
+        <span className="ml-1">{value ?? <span className="text-gray-400 italic">N/A</span>}</span>
+    </p>
+);
+
+
+// --- Componente Principal ---
 const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
   providerData,
   loading,
   error,
-  // onUpdateClick, // Ya no necesitamos la del padre para ABRIR el modal
-  onPdfClick,
-  // onUpdateSuccess // Si quieres que el padre refresque
+  // onPdfClick, // Descomentar si se usa
   onManageDocumentsClick
+  // onUpdateSuccess // Descomentar si se usa
 }) => {
+  // Estados locales para el modal y la actualización (MANTENIDOS)
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false); // Estado para feedback de actualización
-  const [updateError, setUpdateError] = useState<string | null>(null); // Estado para errores de actualización
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  // Estados locales para PDF (MANTENIDOS)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  // --- Handlers para el Modal ---
+
+  // --- Handlers para el Modal (MANTENIDOS) ---
   const handleOpenModal = () => {
       if (providerData) {
-          setUpdateError(null); // Limpiar errores previos
+          setUpdateError(null); // Limpiar errores del modal anterior
           setModalAbierto(true);
+          console.log("ProveedorInfo: Abriendo modal de edición.");
       } else {
-          console.error("No hay datos de proveedor para editar.");
-          // Podrías mostrar una notificación
+          console.error("ProveedorInfo: No hay datos para editar.");
+          alert("No se pueden editar los datos porque no se han cargado.");
       }
   };
 
   const handleCloseModal = () => {
       setModalAbierto(false);
+      console.log("ProveedorInfo: Cerrando modal de edición.");
+      // No limpiar updateError aquí, podría ser útil verlo si se reabre rápido
   };
-  // --- HANDLER QUE LLAMA A LA FUNCIÓN EXTERNA ---
-  const handleGeneratePdfClick = async () => {
+
+ // --- Handler para Guardar Cambios (Llama a la API directamente) (MANTENIDO) ---
+ const handleSaveUpdate = async (updatedDataFromModal: any) => {
     if (!providerData) {
-        setPdfError("No hay datos de proveedor para generar el PDF.");
-        return;
+        console.error("ProveedorInfo: Intento de guardar sin datos originales.");
+        setUpdateError("Error interno: Faltan datos originales del proveedor.");
+        return; // Salir temprano
+    }
+    // Validación: Asegurarse que los datos del modal incluyan id_proveedor y tipoProveedor
+    if (!updatedDataFromModal || !updatedDataFromModal.id_proveedor || !updatedDataFromModal.tipoProveedor) {
+         console.error("ProveedorInfo: Datos inválidos recibidos del modal para actualizar:", updatedDataFromModal);
+         setUpdateError("Error interno: Datos incompletos desde el formulario de edición.");
+         setIsUpdating(false); // Detener indicardor de carga
+         return; // No continuar
     }
 
-    setIsGeneratingPdf(true);
-    setPdfError(null);
-
-    try {
-        // Llama a la función externa, pasando los datos del proveedor
-        await generateProveedorPdfClientSide(providerData);
-        console.log("PDF generado exitosamente (llamada externa).");
-        // No necesitas hacer más nada aquí, la función externa maneja la descarga
-
-    } catch (err: any) {
-        console.error("Error al generar el PDF desde la función externa:", err);
-        // Muestra el error que la función externa rechazó
-        setPdfError(err.message || "Ocurrió un error inesperado al generar el PDF.");
-    } finally {
-        setIsGeneratingPdf(false);
-    }
-};
-  // --- HANDLER QUE LLAMA A LA FUNCIÓN EXTERNA ---
-  const handleRevalidadProveedores = async () => {
-    if (!providerData) {
-        setPdfError("No hay datos de proveedor para generar el PDF.");
-        return;
-    }
-
-    setIsGeneratingPdf(true);
-    setPdfError(null);
-
-    try {
-        // Llama a la función externa, pasando los datos del proveedor
-        await revalidacionProveedores(providerData);
-        console.log("PDF generado exitosamente (llamada externa).");
-        // No necesitas hacer más nada aquí, la función externa maneja la descarga
-
-    } catch (err: any) {
-        console.error("Error al generar el PDF desde la función externa:", err);
-        // Muestra el error que la función externa rechazó
-        setPdfError(err.message || "Ocurrió un error inesperado al generar el PDF.");
-    } finally {
-        setIsGeneratingPdf(false);
-    }
-};
-  const handleSaveUpdate = async (updatedDataFromModal: any) => { // Renombrado para claridad
-    // La validación de providerData no es estrictamente necesaria aquí
-    // porque el modal no se abriría sin él, pero es buena práctica.
-    if (!providerData) {
-        console.error("Intento de guardar sin datos de proveedor originales.");
-        setUpdateError("Error interno: Faltan datos originales.");
-        return;
-    }
 
     setIsUpdating(true);
-    setUpdateError(null);
+    setUpdateError(null); // Limpiar error antes de intentar
 
-    // YA NO es necesario añadir id_proveedor y tipoProveedor aquí si
-    // el modal los prepara correctamente en su propio handleSubmit.
-    // Solo pasamos lo que el modal nos da.
-    console.log("ProveedorInfo: Received data from modal:", updatedDataFromModal);
+    console.log("ProveedorInfo: Enviando datos para actualizar:", updatedDataFromModal);
 
     try {
-        // Llama a la función de fetchdashboard para actualizar
-        // Asumiendo que updatedDataFromModal ya incluye id_proveedor y tipoProveedor
-        // como lo espera la API. Si no, necesitas añadirlos aquí o (mejor) en el modal.
+        // Llama a la función fetch de actualización directamente
         await updateProveedor(updatedDataFromModal);
-        console.log("ProveedorInfo: Update successful");
-        handleCloseModal();
-        window.location.reload(); // <--- AÑADIR ESTA LÍNEA
-        //alert("Proveedor actualizado con éxito!");
-        // TODO: Añadir lógica para refrescar datos (e.g., llamar a una función onUpdateSuccess pasada desde page.tsx)
+
+        console.log("ProveedorInfo: Actualización exitosa.");
+        alert("¡Proveedor actualizado con éxito!"); // Notificación simple
+        handleCloseModal(); // Cierra el modal
+        // **RECARGA LA PÁGINA para ver los cambios** (Simple, pero efectivo)
+        // Alternativa: Llamar a una función onUpdateSuccess pasada desde page.tsx
+        // para que page.tsx vuelva a hacer fetch sin recargar toda la página.
+        window.location.reload();
+        // if(onUpdateSuccess) onUpdateSuccess();
+
 
     } catch (err: any) {
-        console.error("ProveedorInfo: Error saving update:", err);
-        // El error se mostrará DENTRO del modal si se lo pasas como prop.
-        // Si quieres mostrarlo fuera después de cerrar, necesitas otro estado.
-        setUpdateError(err.message || "Error desconocido al guardar.");
-        // NO cierres el modal en caso de error para que el usuario vea el mensaje.
-        // handleCloseModal(); // <-- NO CERRAR AQUÍ EN ERROR
+        console.error("ProveedorInfo: Error al guardar la actualización:", err);
+        // Mostrar el error DENTRO DEL MODAL
+        setUpdateError(err.message || "Error desconocido al guardar los cambios.");
+        // NO cerrar el modal para que el usuario vea el error
     } finally {
-        setIsUpdating(false);
+        setIsUpdating(false); // Terminar el estado de carga
     }
 };
+
+
+  // --- Handlers para PDF (MANTENIDOS) ---
+    const handleGeneratePdfClick = async () => {
+        if (!providerData) { setPdfError("No hay datos."); return; }
+        setIsGeneratingPdf(true); setPdfError(null);
+        try {
+            await generateProveedorPdfClientSide(providerData); // Pasa los datos completos
+        } catch (err: any) { setPdfError(err.message || "Error generando PDF Solicitud."); }
+        finally { setIsGeneratingPdf(false); }
+    };
+
+    const handleRevalidadProveedores = async () => {
+        if (!providerData) { setPdfError("No hay datos."); return; }
+        setIsGeneratingPdf(true); setPdfError(null);
+        try {
+            await revalidacionProveedores(providerData); // Pasa los datos completos
+        } catch (err: any) { setPdfError(err.message || "Error generando PDF Revalidación."); }
+        finally { setIsGeneratingPdf(false); }
+    };
 
   // --- Renderizado Condicional ---
   if (loading) {
-      return <div className="text-center p-10">Cargando datos del proveedor...</div>;
+      return <div className="text-center p-10 text-gray-600">Cargando datos del proveedor...</div>;
   }
 
   if (error) {
-      // Muestra el error específico de carga inicial
-      // Podrías tener un botón para reintentar si es apropiado
-      return <div className="text-red-600 bg-red-100 border border-red-400 p-4 rounded text-center">{error}</div>;
+      return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-lg mx-auto text-center" role="alert">{error}</div>;
   }
 
   if (!providerData) {
-      // Caso donde no hay loading, no hay error, pero no hay datos (podría pasar si la API devuelve null correctamente)
-      return <div className="text-center p-10">No se encontraron datos del proveedor.</div>;
+      return <div className="text-center p-10 text-gray-500">No se encontraron datos del proveedor.</div>;
   }
 
-  // --- Renderizado de Datos (Si todo está bien) ---
+  // --- Renderizado de Datos (ACTUALIZADO) ---
   const { tipo_proveedor } = providerData;
+  const isMoral = tipo_proveedor === 'moral';
+  const isFisica = tipo_proveedor === 'fisica';
 
   return (
-    
-      <div className="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto">
+      <div className="bg-white shadow-xl rounded-lg p-6 md:p-8 max-w-4xl mx-auto">
           {pdfError && (
-              <div className="my-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
                   <strong>Error de PDF:</strong> {pdfError}
               </div>
           )}
-          <h1 className="text-2xl font-semibold mb-4 text-gray-800">Información del Proveedor</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b pb-3">
+                Información del Proveedor
+          </h1>
 
-          {/* Datos Generales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border-b pb-4">
-              <p><strong>RFC:</strong> {providerData.rfc}</p>
-              <p><strong>Correo Electrónico:</strong> {providerData.correo ?? 'N/A'}</p>
-              <p><strong>Giro Comercial:</strong> {providerData.giro_comercial ?? 'N/A'}</p>
-              <p><strong>Teléfono 1:</strong> {providerData.telefono_uno ?? 'N/A'}</p>
-              <p><strong>Teléfono 2:</strong> {providerData.telefono_dos ?? 'N/A'}</p>
-              <p><strong>Página Web:</strong> {providerData.pagina_web ? <a href={providerData.pagina_web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{providerData.pagina_web}</a> : 'N/A'}</p>
-              <p><strong>Estatus:</strong> <span className={`px-2 py-1 rounded text-xs font-medium ${providerData.estatus ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{providerData.estatus ? 'Activo' : 'Inactivo'}</span></p>
+          {/* --- Sección Datos Principales (ACTUALIZADA) --- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 mb-6 border-b pb-4">
+              <InfoFieldDisplay label="RFC" value={providerData.rfc} />
+              <InfoFieldDisplay label="Tipo" value={isMoral ? 'Persona Moral' : isFisica ? 'Persona Física' : 'Desconocido'} />
+              <InfoFieldDisplay label="Correo Electrónico" value={providerData.correo} />
+              <InfoFieldDisplay label="Giro Comercial" value={providerData.giro_comercial} />
+
+              {/* --- NUEVO: Actividad SAT --- */}
+              <InfoFieldDisplay label="Actividad Económica (SAT)" value={providerData.actividad_sat} />
+
+              <InfoFieldDisplay label="Teléfono Principal" value={providerData.telefono_uno} />
+              <InfoFieldDisplay label="Teléfono Secundario" value={providerData.telefono_dos} />
+              <InfoFieldDisplay label="Página Web" value={providerData.pagina_web ? <a href={providerData.pagina_web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{providerData.pagina_web}</a> : undefined} />
+              <InfoFieldDisplay label="Estatus" value={<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${providerData.estatus ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{providerData.estatus ? 'Activo' : 'Inactivo'}</span>} />
+
+               {/* --- NUEVO: Proveedor Eventos --- */}
+               <InfoFieldDisplay label="Proveedor para Eventos" value={providerData.proveedor_eventos ? 'Sí' : 'No'} />
           </div>
 
-          {/* Dirección */}
+          {/* --- Dirección --- */}
           <div className="mb-6 border-b pb-4">
-              <h2 className="text-xl font-medium mb-2 text-gray-700">Dirección</h2>
-              <p>{providerData.calle ?? ''} {providerData.numero ?? ''}, <strong>Col.</strong> {providerData.colonia ?? ''}</p>
-              <p>{providerData.municipio ?? ''}, {providerData.estado ?? ''}, <strong>C.P.</strong> {providerData.codigo_postal ?? ''}</p>
+              <h2 className="text-xl font-semibold mb-3 text-gray-700">Dirección</h2>
+              <InfoFieldDisplay label="Dirección Completa" value={`${providerData.calle || ''} #${providerData.numero || ''}, Col. ${providerData.colonia || ''}, C.P. ${providerData.codigo_postal || ''}, ${providerData.municipio || ''}, ${providerData.estado || ''}`} />
           </div>
 
-          {/* Datos Específicos (Moral / Física) */}
+          {/* --- Datos Específicos --- */}
           <div className="mb-6 border-b pb-4">
-              <h2 className="text-xl font-medium mb-2 text-gray-700">
-                  Datos Específicos ({tipo_proveedor === 'moral' ? 'Persona Moral' : tipo_proveedor === 'fisica' ? 'Persona Física' : 'Tipo Desconocido'})
+              <h2 className="text-xl font-semibold mb-3 text-gray-700">
+                  Datos Específicos ({isMoral ? 'Persona Moral' : isFisica ? 'Persona Física' : 'Tipo Desconocido'})
               </h2>
-              {tipo_proveedor === 'moral' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <p><strong>Razón Social:</strong> {providerData.razon_social ?? 'N/A'}</p>
-                      <p><strong>Representante:</strong> {`${providerData.nombre_representante ?? ''} ${providerData.apellido_p_representante ?? ''} ${providerData.apellido_m_representante ?? ''}`.trim() || 'N/A'}</p>
-                  </div>
+              {isMoral && (
+                  <>
+                      <InfoFieldDisplay label="Razón Social" value={providerData.razon_social} />
+                      <InfoFieldDisplay label="Representante Legal" value={`${providerData.nombre_representante || ''} ${providerData.apellido_p_representante || ''} ${providerData.apellido_m_representante || ''}`.trim()} />
+                  </>
               )}
-              {tipo_proveedor === 'fisica' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <p><strong>Nombre Completo:</strong> {`${providerData.nombre_fisica ?? ''} ${providerData.apellido_p_fisica ?? ''} ${providerData.apellido_m_fisica ?? ''}`.trim() || 'N/A'}</p>
-                      <p><strong>CURP:</strong> {providerData.curp ?? 'N/A'}</p>
-                  </div>
+              {isFisica && (
+                  <>
+                      <InfoFieldDisplay label="Nombre Completo" value={`${providerData.nombre_fisica || ''} ${providerData.apellido_p_fisica || ''} ${providerData.apellido_m_fisica || ''}`.trim()} />
+                      <InfoFieldDisplay label="CURP" value={providerData.curp} />
+                  </>
               )}
+               {!isMoral && !isFisica && tipo_proveedor !== 'desconocido' && (
+                   <p className="text-gray-500 italic">Información específica no aplicable o no disponible.</p>
+               )}
                {tipo_proveedor === 'desconocido' && (
-                  <p className="text-orange-600">No se pudieron determinar los datos específicos (Moral/Física).</p>
+                  <p className="text-orange-600 italic">No se pudo determinar el tipo de proveedor.</p>
                )}
           </div>
 
+          {/* --- Registros Adicionales --- */}
           <div className="mb-6">
-               <h2 className="text-xl font-medium mb-2 text-gray-700">Registros</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <p><strong>Cámara Comercial:</strong> {providerData.camara_comercial ?? 'N/A'}</p>
-                  <p><strong>No. Reg. Cámara:</strong> {providerData.numero_registro_camara ?? 'N/A'}</p>
-                  <p><strong>No. Reg. IMSS:</strong> {providerData.numero_registro_imss ?? 'N/A'}</p>
-                  <p><strong>Fecha Solicitud:</strong> {providerData.fecha_solicitud ? providerData.fecha_solicitud : 'N/A'}</p>
-                  <p><strong>Última Actualización:</strong> {providerData.updated_at ? new Date(providerData.updated_at).toLocaleString() : 'N/A'}</p>
+               <h2 className="text-xl font-semibold mb-3 text-gray-700">Registros Adicionales</h2>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                  <InfoFieldDisplay label="Cámara Comercial" value={providerData.camara_comercial} />
+                  <InfoFieldDisplay label="No. Reg. Cámara" value={providerData.numero_registro_camara} />
+                  <InfoFieldDisplay label="No. Reg. IMSS" value={providerData.numero_registro_imss} />
+                  <InfoFieldDisplay label="Fecha Solicitud" value={providerData.fecha_solicitud ? new Date(providerData.fecha_solicitud).toLocaleDateString() : undefined} />
+                  <InfoFieldDisplay label="Última Actualización" value={providerData.updated_at ? new Date(providerData.updated_at).toLocaleString() : undefined} />
                </div>
           </div>
 
-
-          <div className="flex justify-end space-x-3 mt-6">
+          {/* --- Botones de Acción --- */}
+          <div className="flex flex-wrap justify-end gap-3 mt-6 pt-6 border-t">
               <button
-                  onClick={handleOpenModal}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
+                  onClick={handleOpenModal} // Llama al handler local para abrir
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50"
+                  disabled={isUpdating || isGeneratingPdf}
               >
                   Modificar Información
               </button>
               <button
-                   onClick={handleGeneratePdfClick} // <-- Llama al handler actualizado
-                   className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   onClick={handleGeneratePdfClick}
+                   className={`bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
                    disabled={isGeneratingPdf || isUpdating}
                >
-                   {isGeneratingPdf ? 'Generando...' : 'Generar Solicitud'}
+                   {isGeneratingPdf ? 'Generando Solicitud...' : 'Generar Solicitud PDF'}
                </button>
                <button
-                   onClick={handleRevalidadProveedores} // <-- Llama al handler actualizado
-                   className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   onClick={handleRevalidadProveedores}
+                   className={`bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out ${isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''}`}
                    disabled={isGeneratingPdf || isUpdating}
                >
-                   {isGeneratingPdf ? 'Generando...' : 'Generar Revalidacion'}
+                   {isGeneratingPdf ? 'Generando Revalidación...' : 'Generar Revalidación PDF'}
                </button>
               <button
-             onClick={onManageDocumentsClick} // <-- Usar la nueva prop
-             className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out"
-         >
-             Gestionar Documentos
-         </button>
+                 onClick={onManageDocumentsClick} // Llama a la prop del padre
+                 className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50"
+                 disabled={isUpdating || isGeneratingPdf} // Deshabilitar si está actualizando/generando PDF
+             >
+                 Gestionar Documentos
+             </button>
           </div>
 
-          {/* --- Integración del Modal --- */}
+          {/* --- Renderizado del Modal (Controlado localmente) --- */}
           {modalAbierto && providerData && (
               <ModalActualizarProveedor
-                  datos={providerData} // <--- PASAR providerData
-                  onClose={handleCloseModal}
-                  onSubmit={handleSaveUpdate} // Pasa la función que llama a la API
-                  // Pasa también el estado de carga y error si el modal los va a mostrar
-                  isLoading={isUpdating}
-                  error={updateError}
+                  // Props para el modal
+                  isOpen={modalAbierto} // Pasa el estado local
+                  onClose={handleCloseModal} // Pasa el handler local para cerrar
+                  proveedorData={providerData} // Pasa los datos actuales
+                  onUpdateSuccess={() => { // Define inline el callback de éxito para el modal
+                      console.log("Modal reportó éxito, recargando página...");
+                      handleCloseModal(); // Cierra el modal
+                      window.location.reload(); // Recarga la página
+                      // Opcional: llamar a onUpdateSuccess del padre si existe
+                      // if (onUpdateSuccess) onUpdateSuccess();
+                  }}
+                  // Si el modal ya no maneja su propio estado de carga/error,
+                  // pasa los estados locales de ProveedorInfo
+                  // isLoading={isUpdating}
+                  // error={updateError}
+                  // Si el modal SÍ maneja su estado interno, no necesitas pasarle estos
               />
           )}
       </div>
@@ -301,3 +324,4 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
 };
 
 export default ProveedorInfo;
+// --- END OF FILE ---

@@ -1,107 +1,9 @@
 import { sql } from "@vercel/postgres";
 import bcrypt from 'bcryptjs';
-// --- INTERFACES (Definir o asegurar que existen en otro lugar) ---
-// Es MUY recomendable tener interfaces definidas para los datos
-interface ProveedorAdminListData {
-    id_proveedor: number;
-    rfc?: string | null;
-    correo?: string | null;
-    estatus?: boolean | null;
-    telefono?: string | null;
-    tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-    // nombre_o_razon_social?: string | null; // Podrías añadir un campo combinado
-}
 
-interface ProveedorCompletoData {
-    id_proveedor: number;
-    rfc?: string | null;
-    giro_comercial?: string | null;
-    correo?: string | null;
-    calle?: string | null;
-    numero?: string | null;
-    colonia?: string | null;
-    codigo_postal?: string | null;
-    municipio?: string | null;
-    estado?: string | null;
-    telefono_uno?: string | null;
-    telefono_dos?: string | null;
-    pagina_web?: string | null;
-    camara_comercial?: string | null;
-    numero_registro_camara?: string | null;
-    numero_registro_imss?: string | null;
-    fecha_inscripcion?: string | null;
-    fecha_vigencia?: string | null;
-    estatus?: boolean | null;
-    created_at?: string | null;
-    updated_at?: string | null;
-    fecha_solicitud?: string | null;
-    id_usuario_proveedor?: number | null;
-    tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-
-    // **NUEVOS CAMPOS**
-    actividad_sat?: string | null;
-    proveedor_eventos?: boolean | null;
-
-    // Morales
-    razon_social?: string | null;
-    nombre_representante?: string | null;
-    apellido_p_representante?: string | null;
-    apellido_m_representante?: string | null;
-
-    // Físicas
-    nombre_fisica?: string | null;
-    apellido_p_fisica?: string | null;
-    apellido_m_fisica?: string | null;
-    curp?: string | null;
-
-    // ... otros campos que puedan existir ...
-     [key: string]: any;
-}
-
-// Interfaz para los datos de actualización que el admin envía
-interface UpdateProveedorAdminData {
-    id_proveedor: number; // Requerido
-    tipoProveedor: 'moral' | 'fisica'; // Requerido para lógica interna
-
-    // Campos editables por el admin (todos opcionales)
-    rfc?: string;
-    giro_comercial?: string;
-    correo?: string;
-    calle?: string;
-    numero?: string;
-    colonia?: string;
-    codigo_postal?: string;
-    municipio?: string;
-    estado?: string;
-    telefono_uno?: string;
-    telefono_dos?: string | null;
-    pagina_web?: string | null;
-    camara_comercial?: string | null;
-    numero_registro_camara?: string | null;
-    numero_registro_imss?: string | null;
-
-    // **NUEVOS CAMPOS EDITABLES**
-    actividadSat?: string | null; // camelCase en la entrada JS/TS
-    proveedorEventos?: boolean;   // camelCase en la entrada JS/TS
-
-    // Campos específicos (opcionales)
-    razon_social?: string;
-    nombre_representante?: string;
-    apellido_p_representante?: string;
-    apellido_m_representante?: string | null;
-    nombre?: string; // Usar nombres consistentes ('nombre' vs 'nombre_fisica')
-    apellido_p?: string;
-    apellido_m?: string | null;
-    curp?: string;
-
-    // estatus?: boolean; // El estatus se maneja con updateProveedorEstatus
-     [key: string]: any;
-}
-
-export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListData[]> => {
+export const getAllProveedoresForAdmin = async () => {
     console.log("SERVICE: getAllProveedoresForAdmin called");
     try {
-        // Consulta actual (obtiene nombre/razón social para determinar tipo)
         const result = await sql`
             SELECT
                 p.id_proveedor, p.rfc, p.correo, p.estatus, p.telefono_uno,
@@ -111,7 +13,6 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
             LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
             ORDER BY p.created_at DESC;
         `;
-        // Formateo actual
         const proveedoresFormateados = result.rows.map(row => ({
             id_proveedor: row.id_proveedor,
             rfc: row.rfc,
@@ -120,11 +21,11 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
             telefono: row.telefono_uno,
             tipo_proveedor: row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido')
         }));
-        console.log(`SERVICE: Found ${proveedoresFormateados.length} providers for admin list.`);
+        console.log(`SERVICE: Found ${proveedoresFormateados.length} providers for admin view.`);
         return proveedoresFormateados;
     } catch (error) {
         console.error("SERVICE ERROR in getAllProveedoresForAdmin:", error);
-        throw new Error("Error al obtener la lista de proveedores (servicio).");
+        throw new Error("Error al obtener la lista de proveedores desde el servicio.");
     }
 };
 
@@ -165,45 +66,40 @@ export const updateProveedorEstatus = async (
   }
 };
 /**
- * Obtiene los detalles COMPLETOS de un proveedor por su ID principal.
- */
-export const getProveedorById = async (id: number): Promise<ProveedorCompletoData | null> => {
-    console.log(`SERVICE: getProveedorById called for ID ${id}`);
-    try {
-      if (isNaN(id)) { throw new Error("ID de proveedor inválido."); }
-  
-      // Añadir p.actividad_sat y p.proveedor_eventos a la selección
-      const result = await sql`
-        SELECT
-          p.*, -- Selecciona todos los campos de proveedores (incluirá los nuevos si existen en la tabla)
-          p.actividad_sat,      -- Seleccionar explícitamente para claridad/seguridad
-          p.proveedor_eventos,  -- Seleccionar explícitamente para claridad/seguridad
-          m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
-          f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
-        FROM proveedores p
-        LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
-        LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-        WHERE p.id_proveedor = ${id};
-      `;
-  
-      if (result.rows.length === 0) {
-        console.log(`DEBUG Service: Provider not found for ID: ${id}`);
-        return null; // Devolver null si no se encuentra
-      }
-  
-      const row = result.rows[0];
-      // Determinar tipo (la lógica actual está bien)
-      const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido');
-      console.log(`SERVICE: Provider found for ID ${id}, Type: ${tipo}`);
-  
-      // Devuelve el objeto completo, que ahora incluye actividad_sat y proveedor_eventos
-      return { ...row, tipo_proveedor: tipo } as ProveedorCompletoData;
-  
-    } catch (error) {
-      console.error("Error fetching proveedor by ID:", error);
-      throw new Error('Error al obtener datos completos del proveedor por ID.');
+* Obtiene los detalles COMPLETOS de un proveedor por su ID principal.
+* Útil si el admin hace clic para ver una ficha completa del proveedor.
+*/
+export const getProveedorById = async (id: number) => {
+  try {
+    // Tu consulta JOIN completa está bien para obtener todos los detalles
+    const result = await sql`
+      SELECT
+        p.*,
+        m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
+        f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
+      FROM proveedores p
+      LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
+      LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
+      WHERE p.id_proveedor = ${id};
+    `;
+
+    if (result.rows.length === 0) {
+      // Cambiamos a devolver null en lugar de lanzar error aquí,
+      // permite al frontend manejar el "no encontrado" más suavemente.
+      console.log(`DEBUG Service: Provider not found for ID: ${id}`);
+      return null;
     }
-  };
+
+    const row = result.rows[0];
+    const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido');
+
+    return { ...row, tipo_proveedor: tipo };
+
+  } catch (error) {
+    console.error("Error fetching proveedor by ID:", error);
+    throw new Error('Error al obtener datos del proveedor por ID.');
+  }
+};
 
 /**
 * Obtiene los documentos asociados a un proveedor específico.
@@ -230,6 +126,7 @@ export const getDocumentosByProveedor = async (id_proveedor: number) => {
       throw new Error('Error al obtener los documentos del proveedor.');
   }
 };
+// --- FUNCIÓN NUEVA O MODIFICADA PARA ACTUALIZAR ESTATUS DEL DOCUMENTO ---
 /**
  * Actualiza el estatus de un documento específico.
  * @param id_documento_proveedor - ID del documento a actualizar.
@@ -266,166 +163,126 @@ export const updateEstatusDocumentoProveedor = async (
       throw new Error('Error al actualizar el estatus del documento.');
   }
 };
-/**
- * Obtiene los detalles COMPLETOS de un proveedor por su ID, específicamente para el admin.
- */
-export const getProveedorProfileByIdForAdmin = async (idProveedor: number): Promise<ProveedorCompletoData | null> => {
+
+// CORREGIDO: Usa los nombres de tabla correctos (personas_fisicas, proveedores_morales)
+export const getProveedorProfileByIdForAdmin = async (idProveedor: number) => {
     console.log(`SERVICE: getProveedorProfileByIdForAdmin called for ID ${idProveedor}`);
     try {
-         if (isNaN(idProveedor)) { throw new Error("ID de proveedor inválido."); }
-        // Añadir p.actividad_sat y p.proveedor_eventos
+        // *** CORRECCIÓN AQUÍ ***
         const result = await sql`
             SELECT
-                p.*, -- Todos los campos de proveedores
-                p.actividad_sat,      -- Explicito
-                p.proveedor_eventos,  -- Explicito
-                f.nombre AS nombre_fisica,
+                p.*, -- Todos los campos de la tabla proveedores
+                f.nombre AS nombre_fisica,       -- Usa alias 'f' y tabla 'personas_fisicas'
                 f.apellido_p AS apellido_p_fisica,
                 f.apellido_m AS apellido_m_fisica,
                 f.curp,
-                m.razon_social,
+                m.razon_social,                 -- Usa alias 'm' y tabla 'proveedores_morales'
                 m.nombre_representante,
                 m.apellido_p_representante,
                 m.apellido_m_representante
             FROM proveedores p
-            LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-            LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
+            LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor   -- Tabla correcta
+            LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor -- Tabla correcta
             WHERE p.id_proveedor = ${idProveedor};
         `;
+        // *** FIN CORRECCIÓN ***
 
         if (result.rowCount === 0) {
             console.warn(`SERVICE: Provider profile not found for ID ${idProveedor}`);
-            // Lanzar error aquí es una opción si la vista admin espera siempre encontrarlo
-            // throw new Error(`Perfil de proveedor con ID ${idProveedor} no encontrado.`);
-            return null; // O devolver null
+            throw new Error(`Perfil de proveedor con ID ${idProveedor} no encontrado.`);
         }
 
         console.log(`SERVICE: Found provider profile for ID ${idProveedor}`);
+        // Determinar tipo basado en los campos recuperados (puede ser redundante si ya existe en 'p', pero seguro)
         const row = result.rows[0];
-        const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido');
-        return { ...row, tipo_proveedor: tipo } as ProveedorCompletoData;
+         const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : (row.tipo_proveedor || 'desconocido'));
+        return { ...row, tipo_proveedor: tipo }; // Devolver incluyendo el tipo determinado
 
     } catch (error: any) {
         console.error(`SERVICE ERROR in getProveedorProfileByIdForAdmin for ID ${idProveedor}:`, error);
-        // Relanzar o manejar como prefieras
-        throw new Error(`Error al obtener perfil de proveedor (Admin): ${error.message}`);
+        throw error; // Re-lanza para que la API route lo capture
     }
 };
-/**
- * Actualiza el perfil de un proveedor desde la perspectiva del admin.
- */
-export const updateProveedorProfileForAdmin = async (proveedorData: UpdateProveedorAdminData): Promise<ProveedorCompletoData | null> => {
+// CORREGIDO: Usa los nombres de tabla correctos (personas_fisicas, proveedores_morales)
+export const updateProveedorProfileForAdmin = async (proveedorData: any) => {
     const idProveedor = proveedorData.id_proveedor;
-    const tipoProveedor = proveedorData.tipoProveedor; // Se espera que venga del formulario admin
-
+    const tipoProveedor = proveedorData.tipoProveedor;
     console.log(`SERVICE: updateProveedorProfileForAdmin called for ID ${idProveedor}, Type: ${tipoProveedor}`);
-    console.log("SERVICE: Data received for update:", proveedorData); // Log para ver qué llega
 
-    // Validaciones básicas
-    if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-        throw new Error("ID de proveedor inválido o faltante.");
-    }
-    if (!tipoProveedor || (tipoProveedor !== 'moral' && tipoProveedor !== 'fisica')) {
-        throw new Error("Tipo de proveedor ('moral' o 'fisica') es requerido para la actualización.");
+    if (!idProveedor || !tipoProveedor) {
+        throw new Error("ID de proveedor y tipo son requeridos para actualizar perfil.");
     }
 
-    let client: VercelPoolClient | null = null; // Para transacción si prefieres
     try {
-        // --- Conexión y Transacción (Opcional pero recomendado para múltiples updates) ---
-        // client = await sql.connect(); // Descomentar si usas transacciones explícitas
-        // await client.sql`BEGIN`;      // Descomentar si usas transacciones explícitas
-
-        // 1. Actualizar tabla principal 'proveedores'
-        //    Se actualizarán todos los campos proporcionados en proveedorData.
+        // 1. Actualizar tabla principal 'proveedores' (sin cambios aquí)
         console.log(`SERVICE: Updating common fields in 'proveedores' for ID ${idProveedor}`);
         const updateProveedoresResult = await sql`
-            UPDATE proveedores SET
-              rfc = ${proveedorData.rfc ?? null}, -- Usar COALESCE o manejar nulls aquí si es necesario
-              giro_comercial = ${proveedorData.giro_comercial ?? null},
-              correo = ${proveedorData.correo ?? null},
-              calle = ${proveedorData.calle ?? null},
-              numero = ${proveedorData.numero ?? null},
-              colonia = ${proveedorData.colonia ?? null},
-              codigo_postal = ${proveedorData.codigo_postal ?? null},
-              municipio = ${proveedorData.municipio ?? null},
-              estado = ${proveedorData.estado ?? null},
-              telefono_uno = ${proveedorData.telefono_uno ?? null},
+            UPDATE proveedores SET 
+              rfc = ${proveedorData.rfc},
+              giro_comercial = ${proveedorData.giro_comercial},
+              correo = ${proveedorData.correo},
+              calle = ${proveedorData.calle},
+              numero = ${proveedorData.numero},
+              colonia = ${proveedorData.colonia},
+              codigo_postal = ${proveedorData.codigo_postal},
+              municipio = ${proveedorData.municipio},
+              estado = ${proveedorData.estado},
+              telefono_uno = ${proveedorData.telefono_uno},
               telefono_dos = ${proveedorData.telefono_dos ?? null},
               pagina_web = ${proveedorData.pagina_web ?? null},
               camara_comercial = ${proveedorData.camara_comercial ?? null},
               numero_registro_camara = ${proveedorData.numero_registro_camara ?? null},
               numero_registro_imss = ${proveedorData.numero_registro_imss ?? null},
-              -- **NUEVOS CAMPOS**
-              actividad_sat = ${proveedorData.actividadSat ?? null}, -- Mapeo camelCase -> snake_case
-              proveedor_eventos = ${proveedorData.proveedorEventos ?? false}, -- Mapeo camelCase -> snake_case (default false)
-              -- **FIN NUEVOS CAMPOS**
-              updated_at = NOW()
-            WHERE id_proveedor = ${idProveedor}
-            RETURNING id_proveedor; -- Confirmar que la fila existe
+              --updated_at = CURRENT_TIMESTAMP
+            updated_at = NOW()
+            WHERE id_proveedor = ${idProveedor} RETURNING id_proveedor;
         `;
-        // Verificar si se afectó alguna fila (el proveedor existe)
-        if (updateProveedoresResult.rowCount === 0) {
-            // await client?.sql`ROLLBACK`; // Descomentar si usas transacciones
-            throw new Error(`Proveedor con ID ${idProveedor} no encontrado en tabla principal.`);
-        }
-         console.log(`SERVICE: 'proveedores' table updated for ID ${idProveedor}`);
-
+        if (updateProveedoresResult.rowCount === 0) { throw new Error(/* ... */); }
 
         // 2. Actualizar tabla de detalle (física o moral)
-        //    Solo se actualiza si el tipo coincide y hay datos específicos para ese tipo.
+        // *** CORRECCIÓN AQUÍ ***
         if (tipoProveedor === 'fisica') {
-            // Solo actualizar si vienen datos específicos de física
-            if (proveedorData.nombre !== undefined || proveedorData.apellido_p !== undefined || proveedorData.apellido_m !== undefined || proveedorData.curp !== undefined) {
-                console.log(`SERVICE: Updating details in 'personas_fisicas' for ID ${idProveedor}`);
-                await sql`
-                    UPDATE personas_fisicas SET
-                        nombre = ${proveedorData.nombre ?? null},
-                        apellido_p = ${proveedorData.apellido_p ?? null},
-                        apellido_m = ${proveedorData.apellido_m ?? null},
-                        curp = ${proveedorData.curp ?? null}
-                    WHERE id_proveedor = ${idProveedor};
-                `;
-                 console.log(`SERVICE: 'personas_fisicas' updated for ID ${idProveedor}`);
-            } else {
-                 console.log(`SERVICE: No specific fisica fields provided for update ID ${idProveedor}, skipping detail update.`);
-            }
+            console.log(`SERVICE: Updating details in 'personas_fisicas' for ID ${idProveedor}`);
+            await sql`
+                UPDATE personas_fisicas -- Tabla correcta
+                SET
+                    nombre = ${proveedorData.nombre},
+                    apellido_p = ${proveedorData.apellido_p},
+                    apellido_m = ${proveedorData.apellido_m},
+                    curp = ${proveedorData.curp}
+                WHERE id_proveedor = ${idProveedor};
+            `;
         } else if (tipoProveedor === 'moral') {
-            // Solo actualizar si vienen datos específicos de moral
-             if (proveedorData.razon_social !== undefined || proveedorData.nombre_representante !== undefined || proveedorData.apellido_p_representante !== undefined || proveedorData.apellido_m_representante !== undefined) {
-                console.log(`SERVICE: Updating details in 'proveedores_morales' for ID ${idProveedor}`);
-                await sql`
-                    UPDATE proveedores_morales SET
-                        razon_social = ${proveedorData.razon_social ?? null},
-                        nombre_representante = ${proveedorData.nombre_representante ?? null},
-                        apellido_p_representante = ${proveedorData.apellido_p_representante ?? null},
-                        apellido_m_representante = ${proveedorData.apellido_m_representante ?? null}
-                    WHERE id_proveedor = ${idProveedor};
-                `;
-                console.log(`SERVICE: 'proveedores_morales' updated for ID ${idProveedor}`);
-            } else {
-                 console.log(`SERVICE: No specific moral fields provided for update ID ${idProveedor}, skipping detail update.`);
-            }
+            console.log(`SERVICE: Updating details in 'proveedores_morales' for ID ${idProveedor}`);
+            await sql`
+                UPDATE proveedores_morales -- Tabla correcta
+                SET
+                    razon_social = ${proveedorData.razon_social},
+                    nombre_representante = ${proveedorData.nombre_representante},
+                    apellido_p_representante = ${proveedorData.apellido_p_representante},
+                    apellido_m_representante = ${proveedorData.apellido_m_representante}
+                WHERE id_proveedor = ${idProveedor};
+            `;
+        } else {
+            console.warn(`SERVICE: Tipo de proveedor desconocido ('${tipoProveedor}') para actualizar detalle. ID: ${idProveedor}`);
         }
-        // No es necesario un else aquí, ya que la validación inicial cubre tipos inválidos
+        // *** FIN CORRECCIÓN ***
 
-        // await client?.sql`COMMIT`; // Descomentar si usas transacciones
-
-        // 3. Re-obtener perfil actualizado para devolverlo
+        // 3. Re-obtener perfil actualizado
         console.log(`SERVICE: Re-fetching updated profile for ID ${idProveedor}`);
-        // Usar la función get que ya está actualizada
-        const proveedorActualizado = await getProveedorById(idProveedor);
-        console.log(`SERVICE: Profile update process completed successfully for ID ${idProveedor}`);
+        const proveedorActualizado = await getProveedorProfileByIdForAdmin(idProveedor);
+        console.log(`SERVICE: Profile update process completed for ID ${idProveedor}`);
         return proveedorActualizado;
 
     } catch (error: any) {
-        // await client?.sql`ROLLBACK`; // Descomentar si usas transacciones
         console.error(`SERVICE ERROR in updateProveedorProfileForAdmin for ID ${idProveedor}:`, error);
-        // Relanzar el error para que la capa superior (route) lo maneje
-        throw new Error(`Error al actualizar perfil (Admin): ${error.message || 'Error desconocido'}`);
-    } finally {
-         // if (client) { await client.release(); } // Descomentar si usas transacciones
+        throw error;
     }
 };
+
+
+// --- NUEVAS FUNCIONES PARA USUARIOS_PROVEEDORES (ADMIN) ---
+
 export const getUsuarioProveedorByProveedorId = async (idProveedor: number) => {
     console.log(`SERVICE: getUsuarioProveedorByProveedorId called for proveedor ID ${idProveedor}`);
     try {
