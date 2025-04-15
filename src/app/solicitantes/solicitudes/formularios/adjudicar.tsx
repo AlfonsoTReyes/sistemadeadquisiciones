@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { getUsers } from '../../../peticiones_api/fetchUsuarios';
 import { fetchEventos } from '../../../peticiones_api/peticionEventos';
-import { fetchAdjudicaciones } from '../../../peticiones_api/peticionCatalogoAdjudicaciones';
+import { fetchOrdenesDia, createOrdenDia } from '../../../peticiones_api/peticionOrdenDia';
 
 interface ModalAdjudicarProps {
   idSolicitud: number;
@@ -51,13 +51,13 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
   const [usuariosSeleccionados, setUsuariosSeleccionados] = useState<Usuario[]>([]);
-
   const [adjudicaciones, setAdjudicaciones] = useState<Adjudicacion[]>([]);
-  const [adjudicacionSeleccionada, setAdjudicacionSeleccionada] = useState<Adjudicacion | null>(null);
-
+  const [noOficio, setNoOficio] = useState("DAQ/"); 
   const [invitados, setInvitados] = useState<string[]>([]);
-  const [nuevoInvitado, setNuevoInvitado] = useState("");
   const [asunto, setAsunto] = useState("");
+  const [puntoTemporal, setPuntoTemporal] = useState("");
+  const [asunto_general, setAsuntoGeneral] = useState("");
+  const [puntosATratar, setPuntosATratar] = useState<string[]>([]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState("");
   const [fechasDisponibles, setFechasDisponibles] = useState<EventoComite[]>([]);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoComite | null>(null);
@@ -66,20 +66,16 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
   useEffect(() => {
     const fetchDatos = async () => {
       try {
-        const [resFechas, resUsuarios, resAdjudicacion] = await Promise.all([
+        const [resFechas, resUsuarios] = await Promise.all([
           fetchEventos(),
           getUsers(),
-          fetchAdjudicaciones(),
         ]);
 
         const fechas = resFechas;
         const usuariosData =  resUsuarios;
-        const adjudicacionData: Adjudicacion[] = resAdjudicacion;
-        setAdjudicaciones(adjudicacionData);
 
         setFechasDisponibles(fechas || []);
         setUsuarios(usuariosData || []);
-        setAdjudicaciones(adjudicacionData || []);
       } catch (error) {
         console.error("error al cargar datos del comité:", error);
       }
@@ -88,12 +84,6 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     fetchDatos();
   }, []);
 
-  const handleAgregarInvitado = () => {
-    if (nuevoInvitado.trim() && !invitados.includes(nuevoInvitado.trim())) {
-      setInvitados((prev) => [...prev, nuevoInvitado.trim()]);
-      setNuevoInvitado("");
-    }
-  };
 
   const handleConvocar = async () => {
     if (!fechaSeleccionada || !asunto) {
@@ -101,24 +91,20 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
       return;
     }
 
-    try {
-      const res = await fetch("/api/comite/convocar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          idSolicitud,
-          fecha: fechaSeleccionada,
-          asunto,
-          invitados,
-        }),
-      });
+    const formData = {
+      id_solicitud: idSolicitud,
+      asunto_general,
+      no_oficio: noOficio,
+      hora: fechaSeleccionada, 
+      puntos_tratar: puntosATratar,
+      participantes_base: usuariosSeleccionados.map(u => u.id_usuario), 
+      usuarios_invitados: invitados, 
+    };
 
-      if (res.ok) {
-        onSuccess();
-        onClose();
-      } else {
-        alert("error al convocar comité.");
-      }
+    try {
+      await createOrdenDia(formData);
+      onSuccess();
+      onClose();
     } catch (error) {
       console.error("error al convocar comité:", error);
       alert("ocurrió un error.");
@@ -144,7 +130,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-md w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
 
-        <h2 className="text-xl font-bold mb-4">Convocar comité</h2>
+        <h2 className="text-xl font-bold mb-4">Convocar comité / orden de día</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Fechas */}
@@ -185,22 +171,34 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
           </div>
 
           <div className="md:col-span-2">
-            <label className="font-semibold block mb-1">Puntos a tratar</label>
+            <label className="font-semibold block mb-1">No. de oficio</label>
+            <input
+              type="text"
+              className="w-full border rounded p-2"
+              value={noOficio}
+              onChange={(e) => setNoOficio(e.target.value)}
+              placeholder="Ej. DAQ/001/2025"
+            />
+          </div>
+
+
+          <div className="md:col-span-2">
+          <label className="font-semibold block mb-1">Puntos a tratar</label>
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
-                placeholder="Escribe un asunto"
+                placeholder="Escribe un punto"
                 className="w-full border p-2 rounded"
-                value={asunto}
-                onChange={(e) => setAsunto(e.target.value)}
+                value={puntoTemporal}
+                onChange={(e) => setPuntoTemporal(e.target.value)}
               />
               <button
                 type="button"
                 className="bg-blue-600 text-white px-4 py-2 rounded"
                 onClick={() => {
-                  if (asunto.trim()) {
-                    setInvitados((prev) => [...prev, asunto.trim()]);
-                    setAsunto("");
+                  if (puntoTemporal.trim()) {
+                    setPuntosATratar((prev) => [...prev, puntoTemporal.trim()]);
+                    setPuntoTemporal("");
                   }
                 }}
               >
@@ -208,16 +206,16 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
               </button>
             </div>
 
-            {invitados.length > 0 && (
+            {puntosATratar.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {invitados.map((a, idx) => (
+                {puntosATratar.map((punto, idx) => (
                   <div key={idx} className="bg-gray-100 p-2 rounded flex justify-between items-center">
-                    <span className="text-sm">{a}</span>
+                    <span className="text-sm">{punto}</span>
                     <button
                       type="button"
                       className="text-red-500 text-xs"
                       onClick={() =>
-                        setInvitados((prev) => prev.filter((_, i) => i !== idx))
+                        setPuntosATratar((prev) => prev.filter((_, i) => i !== idx))
                       }
                     >
                       ✕
@@ -226,39 +224,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
                 ))}
               </div>
             )}
-          </div>
 
-          {/* Adjudicación + invitados */}
-          <div>
-            <label className="font-semibold mb-1 block">Tipo de adjudicación:</label>
-            <select
-              className="w-full border p-2 rounded mb-2 uppercase"
-              value={adjudicacionSeleccionada?.id_tipo_adjudicacion || ""}
-              onChange={(e) => {
-                const seleccion = adjudicaciones.find(
-                  (a) => a.id_tipo_adjudicacion.toString() === e.target.value
-                );
-                setAdjudicacionSeleccionada(seleccion || null);
-              }}
-            >
-              <option value="">SELECCIONA TIPO DE ADJUDICACIÓN</option>
-              {adjudicaciones.map((a) => (
-                <option key={a.id_tipo_adjudicacion} value={a.id_tipo_adjudicacion}>
-                  {a.nombre.toUpperCase()}
-                </option>
-              ))}
-            </select>
-
-            {adjudicacionSeleccionada && (
-              <div className="mt-2 text-sm text-gray-700 space-y-1">
-                <p><strong>Nombre:</strong> {adjudicacionSeleccionada.nombre}</p>
-                <p><strong>Tipo:</strong> {adjudicacionSeleccionada.tipo_adquisicion}</p>
-                <p><strong>Descripción:</strong> {adjudicacionSeleccionada.descripcion}</p>
-                <p><strong>Estatus:</strong> {adjudicacionSeleccionada.estatus}</p>
-                <p><strong>Monto mínimo:</strong> ${adjudicacionSeleccionada.monto_min}</p>
-                <p><strong>Monto máximo:</strong> ${adjudicacionSeleccionada.monto_max}</p>
-              </div>
-            )}
           </div>
 
 
@@ -316,28 +282,36 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
           )}
 
 
-          {/* Asunto */}
           <div>
             <label className="font-semibold block mb-1">Asunto</label>
-            <input
-              type="text"
-              className="w-full border rounded p-2 mb-3"
-              value={asunto}
-              onChange={(e) => setAsunto(e.target.value)}
-            />
-            <button
-              className="bg-blue-600 text-white w-full p-2 rounded mb-2"
-              onClick={handleConvocar}
+            <div className="flex gap-2 mb-4">
+            <select
+              className="w-full border rounded p-2"
+              value={asunto_general}
+              onChange={(e) => setAsuntoGeneral(e.target.value)}
             >
-              Enviar a comité
-            </button>
-            <button
-              onClick={onClose}
-              className="bg-red-500 text-white w-full p-2 rounded"
-            >
-              Cerrar
-            </button>
+              <option value="">Selecciona un asunto</option>
+              <option value="CONVOCATORIA">CONVOCATORIA</option>
+              <option value="CANCELACIÓN DE CONVOCATORIA">CANCELACIÓN DE CONVOCATORIA</option>
+            </select>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                className="bg-blue-600 text-white w-1/2 p-2 rounded"
+                onClick={handleConvocar}
+              >
+                Enviar a comité
+              </button>
+              <button
+                onClick={onClose}
+                className="bg-red-500 text-white w-1/2 p-2 rounded"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
+
         </div>
       </div>
     </div>

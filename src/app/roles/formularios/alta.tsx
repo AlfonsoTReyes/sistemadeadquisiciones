@@ -79,6 +79,7 @@ const AltaRol: React.FC<AltaRolProps> = ({ onClose, onRolAdded }) => { //Utiliza
               <option value="PROVEEDORES">PROVEEDORES</option>
               <option value="ADQUISICIONES">ADQUISICIONES</option>
               <option value="FINANZAS">FINANZAS</option>
+              <option value="COMITE">COMITE</option>
             </select>
           </div>
         </div>
