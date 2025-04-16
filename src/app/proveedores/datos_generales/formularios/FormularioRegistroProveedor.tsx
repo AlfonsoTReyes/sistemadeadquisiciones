@@ -35,6 +35,8 @@ interface ProveedorFormData {
     numero_registro_camara: string;
     numero_registro_imss: string;
     proveedorEventos: boolean; // <-- NUEVO CAMPO (Checkbox)
+    aceptaAviso1: boolean;
+    aceptaAviso2: boolean;
     // Campos que no suelen estar en el formulario inicial pero podrían añadirse:
     // acta_constitutiva: string; // Moral - Usualmente es carga de archivo
     // poder_notarial: string; // Moral - Usualmente es carga de archivo
@@ -78,6 +80,8 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
         numero_registro_camara: '',
         numero_registro_imss: '',
         proveedorEventos: false, // <-- Inicializar checkbox como false
+        aceptaAviso1: false,
+        aceptaAviso2: false,
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,7 +166,10 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
             }
         }
         // --- FIN VALIDACIÓN ---
-
+        if (!formData.aceptaAviso1 || !formData.aceptaAviso2) {
+            setError('Debe aceptar ambos Avisos de Privacidad para continuar.');
+            return;
+        }
 
         setIsSubmitting(true);
 
@@ -266,7 +273,6 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                             <input type="text" id="apellido_m_representante" name="apellido_m_representante" value={formData.apellido_m_representante} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                     </div>
-                     {/* Aquí irían campos para Acta Constitutiva / Poder Notarial si fueran inputs de texto o referencias */}
                  </fieldset>
              )}
 
@@ -396,12 +402,57 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                 </div>
             </fieldset>
 
-            {/* --- BOTÓN DE ENVÍO --- */}
-            <div className="mt-6 text-right">
+            {/* --- **NUEVO: SECCIÓN AVISOS DE PRIVACIDAD** --- */}
+            <fieldset className={`border-yellow-400 bg-yellow-50`}>
+                 <legend className={`text-yellow-800`}>Avisos de Privacidad</legend>
+                 <div className="space-y-4 mt-2">
+                     {/* Aviso 1 */}
+                     <div className="flex items-start">
+                         <input
+                            id="aceptaAviso1"
+                            name="aceptaAviso1"
+                            type="checkbox"
+                            checked={formData.aceptaAviso1}
+                            onChange={handleChange}
+                            className="h-4 w-4 mt-1 text-indigo-600 focus:ring-indigo-500 border-gray-400 rounded"
+                            required // HTML5 validation (opcional si ya validas en JS)
+                         />
+                         <label htmlFor="aceptaAviso1" className="ml-3 block text-sm text-gray-800">
+                             He leído y acepto el <a href="/aviso-privacidad-general" target="_blank" className="font-medium text-indigo-600 hover:text-indigo-800 underline">Aviso de Privacidad General</a>.
+                             {/* Reemplaza '/aviso-privacidad-general' con la ruta real */}
+                         </label>
+                     </div>
+                     {/* Aviso 2 */}
+                     <div className="flex items-start">
+                         <input
+                            id="aceptaAviso2"
+                            name="aceptaAviso2"
+                            type="checkbox"
+                            checked={formData.aceptaAviso2}
+                            onChange={handleChange}
+                            className="h-4 w-4 mt-1 text-indigo-600 focus:ring-indigo-500 border-gray-400 rounded"
+                            required
+                         />
+                         <label htmlFor="aceptaAviso2" className="ml-3 block text-sm text-gray-800">
+                             Entiendo y acepto las <a href="/condiciones-uso-proveedores" target="_blank" className="font-medium text-indigo-600 hover:text-indigo-800 underline ">Condiciones de Uso para Proveedores</a>.
+                         </label>
+                     </div>
+                 </div>
+             </fieldset>
+             {/* --- FIN SECCIÓN AVISOS --- */}
+
+
+            {/* --- BOTÓN DE ENVÍO (ACTUALIZADO) --- */}
+            <div className="mt-8 text-right">
                 <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className={`px-6 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
+                    disabled={isSubmitting || !formData.aceptaAviso1 || !formData.aceptaAviso2}
+                    className={`px-6 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${
+                        (isSubmitting || !formData.aceptaAviso1 || !formData.aceptaAviso2)
+                        ? 'bg-gray-400 cursor-not-allowed' // Estilo deshabilitado
+                        : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' // Estilo habilitado
+                    }`}
+                    title={!formData.aceptaAviso1 || !formData.aceptaAviso2 ? "Debe aceptar ambos avisos de privacidad para registrar" : ""} // Tooltip opcional
                 >
                     {isSubmitting ? 'Registrando...' : 'Registrar Proveedor'}
                 </button>
