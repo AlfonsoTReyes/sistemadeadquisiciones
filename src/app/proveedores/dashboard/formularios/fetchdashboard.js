@@ -1,77 +1,64 @@
-const API_URL = "/api/proveedores"; // Assuming this is the correct base path
+// Asume que esta es la ruta base correcta para tu API de proveedores
+const API_URL = "/api/proveedores";
 
-export const getProveedor = async (id_proveedor) => {
-  const response = await fetch(`${API_URL}?id_proveedor=${id_proveedor}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: "Error al obtener proveedor" })); // Try to get error message from API
-    throw new Error(errorData.message || `Error ${response.status}: Error al obtener proveedor`);
-  }
-  return await response.json();
-};
+/**
+ * Actualiza un registro de proveedor existente.
+ * @param {object} updateData - Objeto con los datos a actualizar. DEBE incluir 'id_proveedor' y 'tipoProveedor'.
+ *                              Si es moral, AHORA debe incluir el array 'representantes'.
+ * @returns {Promise<object>} - Los datos completos del proveedor actualizado (con array 'representantes' si es moral).
+ * @throws {Error} - Si la petición falla o hay errores de validación.
+ */
+export const updateProveedor = async (updateData) => {
+  // ... (validación de id_proveedor y tipoProveedor)
+  if (!updateData?.id_proveedor || typeof updateData.id_proveedor !== 'number') { throw new Error("Se requiere 'id_proveedor'."); }
+  if (!updateData?.tipoProveedor || !['moral', 'fisica'].includes(updateData.tipoProveedor)) { throw new Error("Se requiere 'tipoProveedor'."); }
+  // Opcional: Validación básica si es moral y no viene el array (aunque la API debería manejarlo)
+  // if (updateData.tipoProveedor === 'moral' && !Array.isArray(updateData.representantes)) {
+  //    console.warn("updateProveedor Fetch: Falta el array 'representantes' para proveedor moral.");
+  //    // Podrías lanzar error o continuar y dejar que la API valide
+  // }
 
-export const updateProveedor = async (proveedorDataWithId) => {
-    // Ensure id_proveedor is included
-    if (!proveedorDataWithId || !proveedorDataWithId.id_proveedor) {
-        throw new Error("ID del proveedor es requerido para actualizar.");
-    }
-     // Ensure tipoProveedor is included
-     if (!proveedorDataWithId.tipoProveedor) {
-        throw new Error("Tipo de proveedor es requerido para actualizar.");
-    }
-  
-    try {
-      const response = await fetch(API_URL, { // Use the base URL
+  console.log(`DEBUG Fetch: updateProveedor ID: ${updateData.id_proveedor} with data:`, updateData); // Log para ver si viene el array
+  try {
+      const response = await fetch(API_URL, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          // Send the complete object as received
-          body: JSON.stringify(proveedorDataWithId),
+          // Envía el objeto completo, INCLUYENDO el array 'representantes' si existe en updateData
+          body: JSON.stringify(updateData),
       });
-  
-      const data = await response.json(); // Always parse to get potential errors
-  
-      if (!response.ok) {
-          // Use message from API response if available
-          throw new Error(data.message || `Error ${response.status}: Error al actualizar proveedor`);
-      }
-      return data; // Return updated data on success
-    } catch(err) {
+      // ... (manejo de errores y parseo JSON)
+      const data = await response.json().catch(/* ... */);
+      if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: Error al actualizar`); }
+      console.log(`DEBUG Fetch: updateProveedor successful for ID: ${updateData.id_proveedor}`);
+      return data; // <-- ESTE 'data' YA CONTIENE EL ARRAY 'representantes' SI LA API LO DEVUELVE
+  } catch(err) {
       console.error("Error during provider update fetch:", err);
-      throw new Error(err.message); // Re-throw for the component/hook
-    }
-  };
-
-/** Fetches the main provider profile associated with a logged-in provider user */
-export const getProveedorForUser = async (userId) => {
-  if (!userId || isNaN(parseInt(userId))) {
-      throw new Error("ID de usuario proveedor inválido para la búsqueda.");
-  }
-  try {
-      console.log(`DEBUG Fetch: Fetching profile for user ID: ${userId}`);
-      const response = await fetch(`${API_URL}?id_usuario_proveedor=${userId}`);
-      console.log(`DEBUG Fetch: Response status for user ID ${userId}: ${response.status}`);
-
-      const data = await response.json(); // Attempt to parse JSON regardless of status for error messages
-
-      if (!response.ok) {
-          // Handle specific 404 for profile not found vs other errors
-          if (response.status === 404) {
-              console.log(`DEBUG Fetch: Profile not found (404) for user ID: ${userId}`);
-              // Decide how to handle this - throw specific error or return null?
-              // Throwing makes the calling component handle the "not found" state explicitly
-               throw new Error(data.message || 'Perfil de proveedor no encontrado para este usuario.');
-          } else {
-              console.error(`DEBUG Fetch: Error ${response.status} for user ID ${userId}:`, data.message);
-               throw new Error(data.message || `Error ${response.status}: No se pudo obtener el perfil.`);
-          }
-      }
-      console.log(`DEBUG Fetch: Profile data received for user ID ${userId}:`, data);
-      return data;
-  } catch (err) {
-      console.error("Error during getProveedorForUser fetch:", err);
-      // Re-throw the error for the component to handle
-      throw new Error(err.message || 'Error de red o parseo al obtener perfil.');
+      throw err; // Re-lanza el error formateado
   }
 };
 
-
-
+/**
+ * Obtiene el perfil de proveedor principal asociado a un ID de usuario proveedor.
+ * La respuesta AHORA incluirá un array 'representantes' si es moral.
+ * @param {number | string} userId - El ID del usuario proveedor.
+ * @returns {Promise<object | null>} - Los datos del perfil del proveedor o null si no se encuentra.
+ * @throws {Error} - Si la petición falla por otros motivos o el ID es inválido.
+ */
+export const getProveedorForUser = async (userId) => {
+  // ... (validación de userId)
+  const userIdNum = parseInt(userId, 10);
+  if (!userId || isNaN(userIdNum)) { throw new Error("ID de usuario inválido."); }
+  try {
+      console.log(`DEBUG Fetch: getProveedorForUser by User ID: ${userIdNum}`);
+      const response = await fetch(`${API_URL}?id_usuario_proveedor=${userIdNum}`);
+      // ... (manejo de 404 y errores / parseo JSON)
+      if (response.status === 404) return null;
+      const data = await response.json().catch(/* ... */);
+      if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: No se pudo obtener perfil.`); }
+      console.log(`DEBUG Fetch: Profile data received for user ID ${userIdNum}`);
+      return data; // <-- ESTE 'data' YA CONTIENE EL ARRAY 'representantes' SI LA API LO DEVUELVE
+  } catch (err) {
+      console.error(`Error during getProveedorForUser fetch for ID ${userIdNum}:`, err);
+      throw err; // Re-lanza
+  }
+};

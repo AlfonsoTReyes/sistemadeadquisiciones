@@ -1,5 +1,13 @@
 // --- START OF FILE src/app/proveedores/dashboard/page.tsx ---
 'use client';
+/*
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import PieP from "../../pie";
+import DynamicMenu from "../../menu_principal";
+import ProveedorData from './formularios/ProveedorInfo';
+import { getProveedorForUser } from './formularios/fetchdashboard'; // Import fetch function
+*/
 import React, { useState, useEffect, useCallback } from 'react'; // Import useCallback
 import { useRouter } from 'next/navigation';
 import PieP from "../../pie";

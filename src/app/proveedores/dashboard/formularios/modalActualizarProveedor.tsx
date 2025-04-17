@@ -1,16 +1,30 @@
 // --- START OF FILE src/app/proveedores/dashboard/formularios/ModalActualizarProveedor.tsx ---
 'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { updateProveedor } from './fetchdashboard'; // Asegúrate que la ruta es correcta
 
-// Interfaz para los datos que vienen de la API (props)
+// Representante como viene de la API (con id_morales)
+interface RepresentanteLegalOutput {
+    id_morales: number;
+    nombre_representante?: string | null;
+    apellido_p_representante?: string | null;
+    apellido_m_representante?: string | null;
+}
+
+// Representante como se maneja en el estado del formulario de edición
+interface RepresentanteEditable extends RepresentanteLegalOutput {
+    // Podríamos añadir un flag _isNew o _isDeleted si la API lo necesitara,
+    // pero la lógica actual lo deduce comparando con la lista inicial.
+    // Opcional: estado de edición si se edita inline
+    // _isEditing?: boolean;
+}
+
+// Datos del proveedor recibidos como props (ADAPTADA)
 interface ProveedorDataFromAPI {
     id_proveedor: number;
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
     rfc?: string;
     giro_comercial?: string | null;
-    actividad_sat?: string | null; // snake_case de la API
+    actividad_sat?: string | null;
     correo?: string | null;
     calle?: string | null;
     numero?: string | null;
@@ -24,25 +38,23 @@ interface ProveedorDataFromAPI {
     camara_comercial?: string | null;
     numero_registro_camara?: string | null;
     numero_registro_imss?: string | null;
-    proveedor_eventos?: boolean | null; // snake_case de la API
-    // Campos específicos
-    razon_social?: string | null;
-    nombre_representante?: string | null;
-    apellido_p_representante?: string | null;
-    apellido_m_representante?: string | null;
+    proveedor_eventos?: boolean | null;
+    // Campos Físicos
     nombre_fisica?: string | null;
     apellido_p_fisica?: string | null;
     apellido_m_fisica?: string | null;
     curp?: string | null;
-    // ... otros campos que pueda devolver tu API ...
-    estatus?: boolean; // Si es editable o relevante mostrarlo
-    [key: string]: any; // Para flexibilidad
+    // Campos Morales
+    razon_social?: string | null;
+    representantes?: RepresentanteLegalOutput[];
+    // ... otros campos ...
+    estatus?: boolean;
+    [key: string]: any;
 }
 
-// Interfaz para el estado interno del formulario (camelCase)
+// Estado interno del formulario principal (sin representantes individuales)
 interface ProveedorFormData {
     rfc: string;
-    tipoProveedor: 'moral' | 'fisica' | ''; // Mantenemos para lógica condicional
     // Física
     nombre: string;
     apellido_p: string;
@@ -50,12 +62,9 @@ interface ProveedorFormData {
     curp: string;
     // Moral
     razon_social: string;
-    nombre_representante: string;
-    apellido_p_representante: string;
-    apellido_m_representante: string;
     // Comunes
     giro_comercial: string;
-    actividadSat: string;       // <--- camelCase para el estado/form
+    actividadSat: string;
     correo: string;
     calle: string;
     numero: string;
@@ -69,167 +78,232 @@ interface ProveedorFormData {
     camara_comercial: string;
     numero_registro_camara: string;
     numero_registro_imss: string;
-    proveedorEventos: boolean; // <--- camelCase para el estado/form
-    // estatus?: boolean; // Incluir si es editable
+    proveedorEventos: boolean;
 }
 
-
-// Props del componente Modal
+// --- Props del Modal (sin cambios en nombres) ---
 interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void; // Función para cerrar
-    proveedorData: ProveedorDataFromAPI; // Datos actuales para prellenar
-    onUpdateSuccess: () => void; // Callback al guardar con éxito
+  isOpen: boolean;
+  onClose: () => void;
+  proveedorData: ProveedorDataFromAPI; // Sigue llamándose proveedorData aquí
+  onSubmit: (payload: any) => Promise<void>; // onSubmit sigue siendo el callback del padre
+  isLoading: boolean; // Estado de carga del padre
+  error: string | null; // Error del padre
 }
 
-// --- Componente ---
-export default function ModalActualizarProveedor({
-    isOpen,
-    onClose,
-    proveedorData,
-    onUpdateSuccess
-}: ModalProps) {
+// --- Componente Modal ---
+const ModalActualizarProveedor: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  proveedorData, // Recibe los datos iniciales
+  onSubmit, // Función del padre para guardar
+  isLoading, // Indicador de carga del padre
+  error: apiError, // Error del padre
+}) => {
 
-    // Función para mapear datos de API (snake_case) a estado de formulario (camelCase)
-    const mapApiToFormData = useCallback((apiData: ProveedorDataFromAPI): ProveedorFormData => {
-       return {
-            rfc: apiData.rfc || '',
-            tipoProveedor: apiData.tipo_proveedor === 'moral' ? 'moral' : (apiData.tipo_proveedor === 'fisica' ? 'fisica' : ''),
-            nombre: apiData.nombre_fisica || '',
-            apellido_p: apiData.apellido_p_fisica || '',
-            apellido_m: apiData.apellido_m_fisica || '',
-            curp: apiData.curp || '',
-            razon_social: apiData.razon_social || '',
-            nombre_representante: apiData.nombre_representante || '',
-            apellido_p_representante: apiData.apellido_p_representante || '',
-            apellido_m_representante: apiData.apellido_m_representante || '',
-            giro_comercial: apiData.giro_comercial || '',
-            actividadSat: apiData.actividad_sat || '', // Mapeo
-            correo: apiData.correo || '',
-            calle: apiData.calle || '',
-            numero: apiData.numero || '',
-            colonia: apiData.colonia || '',
-            codigo_postal: apiData.codigo_postal || '',
-            municipio: apiData.municipio || '',
-            estado: apiData.estado || '',
-            telefono_uno: apiData.telefono_uno || '',
-            telefono_dos: apiData.telefono_dos || '',
-            pagina_web: apiData.pagina_web || '',
-            camara_comercial: apiData.camara_comercial || '',
-            numero_registro_camara: apiData.numero_registro_camara || '',
-            numero_registro_imss: apiData.numero_registro_imss || '',
-            proveedorEventos: apiData.proveedor_eventos || false, // Mapeo
-            // estatus: apiData.estatus === undefined ? true : apiData.estatus, // Manejar estatus si es editable
-        };
-    }, []);
+    if (!proveedorData) return null; // Guardia por si acaso
 
-    // Estado local para el formulario
-    const [formData, setFormData] = useState<ProveedorFormData>(() => mapApiToFormData(proveedorData));
+    // --- Estados ---
+    // Estado para campos principales (sin representantes)
+    const [form, setForm] = useState<ProveedorFormData>({} as ProveedorFormData); // Inicializar vacío, se llena en useEffect
+    // Estado para la lista de representantes (editables)
+    const [representantes, setRepresentantes] = useState<RepresentanteEditable[]>([]);
+    // Estado para los campos del *nuevo* representante a añadir
+    const [nuevoRepNombre, setNuevoRepNombre] = useState('');
+    const [nuevoRepApellidoP, setNuevoRepApellidoP] = useState('');
+    const [nuevoRepApellidoM, setNuevoRepApellidoM] = useState('');
+    // Estado para errores locales (validación de form, errores de rep)
+    const [formError, setFormError] = useState<string | null>(null);
+    const [repError, setRepError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    
 
-    // Efecto para resetear el formulario si los datos iniciales cambian (cuando se reabre el modal)
+    // Tipo original (no editable)
+    const tipoProveedorOriginal = proveedorData.tipo_proveedor;
+
+    // --- Efecto para inicializar/resetear estados cuando los datos cambian ---
     useEffect(() => {
-        console.log("Modal: proveedorData prop changed, resetting form state.");
-        setFormData(mapApiToFormData(proveedorData));
-        setError(null); // Limpiar errores al reabrir/refrescar
-        setIsSubmitting(false); // Asegurarse que no esté en estado de envío
-    }, [proveedorData, mapApiToFormData]); // Depender de los datos y la función de mapeo
+        console.log("Modal useEffect: Reseteando estado por cambio en proveedorData");
+        if (proveedorData) {
+            // Inicializar formulario principal
+            setForm({
+                rfc: proveedorData.rfc || '',
+                nombre: proveedorData.nombre_fisica || '',
+                apellido_p: proveedorData.apellido_p_fisica || '',
+                apellido_m: proveedorData.apellido_m_fisica || '',
+                curp: proveedorData.curp || '',
+                razon_social: proveedorData.razon_social || '',
+                giro_comercial: proveedorData.giro_comercial || '',
+                actividadSat: proveedorData.actividad_sat || '',
+                correo: proveedorData.correo || '',
+                calle: proveedorData.calle || '',
+                numero: proveedorData.numero || '',
+                colonia: proveedorData.colonia || '',
+                codigo_postal: proveedorData.codigo_postal || '',
+                municipio: proveedorData.municipio || '',
+                estado: proveedorData.estado || '',
+                telefono_uno: proveedorData.telefono_uno || '',
+                telefono_dos: proveedorData.telefono_dos || '',
+                pagina_web: proveedorData.pagina_web || '',
+                camara_comercial: proveedorData.camara_comercial || '',
+                numero_registro_camara: proveedorData.numero_registro_camara || '',
+                numero_registro_imss: proveedorData.numero_registro_imss || '',
+                proveedorEventos: proveedorData.proveedor_eventos || false,
+            });
+            // Inicializar lista de representantes (si es moral y existen)
+            setRepresentantes(proveedorData.representantes || []);
+            // Limpiar campos de nuevo representante y errores
+            setNuevoRepNombre('');
+            setNuevoRepApellidoP('');
+            setNuevoRepApellidoM('');
+            setFormError(null);
+            setRepError(null);
+        }
+    }, [proveedorData]); // Depende solo de los datos iniciales
 
-    // Handler genérico para cambios en inputs/selects/textareas
+    // --- Handlers ---
+    // Para campos del formulario principal
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-
+        setFormError(null); // Limpiar error al editar
         if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
-            console.log(`Modal handleChange: Checkbox "${name}" changed to ${checked}`);
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            setForm(prev => ({ ...prev, [name]: checked }));
         } else {
-            console.log(`Modal handleChange: Input "${name}" changed to "${value}"`);
-            setFormData(prev => ({ ...prev, [name]: value }));
+            let finalValue = value;
+            if (name === 'rfc' || name === 'curp') { finalValue = value.toUpperCase().trim(); }
+            setForm(prev => ({ ...prev, [name]: finalValue }));
         }
     };
 
-    // Handler para el envío del formulario
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    // Para campos del *nuevo* representante
+    const handleRepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+         const { name, value } = e.target;
+         setRepError(null);
+         if (name === 'nuevoRepNombre') setNuevoRepNombre(value);
+         else if (name === 'nuevoRepApellidoP') setNuevoRepApellidoP(value);
+         else if (name === 'nuevoRepApellidoM') setNuevoRepApellidoM(value);
+     };
+
+    // Para añadir un representante a la lista
+     const handleAddRepresentante = () => {
+        setRepError(null);
+        if (!nuevoRepNombre.trim() || !nuevoRepApellidoP.trim()) {
+            setRepError('Nombre y Apellido Paterno del representante son obligatorios.'); return;
+        }
+        // Generar un ID temporal negativo para la key de React (importante!)
+        // La API/Servicio ignorará este ID al insertar.
+        const temporalId = -(Date.now() + Math.random());
+        const nuevoRepresentante: RepresentanteEditable = {
+            id_morales: temporalId, // ID Temporal solo para el frontend
+            nombre_representante: nuevoRepNombre.trim(),
+            apellido_p_representante: nuevoRepApellidoP.trim(),
+            apellido_m_representante: nuevoRepApellidoM.trim() || undefined,
+        };
+        setRepresentantes(prev => [...prev, nuevoRepresentante]);
+        setNuevoRepNombre(''); setNuevoRepApellidoP(''); setNuevoRepApellidoM(''); // Limpiar inputs
+     };
+
+    // Para eliminar un representante de la lista
+     const handleRemoveRepresentante = (idToRemove: number) => {
+         // Filtra manteniendo solo los que NO coinciden con el id (sea temporal o real)
+         setRepresentantes(prev => prev.filter(rep => rep.id_morales !== idToRemove));
+     };
+
+    // Para enviar el formulario completo
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null); // Limpiar error antes de validar/enviar
+        setFormError(null);
+        setRepError(null);
 
-        // --- Validación Client-Side (Esencial) ---
-        if (!formData.rfc || formData.rfc.trim().length < 12) { // Ejemplo de validación RFC básica
-            setError('El RFC es obligatorio y debe tener al menos 12 caracteres.'); return;
-        }
-        if (!formData.actividadSat || formData.actividadSat.trim() === '') {
-             setError('La Actividad Económica (SAT) es obligatoria.'); return;
-        }
-        if (!formData.correo || !/\S+@\S+\.\S+/.test(formData.correo)) {
-            setError('Ingrese un correo electrónico válido.'); return;
-        }
-         if (!formData.calle || !formData.numero || !formData.colonia || !formData.codigo_postal || !formData.municipio || !formData.estado ) {
-            setError('Todos los campos de dirección son obligatorios.'); return;
-        }
-         if (!formData.telefono_uno) {
-            setError('El Teléfono Principal es obligatorio.'); return;
-        }
-        // Validación específica por tipo
-        if (formData.tipoProveedor === 'fisica') {
-            if (!formData.nombre || !formData.apellido_p || !formData.curp) {
-                setError('Para Persona Física: Nombre, Apellido Paterno y CURP son obligatorios.'); return;
-            }
-             if (formData.curp.trim().length !== 18) {
-                 setError('El CURP debe tener 18 caracteres.'); return;
+        // --- Validación Final ---
+        if (!form.rfc || (form.rfc.length !== 12 && form.rfc.length !== 13)) { setFormError('RFC debe tener 12 o 13 caracteres.'); return; }
+         if (!form.actividadSat || form.actividadSat.trim() === '') { setFormError('Actividad Económica (SAT) obligatoria.'); return; }
+         if (!form.correo || !/\S+@\S+\.\S+/.test(form.correo)) { setFormError('Correo electrónico inválido.'); return; }
+         if (!form.calle || !form.numero || !form.colonia || !form.codigo_postal || !form.municipio || !form.estado ) { setFormError('Campos de dirección obligatorios.'); return; }
+         if (!form.telefono_uno) { setFormError('Teléfono Principal obligatorio.'); return; }
+
+        // Validación por tipo
+        if (tipoProveedorOriginal === 'fisica') {
+            if (!form.nombre || !form.apellido_p || !form.curp) { setFormError('Para Física: Nombre, Apellido P y CURP obligatorios.'); return; }
+            if (form.curp.length !== 18) { setFormError('CURP debe tener 18 caracteres.'); return; }
+        } else if (tipoProveedorOriginal === 'moral') {
+            if (!form.razon_social) { setFormError('Para Moral: Razón Social obligatoria.'); return; }
+            // **Validar que haya al menos un representante en la lista final**
+            if (representantes.length === 0) {
+                 setRepError('Debe haber al menos un representante legal.'); return;
              }
-        } else if (formData.tipoProveedor === 'moral') {
-            if (!formData.razon_social || !formData.nombre_representante || !formData.apellido_p_representante) {
-                setError('Para Persona Moral: Razón Social, Nombre y Apellido Paterno del Representante son obligatorios.'); return;
-            }
+             // Validar que los representantes en la lista tengan datos básicos
+              for (const rep of representantes) {
+                  if (!rep.nombre_representante || !rep.apellido_p_representante) {
+                      setRepError(`Faltan datos para el representante ${rep.nombre_representante || '(sin nombre)'}. Nombre y Apellido P son requeridos.`);
+                      return;
+                  }
+              }
         } else {
-            setError('Error interno: Tipo de proveedor no determinado.'); return; // No debería pasar si se inicializa bien
+            setFormError('Error interno: Tipo de proveedor no reconocido.'); return;
         }
-        // --- Fin Validación ---
+        // --- FIN VALIDACIÓN ---
 
-        setIsSubmitting(true); // Iniciar estado de carga
+        // --- CONSTRUCCIÓN DEL PAYLOAD ---
+        const payload: any = {
+            id_proveedor: proveedorData.id_proveedor,
+            tipoProveedor: tipoProveedorOriginal, // Enviar siempre el tipo original
+            // Datos comunes
+            rfc: form.rfc,
+            giro_comercial: form.giro_comercial,
+            actividadSat: form.actividadSat,
+            correo: form.correo,
+            calle: form.calle,
+            numero: form.numero,
+            colonia: form.colonia,
+            codigo_postal: form.codigo_postal,
+            municipio: form.municipio,
+            estado: form.estado,
+            telefono_uno: form.telefono_uno,
+            telefono_dos: form.telefono_dos || null,
+            pagina_web: form.pagina_web || null,
+            camara_comercial: form.camara_comercial || null,
+            numero_registro_camara: form.numero_registro_camara || null,
+            numero_registro_imss: form.numero_registro_imss || null,
+            proveedorEventos: form.proveedorEventos,
+            // estatus: form.estatus, // Si fuera editable
+        };
 
-        try {
-            // Objeto listo para enviar a la API (ya incluye id_proveedor)
-            const dataToSubmit = {
-                id_proveedor: proveedorData.id_proveedor, // Tomado de los props originales
-                ...formData, // Todos los campos del estado del formulario (camelCase)
-                // La API / Servicio debe manejar la conversión camelCase -> snake_case si es necesario,
-                // o aceptar camelCase directamente. Si la API ESPERA snake_case, la conversión
-                // debe hacerse aquí o en la capa fetch ANTES de enviar.
-                // Asumiendo que la API/Servicio maneja camelCase o la conversión:
-            };
-
-            console.log("ModalActualizarProveedor: Enviando datos para API:", dataToSubmit);
-            await updateProveedor(dataToSubmit); // Llama a la función fetch
-            console.log("ModalActualizarProveedor: Update API call successful.");
-
-            onUpdateSuccess(); // Llama al callback del padre (que usualmente cierra y refresca)
-
-        } catch (err: any) {
-            console.error("ModalActualizarProveedor: Error durante el envío:", err);
-            // Mostrar el mensaje de error de la API o uno genérico
-            setError(err.message || 'Ocurrió un error al intentar guardar los cambios.');
-            // NO llamar a onClose ni onUpdateSuccess en caso de error
-        } finally {
-            setIsSubmitting(false); // Terminar estado de carga
+        if (tipoProveedorOriginal === 'fisica') {
+            payload.nombre = form.nombre;
+            payload.apellido_p = form.apellido_p;
+            payload.apellido_m = form.apellido_m || null;
+            payload.curp = form.curp;
+        } else if (tipoProveedorOriginal === 'moral') {
+            payload.razon_social = form.razon_social;
+            // Filtrar IDs temporales negativos antes de enviar si la API no los espera
+            payload.representantes = representantes.map(rep => ({
+                ...rep,
+                // Si el ID es temporal (negativo), no lo enviamos o lo ponemos a null/undefined
+                id_morales: rep.id_morales < 0 ? undefined : rep.id_morales,
+            }));
         }
+        // --- FIN CONSTRUCCIÓN PAYLOAD ---
+
+        console.log("Modal enviando payload a onSubmit:", payload);
+        await onSubmit(payload); // Llama a la función del padre (handleSave...)
     };
 
-    // Renderizado del Modal
-    if (!isOpen) {
-        return null; // No renderizar si no está abierto
-    }
+    // --- RENDERIZADO ---
+    if (!isOpen) return null;
 
-    // Clases de estilo comunes para inputs (ejemplo)
+    // Clases de estilo
     const inputStyle = "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed";
     const readOnlyStyle = `${inputStyle} bg-gray-100 cursor-not-allowed`;
+    const labelStyle = "block text-sm font-medium text-gray-700 mb-1";
+    const requiredMark = <span className="text-red-500">*</span>;
+    const fieldsetStyle = "border border-gray-200 p-4 rounded-md mb-6";
+    const legendStyle = "text-base font-semibold text-gray-700 px-2 mb-3";
+
 
     return (
-        // Overlay
         <div className="fixed inset-0 bg-gray-800 bg-opacity-80 flex justify-center items-center z-50 p-4 transition-opacity duration-300 ease-in-out">
-            {/* Contenedor del Modal */}
             <div className="bg-white rounded-lg shadow-2xl p-6 md:p-8 w-full max-w-4xl max-h-[95vh] overflow-y-auto transform transition-all duration-300 ease-in-out scale-100">
                 {/* Encabezado */}
                 <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
@@ -244,91 +318,117 @@ export default function ModalActualizarProveedor({
                     </button>
                 </div>
 
-                {/* Formulario */}
-                <form onSubmit={handleSubmit} noValidate>
-                    {/* Mensaje de Error */}
-                    {error && (
-                        <div className="mb-5 p-4 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm">
-                            {error}
-                        </div>
-                    )}
+                {/* Mostrar Error (API o Validación) */}
+                {(apiError || formError) && (
+                    <div className="mb-5 p-4 bg-red-50 border border-red-300 text-red-700 rounded-md text-sm">
+                        <p><strong>Error:</strong> {apiError || formError}</p>
+                    </div>
+                 )}
 
-                    {/* --- SECCIONES DEL FORMULARIO --- */}
-
+                 <form onSubmit={handleSubmit} noValidate>
                     {/* Tipo Proveedor (No editable) */}
                     <div className="mb-4">
                          <label htmlFor="modal_tipoProveedor_display" className="block text-sm font-medium text-gray-700 mb-1">Tipo de Proveedor</label>
                          <input
                             type="text"
                             id="modal_tipoProveedor_display"
-                            value={formData.tipoProveedor === 'moral' ? 'Persona Moral' : (formData.tipoProveedor === 'fisica' ? 'Persona Física' : 'Indefinido')}
+                            value={tipoProveedorOriginal === 'moral' ? 'Persona Moral' : (tipoProveedorOriginal === 'fisica' ? 'Persona Física' : 'Indefinido')}
                             readOnly
                             className={readOnlyStyle}
                          />
-                         {/* Es importante enviar el valor real ('moral'/'fisica') aunque el input visible sea texto */}
-                         <input type="hidden" name="tipoProveedor" value={formData.tipoProveedor} />
+                         <input type="hidden" name="tipoProveedor" value={tipoProveedorOriginal} />
                     </div>
 
-                     {/* --- Secciones Condicionales --- */}
-                     {formData.tipoProveedor === 'fisica' && (
+                    {/* --- Campos Físicos (Condicional) --- */}
+                    {tipoProveedorOriginal === 'fisica' && (
                         <fieldset className="border border-gray-200 p-4 rounded-md mb-6">
                            <legend className="text-base font-medium text-gray-700 px-2 mb-2">Datos Persona Física</legend>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <label htmlFor="modal_nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre(s) <span className="text-red-500">*</span></label>
-                                    <input type="text" id="modal_nombre" name="nombre" value={formData.nombre} onChange={handleChange} required className={inputStyle} />
+                                    <input type="text" id="modal_nombre" name="nombre" value={form.nombre|| ''} onChange={handleChange} required className={inputStyle} />
                                 </div>
                                 <div>
                                     <label htmlFor="modal_apellido_p" className="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno <span className="text-red-500">*</span></label>
-                                    <input type="text" id="modal_apellido_p" name="apellido_p" value={formData.apellido_p} onChange={handleChange} required className={inputStyle} />
+                                    <input type="text" id="modal_apellido_p" name="apellido_p" value={form.apellido_p|| ''} onChange={handleChange} required className={inputStyle} />
                                 </div>
                                 <div>
                                     <label htmlFor="modal_apellido_m" className="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
-                                    <input type="text" id="modal_apellido_m" name="apellido_m" value={formData.apellido_m} onChange={handleChange} className={inputStyle} />
+                                    <input type="text" id="modal_apellido_m" name="apellido_m" value={form.apellido_m|| ''} onChange={handleChange} className={inputStyle} />
                                 </div>
                             </div>
                              <div className="mt-4">
                                 <label htmlFor="modal_curp" className="block text-sm font-medium text-gray-700 mb-1">CURP <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_curp" name="curp" value={formData.curp} onChange={handleChange} required maxLength={18} minLength={18} className={inputStyle} />
+                                <input type="text" id="modal_curp" name="curp" value={form.curp|| ''} onChange={handleChange} required maxLength={18} minLength={18} className={inputStyle} />
                             </div>
                         </fieldset>
                      )}
-                      {formData.tipoProveedor === 'moral' && (
-                         <fieldset className="border border-gray-200 p-4 rounded-md mb-6">
-                           <legend className="text-base font-medium text-gray-700 px-2 mb-2">Datos Persona Moral</legend>
-                            <div className="mb-4">
-                                <label htmlFor="modal_razon_social" className="block text-sm font-medium text-gray-700 mb-1">Razón Social <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_razon_social" name="razon_social" value={formData.razon_social} onChange={handleChange} required className={inputStyle} />
+
+                    {/* --- Campos Morales (MODIFICADO) --- */}
+                    {tipoProveedorOriginal === 'moral' && (
+                         <fieldset className={fieldsetStyle}>
+                           <legend className={legendStyle}>Datos Persona Moral</legend>
+                            {/* Razón Social (Editable) */}
+                            <div className="mb-5">
+                                <label htmlFor="modal_razon_social" className={labelStyle}>Razón Social {requiredMark}</label>
+                                <input type="text" id="modal_razon_social" name="razon_social" value={form.razon_social|| ''} onChange={handleChange} required className={inputStyle} disabled={isLoading}/>
                              </div>
-                            <p className="text-sm font-medium text-gray-600 mb-1">Representante Legal</p>
-                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label htmlFor="modal_nombre_representante" className="block text-xs font-medium text-gray-700 mb-1">Nombre(s) <span className="text-red-500">*</span></label>
-                                    <input type="text" id="modal_nombre_representante" name="nombre_representante" value={formData.nombre_representante} onChange={handleChange} required className={inputStyle} />
-                                </div>
-                                <div>
-                                    <label htmlFor="modal_apellido_p_representante" className="block text-xs font-medium text-gray-700 mb-1">Apellido Paterno <span className="text-red-500">*</span></label>
-                                    <input type="text" id="modal_apellido_p_representante" name="apellido_p_representante" value={formData.apellido_p_representante} onChange={handleChange} required className={inputStyle} />
-                                </div>
-                                <div>
-                                    <label htmlFor="modal_apellido_m_representante" className="block text-xs font-medium text-gray-700 mb-1">Apellido Materno</label>
-                                    <input type="text" id="modal_apellido_m_representante" name="apellido_m_representante" value={formData.apellido_m_representante} onChange={handleChange} className={inputStyle} />
+
+                            {/* --- Gestión de Representantes --- */}
+                            <div className="mt-4 space-y-4">
+                                <p className="text-md font-semibold text-gray-700">Representantes Legales</p>
+
+                                {/* Lista de Representantes Actuales */}
+                                {representantes.length > 0 && (
+                                    <div className="space-y-2 border-t pt-3 mt-3">
+                                        {representantes.map((rep, index) => (
+                                            <div key={rep.id_morales} className="flex justify-between items-center bg-gray-100 px-3 py-2 rounded text-sm">
+                                                <span>{rep.nombre_representante} {rep.apellido_p_representante} {rep.apellido_m_representante || ''}</span>
+                                                <button type="button" onClick={() => handleRemoveRepresentante(rep.id_morales)} className="button-danger-small" title="Eliminar" disabled={isLoading}>Eliminar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {representantes.length === 0 && (
+                                     <p className="text-sm text-gray-500 italic">No hay representantes añadidos.</p>
+                                )}
+
+                                 {/* Formulario para Añadir Nuevo Representante */}
+                                <div className="border border-dashed border-indigo-300 p-4 rounded-md bg-indigo-50 mt-4">
+                                    <p className="text-sm font-medium text-indigo-800 mb-2">Añadir Nuevo Representante</p>
+                                    {repError && <p className="text-red-600 text-xs mb-2">{repError}</p>}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label htmlFor="nuevoRepNombre" className={`${labelStyle} text-xs`}>Nombre(s) {requiredMark}</label>
+                                            <input type="text" id="nuevoRepNombre" name="nuevoRepNombre" value={nuevoRepNombre|| ''} onChange={handleRepChange} className={`${inputStyle} input-sm`} disabled={isLoading}/>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="nuevoRepApellidoP" className={`${labelStyle} text-xs`}>Apellido Paterno {requiredMark}</label>
+                                            <input type="text" id="nuevoRepApellidoP" name="nuevoRepApellidoP" value={nuevoRepApellidoP|| ''} onChange={handleRepChange} className={`${inputStyle} input-sm`} disabled={isLoading}/>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="nuevoRepApellidoM" className={`${labelStyle} text-xs`}>Apellido Materno</label>
+                                            <input type="text" id="nuevoRepApellidoM" name="nuevoRepApellidoM" value={nuevoRepApellidoM|| ''} onChange={handleRepChange} className={`${inputStyle} input-sm`} disabled={isLoading}/>
+                                        </div>
+                                    </div>
+                                    <button type="button" onClick={handleAddRepresentante} className="mt-3 button-primary-small disabled:opacity-50" disabled={!nuevoRepNombre || !nuevoRepApellidoP || isLoading}>+ Añadir</button>
                                 </div>
                             </div>
+                            {/* --- Fin Gestión de Representantes --- */}
                          </fieldset>
                      )}
-
+                    {/* --- FIN Campos Morales --- */}
                     {/* --- Datos Generales y Fiscales --- */}
-                     <fieldset className="border border-gray-200 p-4 rounded-md mb-6">
+                    <fieldset className="border border-gray-200 p-4 rounded-md mb-6">
                          <legend className="text-base font-medium text-gray-700 px-2 mb-2">Datos Generales y Fiscales</legend>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                              <div>
                                 <label htmlFor="modal_rfc" className="block text-sm font-medium text-gray-700 mb-1">RFC <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_rfc" name="rfc" value={formData.rfc} onChange={handleChange} required maxLength={13} minLength={12} className={inputStyle} />
+                                <input type="text" id="modal_rfc" name="rfc" value={form.rfc|| ''} onChange={handleChange} required maxLength={13} minLength={12} className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_giro_comercial" className="block text-sm font-medium text-gray-700 mb-1">Giro Comercial</label>
-                                <input type="text" id="modal_giro_comercial" name="giro_comercial" value={formData.giro_comercial} onChange={handleChange} className={inputStyle} />
+                                <input type="text" id="modal_giro_comercial" name="giro_comercial" value={form.giro_comercial|| ''} onChange={handleChange} className={inputStyle} />
                             </div>
                         </div>
                         {/* --- Actividad SAT --- */}
@@ -340,7 +440,7 @@ export default function ModalActualizarProveedor({
                                 type="text"
                                 id="modal_actividadSat"
                                 name="actividadSat" // camelCase
-                                value={formData.actividadSat}
+                                value={form.actividadSat|| ''}
                                 onChange={handleChange}
                                 required
                                 className={inputStyle}
@@ -350,21 +450,21 @@ export default function ModalActualizarProveedor({
                         {/* --- Correo --- */}
                         <div className="mb-4">
                             <label htmlFor="modal_correo" className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
-                            <input type="email" id="modal_correo" name="correo" value={formData.correo} onChange={handleChange} required className={inputStyle} />
+                            <input type="email" id="modal_correo" name="correo" value={form.correo|| ''} onChange={handleChange} required className={inputStyle} />
                         </div>
                          {/* --- Registros --- */}
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
                                 <label htmlFor="modal_camara_comercial" className="block text-sm font-medium text-gray-700 mb-1">Cámara Comercial</label>
-                                <input type="text" id="modal_camara_comercial" name="camara_comercial" value={formData.camara_comercial} onChange={handleChange} className={inputStyle} />
+                                <input type="text" id="modal_camara_comercial" name="camara_comercial" value={form.camara_comercial|| ''} onChange={handleChange} className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_numero_registro_camara" className="block text-sm font-medium text-gray-700 mb-1">No. Registro Cámara</label>
-                                <input type="text" id="modal_numero_registro_camara" name="numero_registro_camara" value={formData.numero_registro_camara} onChange={handleChange} className={inputStyle} />
+                                <input type="text" id="modal_numero_registro_camara" name="numero_registro_camara" value={form.numero_registro_camara|| ''} onChange={handleChange} className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_numero_registro_imss" className="block text-sm font-medium text-gray-700 mb-1">No. Registro IMSS</label>
-                                <input type="text" id="modal_numero_registro_imss" name="numero_registro_imss" value={formData.numero_registro_imss} onChange={handleChange} className={inputStyle} />
+                                <input type="text" id="modal_numero_registro_imss" name="numero_registro_imss" value={form.numero_registro_imss|| ''} onChange={handleChange} className={inputStyle} />
                             </div>
                         </div>
                         {/* --- Proveedor Eventos --- */}
@@ -374,7 +474,7 @@ export default function ModalActualizarProveedor({
                                     type="checkbox"
                                     id="modal_proveedorEventos"
                                     name="proveedorEventos" // camelCase
-                                    checked={formData.proveedorEventos}
+                                    checked={form.proveedorEventos|| false}
                                     onChange={handleChange}
                                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                 />
@@ -391,30 +491,30 @@ export default function ModalActualizarProveedor({
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div className="md:col-span-2">
                                 <label htmlFor="modal_calle" className="block text-sm font-medium text-gray-700 mb-1">Calle <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_calle" name="calle" value={formData.calle} onChange={handleChange} required className={inputStyle} />
+                                <input type="text" id="modal_calle" name="calle" value={form.calle|| ''} onChange={handleChange} required className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_numero" className="block text-sm font-medium text-gray-700 mb-1">Número (Ext/Int) <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_numero" name="numero" value={formData.numero} onChange={handleChange} required className={inputStyle} />
+                                <input type="text" id="modal_numero" name="numero" value={form.numero|| ''} onChange={handleChange} required className={inputStyle} />
                             </div>
                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
                                 <label htmlFor="modal_colonia" className="block text-sm font-medium text-gray-700 mb-1">Colonia <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_colonia" name="colonia" value={formData.colonia} onChange={handleChange} required className={inputStyle} />
+                                <input type="text" id="modal_colonia" name="colonia" value={form.colonia|| ''} onChange={handleChange} required className={inputStyle} />
                             </div>
                              <div>
                                 <label htmlFor="modal_codigo_postal" className="block text-sm font-medium text-gray-700 mb-1">Código Postal <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_codigo_postal" name="codigo_postal" value={formData.codigo_postal} onChange={handleChange} required maxLength={5} className={inputStyle} />
+                                <input type="text" id="modal_codigo_postal" name="codigo_postal" value={form.codigo_postal|| ''} onChange={handleChange} required maxLength={5} className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_municipio" className="block text-sm font-medium text-gray-700 mb-1">Municipio/Alcaldía <span className="text-red-500">*</span></label>
-                                <input type="text" id="modal_municipio" name="municipio" value={formData.municipio} onChange={handleChange} required className={inputStyle} />
+                                <input type="text" id="modal_municipio" name="municipio" value={form.municipio|| ''} onChange={handleChange} required className={inputStyle} />
                             </div>
                         </div>
                         <div className="mb-1">
                             <label htmlFor="modal_estado" className="block text-sm font-medium text-gray-700 mb-1">Estado <span className="text-red-500">*</span></label>
-                            <input type="text" id="modal_estado" name="estado" value={formData.estado} onChange={handleChange} required className={inputStyle} />
+                            <input type="text" id="modal_estado" name="estado" value={form.estado|| ''} onChange={handleChange} required className={inputStyle} />
                         </div>
                     </fieldset>
 
@@ -424,16 +524,16 @@ export default function ModalActualizarProveedor({
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label htmlFor="modal_telefono_uno" className="block text-sm font-medium text-gray-700 mb-1">Teléfono Principal <span className="text-red-500">*</span></label>
-                                <input type="tel" id="modal_telefono_uno" name="telefono_uno" value={formData.telefono_uno} onChange={handleChange} required maxLength={12} className={inputStyle} />
+                                <input type="tel" id="modal_telefono_uno" name="telefono_uno" value={form.telefono_uno|| ''} onChange={handleChange} required maxLength={12} className={inputStyle} />
                             </div>
                             <div>
                                 <label htmlFor="modal_telefono_dos" className="block text-sm font-medium text-gray-700 mb-1">Teléfono Secundario</label>
-                                <input type="tel" id="modal_telefono_dos" name="telefono_dos" value={formData.telefono_dos} onChange={handleChange} maxLength={12} className={inputStyle} />
+                                <input type="tel" id="modal_telefono_dos" name="telefono_dos" value={form.telefono_dos|| ''} onChange={handleChange} maxLength={12} className={inputStyle} />
                             </div>
                         </div>
                         <div className="mb-1">
                             <label htmlFor="modal_pagina_web" className="block text-sm font-medium text-gray-700 mb-1">Página Web</label>
-                            <input type="url" id="modal_pagina_web" name="pagina_web" value={formData.pagina_web} onChange={handleChange} placeholder="https://ejemplo.com" className={inputStyle} />
+                            <input type="url" id="modal_pagina_web" name="pagina_web" value={form.pagina_web || ''} onChange={handleChange} placeholder="https://ejemplo.com" className={inputStyle} />
                         </div>
                     </fieldset>
 
@@ -469,9 +569,16 @@ export default function ModalActualizarProveedor({
                             )}
                         </button>
                     </div>
-                </form>
+                 </form>
             </div>
+             {/* Estilos adicionales */}
+             <style jsx global>{`
+                .input-sm { padding-top: 0.3rem; padding-bottom: 0.3rem; font-size: 0.875rem; }
+                 /* ... (otros estilos base) ... */
+             `}</style>
         </div>
     );
-}
+};
+
+export default ModalActualizarProveedor;
 // --- END OF FILE ---

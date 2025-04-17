@@ -25,6 +25,22 @@ interface RequiredDoc {
   label: string;
   notes?: string;
 }
+// Props del componente principal (ACTUALIZADO)
+interface GestionDocumentosProveedorProps {
+    idProveedor: number;
+    tipoProveedor: 'moral' | 'fisica' | string; // Recibe el tipo
+    esProveedorEventos?: boolean; // Hacerla opcional por retrocompatibilidad
+    onClose?: () => void; // Mantener si se usa como modal
+  }
+  
+  // Componente para un slot de documento requerido (Sin cambios internos)
+  interface RequiredDocSlotProps {
+      docInfo: RequiredDoc;
+      uploadedDoc: DocumentoProveedor | null | undefined;
+      idProveedor: number;
+      idUsuarioLogueado: number | null;
+      onActionComplete: () => void;
+  }
 
 // --- LISTAS DE DOCUMENTOS REQUERIDOS (Incluyendo la nueva) ---
 const REQUIRED_DOCS_MORAL: RequiredDoc[] = [
@@ -69,24 +85,14 @@ const REQUIRED_DOCS_EVENTOS: RequiredDoc[] = [
     { key: 'ESTADISTICAS_LECTORES_D', label: 'Estadísticas lectores (últimos 3 meses, Medios impresos)', notes: 'Si aplica.' },
     { key: 'ESTADISTICAS_AUDIENCIA_D', label: 'Estadísticas audiencia (últimos 3 meses, Radio y TV)', notes: 'Si aplica.' },
 ];
+
+const MAX_FILE_SIZE_MB = 20;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // 20 MB en bytes
+const ACCEPTED_FILE_TYPES = ".pdf";
+const ACCEPTED_MIME_TYPES = ["application/pdf"];
 // --- FIN LISTAS ---
 
-// Props del componente principal (ACTUALIZADO)
-interface GestionDocumentosProveedorProps {
-  idProveedor: number;
-  tipoProveedor: 'moral' | 'fisica' | string; // Recibe el tipo
-  esProveedorEventos?: boolean; // Hacerla opcional por retrocompatibilidad
-  onClose?: () => void; // Mantener si se usa como modal
-}
 
-// Componente para un slot de documento requerido (Sin cambios internos)
-interface RequiredDocSlotProps {
-    docInfo: RequiredDoc;
-    uploadedDoc: DocumentoProveedor | null | undefined;
-    idProveedor: number;
-    idUsuarioLogueado: number | null;
-    onActionComplete: () => void;
-}
 const RequiredDocSlot: React.FC<RequiredDocSlotProps> = ({
     docInfo, uploadedDoc, idProveedor, idUsuarioLogueado, onActionComplete
 }) => {
@@ -98,8 +104,38 @@ const RequiredDocSlot: React.FC<RequiredDocSlotProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) { setSelectedFile(e.target.files[0]); setError(null); }
-        else { setSelectedFile(null); }
+        setError(null); // Limpiar error previo
+        setSelectedFile(null); // Limpiar selección previa
+
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            console.log(`Slot ${docInfo.key} - File Selected:`, file.name, file.type, file.size);
+
+            // 1. Validación de Tipo (MIME Type)
+            if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+                const errorMsg = `Tipo de archivo no válido. Solo se permiten ${ACCEPTED_FILE_TYPES}.`;
+                console.warn(errorMsg, file.type);
+                setError(errorMsg);
+                if (fileInputRef.current) fileInputRef.current.value = ""; // Limpiar visualmente el input
+                return; // Detener
+            }
+
+            // 2. Validación de Tamaño
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                const errorMsg = `El archivo excede el límite de ${MAX_FILE_SIZE_MB} MB.`;
+                console.warn(errorMsg, `Tamaño: ${Math.round(file.size / 1024 / 1024 * 100)/100} MB`);
+                setError(errorMsg);
+                 if (fileInputRef.current) fileInputRef.current.value = ""; // Limpiar visualmente
+                return; // Detener
+            }
+
+            // Si pasa las validaciones
+            setSelectedFile(file);
+
+        } else {
+            // No se seleccionó archivo (o se canceló)
+            setSelectedFile(null);
+        }
     };
     const handleUpload = async () => { /* ... lógica upload ... */
         if (!selectedFile || !idUsuarioLogueado) { setError("Selecciona archivo y asegúrate de iniciar sesión."); return; }
@@ -116,7 +152,7 @@ const RequiredDocSlot: React.FC<RequiredDocSlotProps> = ({
         } catch (err) { setError(`Error al subir: ${(err as Error).message}`); }
         finally { setIsUploading(false); }
     };
-    const handleDelete = async () => { /* ... lógica delete ... */
+    const handleDelete = async () => {
         if (!uploadedDoc) return;
         if (!window.confirm(`¿Eliminar "${uploadedDoc.nombre_original}"?`)) return;
         setIsDeleting(true); setError(null);
@@ -131,24 +167,22 @@ const RequiredDocSlot: React.FC<RequiredDocSlotProps> = ({
         <div className={`p-4 border rounded-md ${uploadedDoc ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-white'} transition-colors duration-200 ease-in-out`}>
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                  <div className="flex-grow">
-                     <label className={`block font-semibold ${uploadedDoc ? 'text-green-800' : 'text-gray-800'}`}>
-                         {docInfo.label}
-                         <span className={`ml-2 text-xs font-normal ${uploadedDoc ? 'text-green-600' : 'text-orange-600'}`}>
-                             {uploadedDoc ? '(Subido)' : '(Pendiente)'}
-                         </span>
-                     </label>
+                     <label className={`block font-semibold ${uploadedDoc ? 'text-green-800' : 'text-gray-800'}`}>{docInfo.label}<span className={`ml-2 text-xs font-normal ${uploadedDoc ? 'text-green-600' : 'text-orange-600'}`}>{uploadedDoc ? '(Subido)' : '(Pendiente)'}</span></label>
                      {docInfo.notes && <p className="text-xs text-gray-500 mt-1">{docInfo.notes}</p>}
-                     {uploadedDoc && (
-                          <a href={`/${uploadedDoc.ruta_archivo}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline block mt-1 truncate" title={uploadedDoc.nombre_original}>
-                              Ver: {uploadedDoc.nombre_original}
-                          </a>
-                     )}
+                     {uploadedDoc && (<a href={`/${uploadedDoc.ruta_archivo}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline block mt-1 truncate" title={uploadedDoc.nombre_original}>Ver: {uploadedDoc.nombre_original}</a>)}
                  </div>
                  <div className="flex-shrink-0 mt-2 sm:mt-0 w-full sm:w-auto">
-                    {/* Lógica botones upload/delete como antes */}
                      {!uploadedDoc ? (
                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="input-file-style" disabled={isUploading}/>
+                              <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                // **NUEVO: Atributo accept**
+                                accept={ACCEPTED_FILE_TYPES}
+                                className="input-file-style"
+                                disabled={isUploading}
+                              />
                              <button onClick={handleUpload} disabled={!selectedFile || isUploading || !idUsuarioLogueado} className="button-primary-small disabled:opacity-50 whitespace-nowrap"> {isUploading ? "Subiendo..." : "Subir"} </button>
                          </div>
                      ) : (
@@ -156,8 +190,8 @@ const RequiredDocSlot: React.FC<RequiredDocSlotProps> = ({
                      )}
                  </div>
              </div>
-             {selectedFile && !uploadedDoc && <p className="text-xs text-gray-600 mt-1">Seleccionado: {selectedFile.name}</p>}
-             {error && <p className="text-xs text-red-500 mt-2 font-medium">{error}</p>}
+             {selectedFile && !uploadedDoc && <p className="text-xs text-gray-600 mt-1">Seleccionado: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>}
+             {error && <p className="text-xs text-red-600 mt-2 font-semibold">{error}</p>}
          </div>
     );
 };
@@ -300,10 +334,6 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
     <div className="p-4 md:p-6 bg-gray-50 rounded-lg shadow">
         <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200">
              <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Gestionar Documentos Proveedor</h1>
-             {/* Botón Cerrar opcional si es un modal */}
-             {onClose && (
-                <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
-             )}
         </div>
 
         {/* Mensajes Globales */}

@@ -42,13 +42,21 @@ export default function AdministradorProveedoresPage() {
 
     // --- Carga Inicial de la Lista de Proveedores ---
     const cargarProveedores = useCallback(async () => {
-        console.log("AdminPage: Cargando lista proveedores...");
-        setLoading(true); setError(null);
+        console.log("AdminPage: Iniciando carga de lista de proveedores...");
+        setLoading(true);
+        setError(null);
         try {
-            const data = await fetchAllProveedores(); // Obtiene lista resumida
+            // fetchAllProveedores devuelve la lista resumida
+            const data = await fetchAllProveedores();
+            console.log(`AdminPage: Lista de proveedores cargada (${data?.length || 0} registros).`);
+            // Asegúrate que la data coincida con la parte básica de ProveedorData
             setProveedores(data || []);
-        } catch (err: any) { setError(err.message || "Error cargando proveedores."); }
-        finally { setLoading(false); }
+        } catch (err: any) {
+            console.error("AdminPage: Error cargando lista de proveedores:", err);
+            setError(err.message || "Error desconocido al cargar proveedores.");
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
   useEffect(() => {
@@ -147,35 +155,39 @@ export default function AdministradorProveedoresPage() {
 
     // --- Handlers para Modal Editar PERFIL Proveedor ---
     const handleEditProfileClick = async (idProveedor: number) => {
-        console.log("AdminPage: Abriendo modal perfil ID:", idProveedor);
+        console.log("AdminPage: Abriendo modal de perfil para proveedor ID:", idProveedor);
         setIsFetchingEditData(true);
-        setUpdateProfileError(null);
-        setEditingProviderData(null);
-        setIsEditProfileModalOpen(false);
+        setUpdateProfileError(null); // Limpiar errores previos del modal de perfil
+        setEditingProviderData(null); // Limpiar datos anteriores
+        setIsEditProfileModalOpen(false); // Asegurar que esté cerrado mientras carga
+
         try {
-            // Llama a fetch para obtener datos COMPLETOS (incluye array representantes)
+            // LLAMA A getProveedorProfileById QUE YA DEVUELVE LOS NUEVOS CAMPOS
             const data = await getProveedorProfileById(idProveedor);
-            if (!data) throw new Error(`Perfil no encontrado (ID: ${idProveedor}).`);
-
-            // **Añadir log detallado aquí para verificar 'representantes'**
-            console.log("AdminPage: Datos COMPLETOS recibidos para modal perfil:", JSON.stringify(data, null, 2));
-
-            setEditingProviderData(data as ProveedorCompletoData); // Guardar datos completos
-            setIsEditProfileModalOpen(true); // Abrir modal
+            if (!data) {
+                // Lanzar error si no se encontró el proveedor para editar
+                throw new Error(`No se encontró el perfil del proveedor con ID ${idProveedor}.`);
+            }
+            console.log("AdminPage: Datos COMPLETOS recibidos para editar perfil:", data); // Verifica que actividad_sat y proveedor_eventos estén aquí
+            // Guarda los datos COMPLETOS en el estado
+            setEditingProviderData(data as ProveedorData); // Asegurar el tipo
+            setIsEditProfileModalOpen(true); // Abrir el modal DESPUÉS de cargar los datos
 
         } catch (err: any) {
             console.error("AdminPage: Error cargando datos para editar perfil:", err);
-            setError(err.message || 'Error al cargar datos para editar.'); // Error general en la página
+            // Mostrar error general, o uno específico si el modal no se abre
+            setError(err.message || 'Error al cargar los datos del proveedor para editar.');
+            // No abrir el modal si falló la carga
         } finally {
-            setIsFetchingEditData(false);
+            setIsFetchingEditData(false); // Terminar la carga (para modal)
         }
     };
 
-    const handleCloseEditProfileModal = () => {
-        setIsEditProfileModalOpen(false);
-        setEditingProviderData(null);
-        setUpdateProfileError(null);
-    };
+  const handleCloseEditProfileModal = () => {
+    setIsEditProfileModalOpen(false);
+    setEditingProviderData(null); // Limpiar datos al cerrar
+    setUpdateProfileError(null); // Limpiar error del modal al cerrar
+};
 
     // Handler para guardar cambios del PERFIL (SIN CAMBIOS FUNCIONALES NECESARIOS)
     // Recibe el payload del modal (que ya debe incluir los nuevos campos si se editaron)
@@ -337,7 +349,6 @@ const handleCloseEditUserModal = () => {
                         onSubmit={handleSaveProfileUpdate} // <-- Cambiar nombre de la prop a 'onSubmit'
                         isLoading={isUpdatingProfile} // Pasar el estado de carga correcto
                         error={updateProfileError}    // Pasar el estado de error correcto
-                        
                     />
                 )}
 

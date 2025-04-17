@@ -45,6 +45,7 @@ export interface ProveedorData {
     // **NUEVOS CAMPOS (snake_case como vienen de la API/Servicio)**
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;
+    representantes?: RepresentanteLegalOutput[]; // <--- Array
   
     // Campos específicos completos (asegúrate que los nombres coincidan con getProveedorProfileById)
     nombre_representante?: string | null;
@@ -56,7 +57,13 @@ export interface ProveedorData {
   
      [key: string]: any; // Para flexibilidad
   }
-  
+  interface RepresentanteLegalOutput {
+    id_morales: number; // El PK de la fila en proveedores_morales
+    nombre_representante?: string | null;
+    apellido_p_representante?: string | null;
+    apellido_m_representante?: string | null;
+    // añadir otros campos si los hubiera
+}
   // Interfaz para datos del USUARIO proveedor (mantenida)
 export interface UsuarioProveedorData {
      id_usuario: number;

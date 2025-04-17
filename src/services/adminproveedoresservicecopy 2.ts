@@ -295,154 +295,51 @@ export const updateEstatusDocumentoProveedor = async (
       throw new Error('Error al actualizar el estatus del documento.');
   }
 };
-
-// Función helper para procesar el resultado de la query
-const procesarResultadoProveedor = (rows: any[]): ProveedorCompletoData | null => {
-    if (!rows || rows.length === 0) {
-        console.log("procesarResultadoProveedor: No rows received, returning null.");
-        return null;
-    }
-
-    // Tomamos la primera fila para los datos comunes y los de la entidad principal
-    const firstRow = rows[0];
-    console.log("procesarResultadoProveedor: Processing firstRow:", JSON.stringify(firstRow, null, 2)); // Log detallado de la primera fila
-
-    // Determinar el tipo basado en la presencia de datos específicos
-    // (Asume que si hay razon_social, es moral; si no, si hay nombre_fisica, es física)
-    const tipo: 'moral' | 'fisica' | 'desconocido' =
-        firstRow.razon_social != null ? 'moral' :
-        (firstRow.nombre_fisica != null ? 'fisica' : 'desconocido');
-
-    console.log(`procesarResultadoProveedor: Tipo determinado: ${tipo}`);
-
-    // --- Construcción del Objeto Base ---
-    const proveedorBase: ProveedorCompletoData = {
-        // Campos de la tabla 'proveedores' (p.*)
-        id_proveedor: firstRow.id_proveedor,
-        rfc: firstRow.rfc,
-        giro_comercial: firstRow.giro_comercial,
-        correo: firstRow.correo,
-        camara_comercial: firstRow.camara_comercial,
-        numero_registro_camara: firstRow.numero_registro_camara,
-        numero_registro_imss: firstRow.numero_registro_imss,
-        fecha_inscripcion: firstRow.fecha_inscripcion, // Mantener formato original por ahora
-        fecha_vigencia: firstRow.fecha_vigencia,
-        estatus: firstRow.estatus, // El estatus del proveedor principal
-        created_at: firstRow.created_at,
-        updated_at: firstRow.updated_at,
-        fecha_solicitud: firstRow.fecha_solicitud,
-        calle: firstRow.calle,
-        numero: firstRow.numero,
-        colonia: firstRow.colonia,
-        codigo_postal: firstRow.codigo_postal,
-        municipio: firstRow.municipio,
-        estado: firstRow.estado,
-        telefono_uno: firstRow.telefono_uno,
-        telefono_dos: firstRow.telefono_dos,
-        pagina_web: firstRow.pagina_web,
-        id_usuario_proveedor: firstRow.id_usuario_proveedor,
-        // Nuevos campos comunes
-        actividad_sat: firstRow.actividad_sat,
-        proveedor_eventos: firstRow.proveedor_eventos,
-
-        // Campo calculado
-        tipo_proveedor: tipo,
-
-        // --- Campos Específicos (Inicializar condicionalmente) ---
-
-        // Físicos (Solo si tipo es 'fisica')
-        nombre_fisica: tipo === 'fisica' ? firstRow.nombre_fisica : null,
-        apellido_p_fisica: tipo === 'fisica' ? firstRow.apellido_p_fisica : null,
-        apellido_m_fisica: tipo === 'fisica' ? firstRow.apellido_m_fisica : null,
-        curp: tipo === 'fisica' ? firstRow.curp : null,
-
-        // Morales (Solo si tipo es 'moral')
-        razon_social: tipo === 'moral' ? firstRow.razon_social : null,
-        // Inicializa el array de representantes vacío si es moral, undefined si no lo es.
-        // Este array se llenará en el siguiente paso si es moral.
-        representantes: tipo === 'moral' ? [] : undefined,
-
-        // Incluir los IDs de las tablas específicas si los seleccionaste y son útiles
-        // id_fisicas: firstRow.id_fisicas, // Si lo seleccionaste en la query
-        // id_morales: firstRow.id_morales // ¡OJO! Esto sería el ID del *primer* representante encontrado
-
-    };
-    // --- Fin Construcción Objeto Base ---
-
-    // --- Llenar Array de Representantes (SI ES MORAL) ---
-    if (tipo === 'moral') {
-        console.log(`procesarResultadoProveedor: Tipo es MORAL. Procesando ${rows.length} filas para representantes.`);
-        proveedorBase.representantes = rows
-            // Filtrar filas que realmente tengan datos de la tabla moral (id_morales es buen indicador)
-            .filter(row => row.id_morales != null)
-            // Mapear cada fila válida a un objeto RepresentanteLegalOutput
-            .map(row => {
-                const representante: RepresentanteLegalOutput = {
-                    id_morales: row.id_morales, // El ID único de esta fila/representante
-                    nombre_representante: row.nombre_representante,
-                    apellido_p_representante: row.apellido_p_representante,
-                    apellido_m_representante: row.apellido_m_representante,
-                    // Añadir aquí otros campos si tu query los trae de proveedores_morales
-                    // Ejemplo: otro_campo_rep: row.otro_campo_rep
-                };
-                // console.log("Procesando fila de representante:", representante); // Log por cada representante
-                return representante;
-            });
-
-        // Opcional: Eliminar duplicados basados en id_morales si hubiera algún problema con la query
-        // Esto no debería ser necesario si la query es correcta.
-        // if (proveedorBase.representantes.length > 1) {
-        //     proveedorBase.representantes = Array.from(new Map(proveedorBase.representantes.map(item => [item.id_morales, item])).values());
-        // }
-
-        console.log(`Servicio/procesar: Finalizado. ${proveedorBase.representantes?.length ?? 0} representantes procesados para ID ${proveedorBase.id_proveedor}`);
-    }
-    // --- Fin Llenar Array ---
-
-
-    // console.log("procesarResultadoProveedor: Objeto final devuelto:", JSON.stringify(proveedorBase, null, 2)); // Log del resultado final
-    return proveedorBase;
-};
-
 /**
  * Obtiene los detalles COMPLETOS de un proveedor por su ID, específicamente para el admin.
  */
 export const getProveedorProfileByIdForAdmin = async (idProveedor: number): Promise<ProveedorCompletoData | null> => {
-    console.log(`SERVICE: getProveedorById/Admin called for ID ${idProveedor}`);
+    console.log(`SERVICE: getProveedorProfileByIdForAdmin called for ID ${idProveedor}`);
     try {
-        if (isNaN(idProveedor)) throw new Error("ID inválido.");
-
-        // **VERIFICA ESTA QUERY**: Debe seleccionar todos los campos necesarios de 'm' (proveedores_morales)
+         if (isNaN(idProveedor)) { throw new Error("ID de proveedor inválido."); }
+        // Añadir p.actividad_sat y p.proveedor_eventos
         const result = await sql`
             SELECT
-              p.*, -- Todos de proveedores
-              m.id_morales, -- ID de la fila/representante
-              m.razon_social,
-              m.nombre_representante,
-              m.apellido_p_representante,
-              m.apellido_m_representante,
-              f.id_fisicas, -- ID de la fila física
-              f.nombre AS nombre_fisica,
-              f.apellido_p AS apellido_p_fisica,
-              f.apellido_m AS apellido_m_fisica,
-              f.curp
+                p.*, -- Todos los campos de proveedores
+                p.actividad_sat,      -- Explicito
+                p.proveedor_eventos,  -- Explicito
+                f.nombre AS nombre_fisica,
+                f.apellido_p AS apellido_p_fisica,
+                f.apellido_m AS apellido_m_fisica,
+                f.curp,
+                m.razon_social,
+                m.nombre_representante,
+                m.apellido_p_representante,
+                m.apellido_m_representante
             FROM proveedores p
-            LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor -- Este JOIN puede dar múltiples filas 'm'
             LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
+            LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
             WHERE p.id_proveedor = ${idProveedor};
         `;
-        console.log(`SERVICE: Query ejecutada para ID ${idProveedor}, ${result.rowCount} filas devueltas.`); // Log para ver filas crudas
-        // console.log("Filas crudas:", result.rows); // Descomentar para ver datos crudos
 
-        // Llama a la función que procesa y agrupa
-        return procesarResultadoProveedor(result.rows);
+        if (result.rowCount === 0) {
+            console.warn(`SERVICE: Provider profile not found for ID ${idProveedor}`);
+            // Lanzar error aquí es una opción si la vista admin espera siempre encontrarlo
+            // throw new Error(`Perfil de proveedor con ID ${idProveedor} no encontrado.`);
+            return null; // O devolver null
+        }
 
-    } catch (error) {
-        console.error(`Error en servicio getProveedorById/Admin ID ${idProveedor}:`, error);
-        throw new Error('Error al obtener datos completos del proveedor.');
+        console.log(`SERVICE: Found provider profile for ID ${idProveedor}`);
+        const row = result.rows[0];
+        const tipo = row.razon_social ? 'moral' : (row.nombre_fisica ? 'fisica' : 'desconocido');
+        return { ...row, tipo_proveedor: tipo } as ProveedorCompletoData;
+
+    } catch (error: any) {
+        console.error(`SERVICE ERROR in getProveedorProfileByIdForAdmin for ID ${idProveedor}:`, error);
+        // Relanzar o manejar como prefieras
+        throw new Error(`Error al obtener perfil de proveedor (Admin): ${error.message}`);
     }
 };
-
 /**
  * Actualiza el perfil de un proveedor desde la perspectiva del admin.
  */

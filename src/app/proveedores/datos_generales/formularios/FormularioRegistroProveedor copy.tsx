@@ -1,30 +1,26 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { createProveedor } from './fetchprovedoores'; // Ajusta ruta
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { createProveedor } from './fetchprovedoores'; // Ajusta la ruta a tu archivo fetch
+import { useRouter } from 'next/navigation'; // Para posible navegación tras error
 
-// Interfaz para un objeto Representante Legal individual
-interface RepresentanteData {
-    nombre_representante: string;
-    apellido_p_representante: string;
-    apellido_m_representante?: string;
-    // Podrías añadir más campos aquí si son relevantes para el representante
-}
-
-// Interfaz para el estado principal del formulario
+// Define la interfaz para los datos del formulario (¡incluye los nuevos campos!)
 interface ProveedorFormData {
     rfc: string;
-    tipoProveedor: 'fisica' | 'moral' | '';
-    // Física
+    // Tipo de proveedor (fundamental para lógica condicional)
+    tipoProveedor: 'fisica' | 'moral' | ''; // Iniciar como vacío o tipo por defecto
+    // Campos Persona Física
     nombre: string;
     apellido_p: string;
     apellido_m: string;
     curp: string;
-    // Moral (Solo info de la entidad)
+    // Campos Persona Moral
     razon_social: string;
-    // Comunes
+    nombre_representante: string;
+    apellido_p_representante: string;
+    apellido_m_representante: string;
+    // Campos Comunes
     giro_comercial: string;
-    actividadSat: string;
+    actividadSat: string;       // <-- NUEVO CAMPO (Actividad SAT)
     correo: string;
     calle: string;
     numero: string;
@@ -38,31 +34,38 @@ interface ProveedorFormData {
     camara_comercial: string;
     numero_registro_camara: string;
     numero_registro_imss: string;
-    proveedorEventos: boolean;
+    proveedorEventos: boolean; // <-- NUEVO CAMPO (Checkbox)
     aceptaAviso1: boolean;
     aceptaAviso2: boolean;
+    // Campos que no suelen estar en el formulario inicial pero podrían añadirse:
+    // acta_constitutiva: string; // Moral - Usualmente es carga de archivo
+    // poder_notarial: string; // Moral - Usualmente es carga de archivo
 }
 
 
 interface FormularioProps {
-    idUsuarioProveedor: number;
-    onSuccess: (data: any) => void;
+    idUsuarioProveedor: number; // Recibe el ID del usuario logueado
+    onSuccess: (data: any) => void; // Función a llamar en caso de éxito
 }
 
 export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSuccess }: FormularioProps) {
     const router = useRouter();
-
-    // Estado principal del formulario (sin campos de representante individuales)
     const [formData, setFormData] = useState<ProveedorFormData>({
         rfc: '',
-        tipoProveedor: '',
+        tipoProveedor: '', // Iniciar sin seleccionar o con un default
+        // Física
         nombre: '',
         apellido_p: '',
         apellido_m: '',
         curp: '',
-        razon_social: '', // Solo razón social para moral aquí
+        // Moral
+        razon_social: '',
+        nombre_representante: '',
+        apellido_p_representante: '',
+        apellido_m_representante: '',
+        // Comunes
         giro_comercial: '',
-        actividadSat: '',
+        actividadSat: '',       // <-- Inicializar nuevo campo
         correo: '',
         calle: '',
         numero: '',
@@ -76,236 +79,167 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
         camara_comercial: '',
         numero_registro_camara: '',
         numero_registro_imss: '',
-        proveedorEventos: false,
+        proveedorEventos: false, // <-- Inicializar checkbox como false
         aceptaAviso1: false,
         aceptaAviso2: false,
     });
 
-    // --- NUEVO: Estados para manejar múltiples representantes ---
-    const [representantes, setRepresentantes] = useState<RepresentanteData[]>([]); // Array de representantes añadidos
-    const [nuevoRepNombre, setNuevoRepNombre] = useState('');
-    const [nuevoRepApellidoP, setNuevoRepApellidoP] = useState('');
-    const [nuevoRepApellidoM, setNuevoRepApellidoM] = useState('');
-    const [repError, setRepError] = useState<string | null>(null); // Errores específicos de la sección de representantes
-    // --- FIN NUEVOS ESTADOS ---
-
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null); // Errores generales del formulario
+    const [error, setError] = useState<string | null>(null);
 
-    // --- handleChange (Maneja campos del formulario principal) ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-        setError(null); // Limpiar error general
 
+        // Manejo especial para checkboxes
         if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
-            // Manejar checkboxes del formulario principal
-            if (name === 'aceptaAviso1' || name === 'aceptaAviso2' || name === 'proveedorEventos') {
-                 setFormData(prev => ({ ...prev, [name]: checked }));
-            }
-            // Añadir lógica si hay otros checkboxes principales
+            setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
-            let finalValue = value;
-            if (name === 'rfc' || name === 'curp') {
-                finalValue = value.toUpperCase().trim();
-            }
-             // Actualizar solo campos que pertenecen a ProveedorFormData
-             if (name in formData) {
-                setFormData(prev => ({ ...prev, [name]: finalValue }));
-             }
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
 
-        // Limpiar campos/estado de tipo opuesto
+        // Limpiar campos del tipo opuesto al seleccionar
         if (name === 'tipoProveedor') {
-            const limpiarMoral = { razon_social: '' };
-            const limpiarFisica = { nombre: '', apellido_p: '', apellido_m: '', curp: '' };
-            setRepresentantes([]); // Limpiar lista de representantes al cambiar tipo
-
             if (value === 'fisica') {
-                setFormData(prev => ({ ...prev, tipoProveedor: 'fisica', ...limpiarMoral }));
+                setFormData(prev => ({
+                    ...prev,
+                    tipoProveedor: 'fisica',
+                    razon_social: '',
+                    nombre_representante: '',
+                    apellido_p_representante: '',
+                    apellido_m_representante: '',
+                }));
             } else if (value === 'moral') {
-                setFormData(prev => ({ ...prev, tipoProveedor: 'moral', ...limpiarFisica }));
+                setFormData(prev => ({
+                    ...prev,
+                    tipoProveedor: 'moral',
+                    nombre: '',
+                    apellido_p: '',
+                    apellido_m: '',
+                    curp: '',
+                }));
             } else {
-                 setFormData(prev => ({ ...prev, tipoProveedor: '', ...limpiarMoral, ...limpiarFisica }));
+                 // Si vuelve a 'seleccione' (o ''), limpiar ambos
+                 setFormData(prev => ({
+                    ...prev,
+                    tipoProveedor: '',
+                    razon_social: '', nombre_representante: '', apellido_p_representante: '', apellido_m_representante: '',
+                    nombre: '', apellido_p: '', apellido_m: '', curp: '',
+                 }));
             }
         }
     };
-    // --- FIN handleChange ---
 
-    // --- NUEVO: handleChange para los inputs del NUEVO representante ---
-     const handleRepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-         const { name, value } = e.target;
-         setRepError(null); // Limpiar error de representante
-         if (name === 'nuevoRepNombre') setNuevoRepNombre(value);
-         else if (name === 'nuevoRepApellidoP') setNuevoRepApellidoP(value);
-         else if (name === 'nuevoRepApellidoM') setNuevoRepApellidoM(value);
-     };
-    // --- FIN handleRepChange ---
-
-     // --- NUEVO: Añadir representante a la lista ---
-     const handleAddRepresentante = () => {
-        setRepError(null);
-        // Validar campos del nuevo representante
-        if (!nuevoRepNombre.trim() || !nuevoRepApellidoP.trim()) {
-            setRepError('Nombre y Apellido Paterno del representante son obligatorios.');
-            return;
-        }
-
-        const nuevoRepresentante: RepresentanteData = {
-            nombre_representante: nuevoRepNombre.trim(),
-            apellido_p_representante: nuevoRepApellidoP.trim(),
-            apellido_m_representante: nuevoRepApellidoM.trim() || undefined, // Guardar undefined si está vacío
-        };
-
-        setRepresentantes(prev => [...prev, nuevoRepresentante]); // Añadir al array
-
-        // Limpiar campos del formulario de nuevo representante
-        setNuevoRepNombre('');
-        setNuevoRepApellidoP('');
-        setNuevoRepApellidoM('');
-     };
-     // --- FIN handleAddRepresentante ---
-
-     // --- NUEVO: Eliminar representante de la lista ---
-     const handleRemoveRepresentante = (indexToRemove: number) => {
-         setRepresentantes(prev => prev.filter((_, index) => index !== indexToRemove));
-     };
-     // --- FIN handleRemoveRepresentante ---
-
-
-    // --- handleSubmit (ADAPTADO) ---
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setError(null); // Limpiar error general
-        setRepError(null); // Limpiar error de rep
+        setError(null); // Limpiar errores previos
 
-        // --- VALIDACIÓN (Adaptada) ---
-        if (!formData.tipoProveedor) { setError('Seleccione el Tipo de Proveedor.'); return; }
-        if (!formData.rfc || (formData.rfc.length !== 12 && formData.rfc.length !== 13)) { setError('RFC debe tener 12 o 13 caracteres.'); return; }
-        if (!formData.actividadSat.trim()) { setError('Actividad Económica (SAT) obligatoria.'); return; }
-        if (!formData.correo.trim() || !/\S+@\S+\.\S+/.test(formData.correo)) { setError('Correo electrónico inválido.'); return; }
-        // ... validaciones comunes ...
-         if (!formData.calle.trim() || !formData.numero.trim() || !formData.colonia.trim() || !formData.codigo_postal.trim() || !formData.municipio.trim() || !formData.estado.trim()) { setError('Todos los campos de dirección son obligatorios.'); return; }
-        if (!formData.telefono_uno.trim()) { setError('Teléfono Principal obligatorio.'); return; }
+        // --- VALIDACIÓN CLIENT-SIDE ---
+        if (!formData.tipoProveedor) {
+            setError('Por favor, seleccione el Tipo de Proveedor (Persona Física o Moral).');
+            return;
+        }
+        if (!formData.rfc.trim()) {
+            setError('El campo RFC es obligatorio.');
+            return;
+        }
+         if (!formData.actividadSat.trim()) { // <-- Validar nuevo campo requerido
+             setError('El campo "Actividad Económica (SAT)" es obligatorio.');
+             return;
+         }
+        if (!formData.correo.trim() || !/\S+@\S+\.\S+/.test(formData.correo)) {
+            setError('Por favor, ingrese un correo electrónico válido.');
+            return;
+        }
+         // ... añadir más validaciones para campos comunes requeridos (calle, cp, etc.)
 
         // Validación específica por tipo
         if (formData.tipoProveedor === 'fisica') {
-            if (!formData.nombre.trim() || !formData.apellido_p.trim() || !formData.curp.trim()) { setError('Para Persona Física: Nombre, Apellido Paterno y CURP obligatorios.'); return; }
-             if (formData.curp.length !== 18) { setError('CURP debe tener 18 caracteres.'); return; }
+            if (!formData.nombre.trim() || !formData.apellido_p.trim() || !formData.curp.trim()) {
+                setError('Para Persona Física, Nombre, Apellido Paterno y CURP son obligatorios.');
+                return;
+            }
         } else if (formData.tipoProveedor === 'moral') {
-            if (!formData.razon_social.trim()) { setError('Para Persona Moral: Razón Social obligatoria.'); return; }
-            // **NUEVO: Validar que haya al menos un representante**
-            if (representantes.length === 0) {
-                 setRepError('Debe añadir al menos un representante legal.'); // Mostrar error en sección de reps
-                 return;
-             }
+            if (!formData.razon_social.trim() || !formData.nombre_representante.trim() || !formData.apellido_p_representante.trim()) {
+                setError('Para Persona Moral, Razón Social, Nombre y Apellido Paterno del Representante son obligatorios.');
+                return;
+            }
         }
-
-        if (!formData.aceptaAviso1 || !formData.aceptaAviso2) { setError('Debe aceptar ambos Avisos de Privacidad.'); return; }
         // --- FIN VALIDACIÓN ---
+        if (!formData.aceptaAviso1 || !formData.aceptaAviso2) {
+            setError('Debe aceptar ambos Avisos de Privacidad para continuar.');
+            return;
+        }
 
         setIsSubmitting(true);
 
         try {
-            // --- CONSTRUCCIÓN DEL PAYLOAD (Adaptado) ---
-            let dataToSubmit: any = {
+            // Prepara el objeto final a enviar, asegurándose de incluir el idUsuarioProveedor
+            const dataToSubmit = {
+                ...formData,
                 id_usuario_proveedor: idUsuarioProveedor,
-                tipoProveedor: formData.tipoProveedor,
-                // Campos comunes siempre presentes
-                rfc: formData.rfc,
-                giro_comercial: formData.giro_comercial,
-                actividadSat: formData.actividadSat,
-                correo: formData.correo,
-                calle: formData.calle,
-                numero: formData.numero,
-                colonia: formData.colonia,
-                codigo_postal: formData.codigo_postal,
-                municipio: formData.municipio,
-                estado: formData.estado,
-                telefono_uno: formData.telefono_uno,
-                telefono_dos: formData.telefono_dos || null, // Enviar null si vacío
-                pagina_web: formData.pagina_web || null,
-                camara_comercial: formData.camara_comercial || null,
-                numero_registro_camara: formData.numero_registro_camara || null,
-                numero_registro_imss: formData.numero_registro_imss || null,
-                proveedorEventos: formData.proveedorEventos,
-                 // No enviar aceptaAviso1/2 al backend
             };
 
-            // Añadir campos específicos según el tipo
-            if (formData.tipoProveedor === 'fisica') {
-                dataToSubmit = {
-                    ...dataToSubmit,
-                    nombre: formData.nombre,
-                    apellido_p: formData.apellido_p,
-                    apellido_m: formData.apellido_m || null,
-                    curp: formData.curp,
-                };
-            } else if (formData.tipoProveedor === 'moral') {
-                 dataToSubmit = {
-                     ...dataToSubmit,
-                     razon_social: formData.razon_social,
-                     // **NUEVO: Enviar el array de representantes**
-                     representantes: representantes,
-                 };
-            }
-            // --- FIN CONSTRUCCIÓN PAYLOAD ---
-
-            console.log("FormularioRegistroProveedor: Enviando datos:", dataToSubmit);
+            console.log("FormularioRegistroProveedor: Enviando datos:", dataToSubmit); // Debug
             const result = await createProveedor(dataToSubmit);
-            console.log("FormularioRegistroProveedor: Respuesta API:", result);
-            onSuccess(result);
+            console.log("FormularioRegistroProveedor: Respuesta API:", result); // Debug
+            onSuccess(result); // Llama a la función de éxito del padre
 
         } catch (err: any) {
             console.error("FormularioRegistroProveedor: Error al enviar:", err);
             setError(err.message || 'Ocurrió un error inesperado al registrar.');
+            // Considerar si redirigir a login en caso de error 401/403
+            // if (err.status === 401 || err.status === 403) router.push('/proveedores/login');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Función de clases dinámicas (Sin cambios) ---
-    const getInputClasses = (fieldName: 'rfc' | 'curp'): string => {
-        const baseClasses = "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-0";
-        const value = formData[fieldName];
-        const length = value.length;
-
-        if (length === 0) {
-            // Clase por defecto si está vacío
-            return `${baseClasses} border-gray-300 focus:border-indigo-500 focus:ring-indigo-500`;
-        }
-
-        let isValidLength = false;
-        if (fieldName === 'rfc') {
-            isValidLength = length === 12 || length === 13;
-        } else if (fieldName === 'curp') {
-            isValidLength = length === 18;
-        }
-
-        if (isValidLength) {
-            // Clases si la longitud es válida
-            return `${baseClasses} border-green-500 focus:border-green-700 focus:ring-green-500`;
-        } else {
-            // Clases si la longitud es inválida (pero no vacío)
-            return `${baseClasses} border-red-500 focus:border-red-700 focus:ring-red-500`;
-        }
-    };
-
-    // --- Clases de estilo comunes (Sin cambios) ---
+        // --- **NUEVO: Funciones para obtener clases dinámicas** ---
+        const getInputClasses = (fieldName: 'rfc' | 'curp'): string => {
+            const baseClasses = "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-0";
+            const value = formData[fieldName];
+            const length = value.length;
+    
+            if (length === 0) {
+                // Clase por defecto si está vacío
+                return `${baseClasses} border-gray-300 focus:border-indigo-500 focus:ring-indigo-500`;
+            }
+    
+            let isValidLength = false;
+            if (fieldName === 'rfc') {
+                isValidLength = length === 12 || length === 13;
+            } else if (fieldName === 'curp') {
+                isValidLength = length === 18;
+            }
+    
+            if (isValidLength) {
+                // Clases si la longitud es válida
+                return `${baseClasses} border-green-500 focus:border-green-700 focus:ring-green-500`;
+            } else {
+                // Clases si la longitud es inválida (pero no vacío)
+                return `${baseClasses} border-red-500 focus:border-red-700 focus:ring-red-500`;
+            }
+        };
+        // --- FIN NUEVAS FUNCIONES ---
+            // Clases de estilo comunes (sin cambios)
     const labelStyle = "block text-sm font-medium text-gray-700 mb-1";
     const fieldsetStyle = "border border-gray-300 p-4 rounded-md mb-6";
     const legendStyle = "text-lg font-medium text-gray-700 px-2";
     const requiredMark = <span className="text-red-500">*</span>;
-    const inputStyle = "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"; // Definir una clase base
 
-    // --- RENDERIZADO ---
     return (
-        <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 shadow-xl rounded-lg">
-             <h2 className="text-2xl font-semibold mb-6 text-gray-800 border-b pb-2">Registro de Datos del Proveedor</h2>
-             {error && ( <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">{error}</div> )}
+        <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 shadow-md rounded-lg">
+            <h2 className="text-2xl font-semibold mb-6 text-gray-800">Registro de Datos del Proveedor</h2>
 
+            {error && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded">
+                    {error}
+                </div>
+            )}
 
-             <div className="mb-4">
+            {/* --- SECCIÓN TIPO DE PROVEEDOR --- */}
+            <div className="mb-4">
                 <label htmlFor="tipoProveedor" className="block text-sm font-medium text-gray-700 mb-1">Tipo de Proveedor <span className="text-red-500">*</span></label>
                 <select
                     id="tipoProveedor"
@@ -321,7 +255,7 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                 </select>
             </div>
 
-             {/* --- SECCIÓN PERSONA FÍSICA (Sin cambios en la estructura interna) --- */}
+             {/* --- SECCIÓN PERSONA FÍSICA (Condicional) --- */}
              {formData.tipoProveedor === 'fisica' && (
                 <fieldset className="border border-gray-300 p-4 rounded-md mb-6">
                     <legend className="text-lg font-medium text-gray-700 px-2">Datos Persona Física</legend>
@@ -350,6 +284,7 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                             onChange={handleChange}
                             required
                             maxLength={18}
+                            // **Aplicar clases dinámicas**
                             className={getInputClasses('curp')}
                             aria-invalid={formData.curp.length > 0 && formData.curp.length !== 18} // Para accesibilidad
                             aria-describedby="curp-helper"
@@ -362,71 +297,33 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                 </fieldset>
              )}
 
-             {/* --- SECCIÓN PERSONA MORAL (MODIFICADA) --- */}
+             {/* --- SECCIÓN PERSONA MORAL (Condicional) --- */}
              {formData.tipoProveedor === 'moral' && (
-                 <fieldset className={fieldsetStyle}>
-                    <legend className={legendStyle}>Datos Persona Moral</legend>
-                     {/* Razón Social (Único para la entidad) */}
-                     <div className="mb-5">
-                        <label htmlFor="razon_social" className={labelStyle}>Razón Social {requiredMark}</label>
-                        <input type="text" id="razon_social" name="razon_social" value={formData.razon_social} onChange={handleChange} required className={inputStyle} />
+                 <fieldset className="border border-gray-300 p-4 rounded-md mb-6">
+                    <legend className="text-lg font-medium text-gray-700 px-2">Datos Persona Moral</legend>
+                     {/* Razón Social */}
+                     <div className="mb-4">
+                        <label htmlFor="razon_social" className="block text-sm font-medium text-gray-700 mb-1">Razón Social <span className="text-red-500">*</span></label>
+                        <input type="text" id="razon_social" name="razon_social" value={formData.razon_social} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                      </div>
-
-                    {/* --- Sub-sección para Añadir Representantes --- */}
-                    <div className="border border-dashed border-indigo-300 p-4 rounded-md bg-indigo-50 mb-4">
-                        <p className="text-md font-semibold text-indigo-800 mb-3">Añadir Representante Legal</p>
-                        {repError && <p className="text-red-600 text-sm mb-2">{repError}</p>}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label htmlFor="nuevoRepNombre" className={`${labelStyle} text-xs`}>Nombre(s) {requiredMark}</label>
-                                <input type="text" id="nuevoRepNombre" name="nuevoRepNombre" value={nuevoRepNombre} onChange={handleRepChange} className={`${inputStyle} input-sm`} />
-                            </div>
-                            <div>
-                                <label htmlFor="nuevoRepApellidoP" className={`${labelStyle} text-xs`}>Apellido Paterno {requiredMark}</label>
-                                <input type="text" id="nuevoRepApellidoP" name="nuevoRepApellidoP" value={nuevoRepApellidoP} onChange={handleRepChange} className={`${inputStyle} input-sm`} />
-                            </div>
-                            <div>
-                                <label htmlFor="nuevoRepApellidoM" className={`${labelStyle} text-xs`}>Apellido Materno</label>
-                                <input type="text" id="nuevoRepApellidoM" name="nuevoRepApellidoM" value={nuevoRepApellidoM} onChange={handleRepChange} className={`${inputStyle} input-sm`} />
-                            </div>
+                     {/* Datos Representante Legal */}
+                    <p className="text-md font-medium text-gray-600 mb-2">Representante Legal</p>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label htmlFor="nombre_representante" className="block text-sm font-medium text-gray-700 mb-1">Nombre(s) <span className="text-red-500">*</span></label>
+                            <input type="text" id="nombre_representante" name="nombre_representante" value={formData.nombre_representante} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
-                        <button
-                            type="button" // Importante: type="button" para no enviar el formulario
-                            onClick={handleAddRepresentante}
-                            className="mt-3 px-4 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                            disabled={!nuevoRepNombre || !nuevoRepApellidoP || isSubmitting} // Deshabilitar si faltan campos o está enviando form principal
-                        >
-                            + Añadir Representante
-                        </button>
+                         <div>
+                            <label htmlFor="apellido_p_representante" className="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno <span className="text-red-500">*</span></label>
+                            <input type="text" id="apellido_p_representante" name="apellido_p_representante" value={formData.apellido_p_representante} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                         <div>
+                            <label htmlFor="apellido_m_representante" className="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+                            <input type="text" id="apellido_m_representante" name="apellido_m_representante" value={formData.apellido_m_representante} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
                     </div>
-                    {/* --- Fin Sub-sección --- */}
-
-                     {/* --- Lista de Representantes Añadidos --- */}
-                     {representantes.length > 0 && (
-                        <div className="mt-4">
-                             <h4 className="text-sm font-medium text-gray-600 mb-2">Representantes Añadidos:</h4>
-                             <ul className="space-y-2 list-disc list-inside pl-1 text-sm">
-                                 {representantes.map((rep, index) => (
-                                     <li key={index} className="flex justify-between items-center bg-gray-100 px-3 py-1 rounded">
-                                         <span>{rep.nombre_representante} {rep.apellido_p_representante} {rep.apellido_m_representante || ''}</span>
-                                         <button
-                                            type="button"
-                                            onClick={() => handleRemoveRepresentante(index)}
-                                            className="ml-4 text-red-500 hover:text-red-700 text-xs font-semibold"
-                                            title="Eliminar este representante"
-                                            disabled={isSubmitting}
-                                         >
-                                             Eliminar
-                                         </button>
-                                     </li>
-                                 ))}
-                             </ul>
-                        </div>
-                     )}
-                    {/* --- Fin Lista --- */}
                  </fieldset>
              )}
-             {/* --- FIN SECCIÓN PERSONA MORAL --- */}
 
 
             {/* --- SECCIÓN DATOS GENERALES / FISCALES --- */}
@@ -517,8 +414,9 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                 {/* <<<--- FIN NUEVO CAMPO --- >>> */}
 
             </fieldset>
+
             {/* --- SECCIÓN DIRECCIÓN --- */}
-            <fieldset className="border border-gray-300 p-4 rounded-md mb-6">
+             <fieldset className="border border-gray-300 p-4 rounded-md mb-6">
                 <legend className="text-lg font-medium text-gray-700 px-2">Dirección</legend>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                      <div className="md:col-span-2">
@@ -549,6 +447,7 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                      <input type="text" id="estado" name="estado" value={formData.estado} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                  </div>
             </fieldset>
+
             {/* --- SECCIÓN CONTACTO --- */}
             <fieldset className="border border-gray-300 p-4 rounded-md mb-6">
                  <legend className="text-lg font-medium text-gray-700 px-2">Contacto</legend>
@@ -567,6 +466,7 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
                     <input type="url" id="pagina_web" name="pagina_web" value={formData.pagina_web} onChange={handleChange} placeholder="https://ejemplo.com" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                 </div>
             </fieldset>
+
             {/* --- **NUEVO: SECCIÓN AVISOS DE PRIVACIDAD** --- */}
             <fieldset className={`border-yellow-400 bg-yellow-50`}>
                  <legend className={`text-yellow-800`}>Avisos de Privacidad</legend>
@@ -606,7 +506,8 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
              </fieldset>
              {/* --- FIN SECCIÓN AVISOS --- */}
 
-            {/* --- BOTÓN DE ENVÍO --- */}
+
+            {/* --- BOTÓN DE ENVÍO (ACTUALIZADO) --- */}
             <div className="mt-8 text-right">
                 <button
                     type="submit"
@@ -624,3 +525,7 @@ export default function FormularioRegistroProveedor({ idUsuarioProveedor, onSucc
         </form>
     );
 }
+
+// Helper para estilos comunes de input (opcional, puedes usar clases de Tailwind directamente)
+// Asegúrate de definir '.input-estilo' en tu CSS global o usar clases de Tailwind en cada input:
+// className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
