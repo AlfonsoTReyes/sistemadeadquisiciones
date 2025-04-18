@@ -1,149 +1,151 @@
 // --- START OF FILE src/app/proveedores/dashboard/page.tsx ---
 'use client';
-import React, { useState, useEffect, useCallback } from 'react'; // Import useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import PieP from "../../pie";
-import DynamicMenu from "../../menu_principal";
-import ProveedorData from './formularios/ProveedorInfo'; // Asumiendo que este es ProveedorInfo
-import ModalActualizarProveedor from './formularios/modalActualizarProveedor'; // Importar el Modal
-import { getProveedorForUser } from './formularios/fetchdashboard'; // Import fetch function (asumiendo es el mismo)
+import PieP from "../../pie"; // Ajusta ruta
+import DynamicMenu from "../../menu_principal"; // Ajusta ruta
+import ProveedorInfo from './formularios/ProveedorInfo'; // Ajusta ruta
+import ModalActualizarProveedor from './formularios/modalActualizarProveedor'; // Ajusta ruta
+// Asumiendo que fetchdashboard tiene getProveedorForUser
+import { getProveedorForUser } from './formularios/fetchdashboard'; // Ajusta ruta
+// Importar interfaz completa si no está definida en ProveedorInfo
+import { ProveedorData as ProveedorCompletoData } from './formularios/ProveedorInfo'; // Ajusta ruta e interfaz
 
 export default function PageProveedorDashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
-  const [providerData, setProviderData] = useState<{ id_proveedor: number, tipo_proveedor: string, [key: string]: any } | null>(null);
+  const [providerData, setProviderData] = useState<ProveedorCompletoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Para el modal de edición
 
-  // --- State for Modal ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Función para obtener datos (envuelta en useCallback para estabilidad)
+  // --- Función para Cargar/Refrescar Datos del Proveedor ---
   const fetchProviderData = useCallback(async (idUsuario: number) => {
-    if (!idUsuario) return; // Evitar llamadas si no hay ID
+    if (!idUsuario) return;
+    console.log(`Dashboard: Fetching/Refreshing data for user ID: ${idUsuario}`);
     setError(null);
-    setLoading(true);
-    console.log(`Dashboard: Fetching data for user ID: ${idUsuario}`);
     try {
-      const data = await getProveedorForUser(idUsuario); // Usa fetch del dashboard
-      // LA RESPUESTA 'data' YA DEBERÍA CONTENER actividad_sat y proveedor_eventos
+      const data = await getProveedorForUser(idUsuario); // Llama al fetch
       if (data && data.id_proveedor && data.tipo_proveedor) {
-        setProviderData(data);
-        console.log("Dashboard: Provider data loaded:", data); // Verificar si vienen los nuevos campos
-        // Guardar en sessionStorage (opcional, si otras partes lo necesitan)
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem('proveedorId', data.id_proveedor.toString());
-          sessionStorage.setItem('proveedorTipo', data.tipo_proveedor);
-        }
+        setProviderData(data as ProveedorCompletoData); // Guarda los datos completos
+        console.log("Dashboard: Provider data loaded/refreshed:", data);
+        // Actualizar sessionStorage si es necesario
+        sessionStorage.setItem('proveedorId', data.id_proveedor.toString());
+        sessionStorage.setItem('proveedorTipo', data.tipo_proveedor);
       } else {
-        console.warn("Dashboard: Datos del proveedor recibidos incompletos o sin ID/Tipo:", data);
-        setProviderData(null); // Limpiar datos
-        if (typeof window !== "undefined") { // Limpiar sessionStorage
-             sessionStorage.removeItem('proveedorId');
-             sessionStorage.removeItem('proveedorTipo');
-        }
-        // Mostrar error específico si no se encontraron datos válidos
-        setError('No se encontró un perfil de proveedor completo asociado.');
+        // Manejar caso donde el perfil no se encuentra o es incompleto tras un refresh
+        console.warn("Dashboard: Profile not found or incomplete after fetch for user ID:", idUsuario);
+        setProviderData(null);
+        sessionStorage.removeItem('proveedorId');
+        sessionStorage.removeItem('proveedorTipo');
+        setError('No se encontró un perfil de proveedor completo.');
       }
     } catch (err: any) {
       console.error("Dashboard: Error fetching provider data:", err);
-       setProviderData(null); // Limpiar datos en caso de error
-       if (typeof window !== "undefined") { // Limpiar sessionStorage
-           sessionStorage.removeItem('proveedorId');
-           sessionStorage.removeItem('proveedorTipo');
-       }
-       setError(err.message || 'Error al cargar los datos del proveedor.');
-       // Si el error es 'Perfil no encontrado', podrías ofrecer ir al registro
-       // if (err.message?.includes('Perfil de proveedor no encontrado')) { ... }
+       setProviderData(null); // Limpiar en caso de error
+       sessionStorage.removeItem('proveedorId');
+       sessionStorage.removeItem('proveedorTipo');
+       setError(err.message || 'Error al cargar los datos.');
     } finally {
-      setLoading(false);
+      // setLoading(false); // Quitar loading si se activó al inicio
     }
-  }, []); // Sin dependencias, ya que idUsuario se pasa como argumento
+  }, []); // Vacío porque userId se pasa como argumento
 
-  // Efecto para obtener el User ID y llamar a fetch inicial
+  // --- Efecto para Carga Inicial ---
   useEffect(() => {
+    setLoading(true); // Iniciar carga de página
     const storedUserId = sessionStorage.getItem('proveedorUserId');
-    console.log("Dashboard Effect: Checking user ID in session:", storedUserId);
     if (storedUserId) {
       const userIdNum = parseInt(storedUserId, 10);
       if (!isNaN(userIdNum)) {
         setUserId(userIdNum);
-        fetchProviderData(userIdNum); // Llamar fetch aquí
-      } else {
-        setError("ID de usuario inválido en sesión.");
-        setLoading(false);
-      }
+        fetchProviderData(userIdNum).finally(() => setLoading(false)); // Carga inicial y quita loading de página
+      } else { setError("ID usuario inválido."); setLoading(false); }
     } else {
-      setError("Usuario no autenticado. Por favor, inicie sesión.");
-      setLoading(false);
-      // Redirigir a login si no hay ID
-      router.push('/proveedores/login');
+      setError("Usuario no autenticado."); setLoading(false);
+      router.push('/proveedores/login'); // Redirigir
     }
   }, [router, fetchProviderData]); // Depender de fetchProviderData
 
- // --- Funciones para manejar el Modal ---
+ // --- Handlers Modal Edición ---
  const handleOpenEditModal = () => {
-    if (providerData) { // Solo abrir si hay datos para editar
-      setIsModalOpen(true);
-      console.log("Dashboard: Opening edit modal.");
-    } else {
-        console.error("Dashboard: Cannot open edit modal, provider data is missing.");
-        alert("No hay datos de proveedor cargados para editar.");
-    }
+    if (providerData) { setIsModalOpen(true); }
+    else { alert("No hay datos para editar."); }
  };
+ const handleCloseModal = () => setIsModalOpen(false);
 
- const handleCloseModal = () => {
-    setIsModalOpen(false);
-    console.log("Dashboard: Closing edit modal.");
- };
-
- // Función que se llama desde el modal tras una actualización exitosa
+ // Callback para CUANDO EL MODAL GUARDA CON ÉXITO (llamado por onSubmit del modal)
  const handleUpdateSuccess = () => {
-    console.log("Dashboard: Update successful! Refetching data...");
-    handleCloseModal(); // Cerrar el modal
+    console.log("Dashboard: Modal reported update success! Refetching data...");
+    handleCloseModal(); // Cierra el modal
     if (userId) {
-        fetchProviderData(userId); // Volver a cargar los datos frescos
+        fetchProviderData(userId); // <--- Recarga los datos llamando a fetchProviderData
     }
  };
 
- // --- Función para Documentos (sin cambios) ---
+ // --- Handler para Documentos (sin cambios) ---
  const handleManageDocumentsClick = () => {
-    if (providerData && providerData.id_proveedor && providerData.tipo_proveedor) {
-        // Guardar info necesaria en sessionStorage antes de navegar
-        sessionStorage.setItem('proveedorId', providerData.id_proveedor.toString());
-        sessionStorage.setItem('proveedorTipo', providerData.tipo_proveedor);
-        console.log("Dashboard: Navigating to documents page...");
-        router.push('/proveedores/documentos');
-    } else {
-        alert("No se pueden gestionar los documentos porque los datos del proveedor no están cargados.");
-        console.warn("Dashboard: Cannot navigate to documents, missing provider data.");
-    }
- };
+  if (providerData && providerData.id_proveedor && providerData.tipo_proveedor) {
+      // Guardar info necesaria en sessionStorage antes de navegar
+      sessionStorage.setItem('proveedorId', providerData.id_proveedor.toString());
+      sessionStorage.setItem('proveedorTipo', providerData.tipo_proveedor);
+      console.log("Dashboard: Navigating to documents page...");
+      router.push('/proveedores/documentos');
+  } else {
+      alert("No se pueden gestionar los documentos porque los datos del proveedor no están cargados.");
+      console.warn("Dashboard: Cannot navigate to documents, missing provider data.");
+  }
+};
 
  // --- Renderizado ---
   return (
     <div>
       <DynamicMenu />
       <div className="min-h-screen p-4 md:p-8 bg-gray-50" style={{ marginTop: 100 }}>
-         {/* Componente para mostrar la info */}
-         <ProveedorData
-            providerData={providerData}
-            loading={loading}
-            error={error}
-            onEditClick={handleOpenEditModal} // Pasar la función para abrir el modal
-            onManageDocumentsClick={handleManageDocumentsClick}
-         />
+
+         {/* Loading / Error */}
+         {loading && <p className="text-center py-10">Cargando información del proveedor...</p>}
+         {error && !loading && (
+             <div className="text-center py-10 text-red-600 bg-red-50 border border-red-300 p-4 rounded-md max-w-md mx-auto">{error}</div>
+         )}
+
+         {/* Componente ProveedorInfo (si no hay loading ni error y hay datos) */}
+         {!loading && !error && providerData && (
+            <ProveedorInfo
+                providerData={providerData}
+                loading={false} // El loading principal ya pasó
+                error={null} // El error principal ya se mostró
+                onManageDocumentsClick={handleManageDocumentsClick}
+                onDataRefreshNeeded={() => {
+                    if (userId) fetchProviderData(userId);
+                }}
+            />
+         )}
+
+          {/* Mensaje si no hay datos y no está cargando/error */}
+          {!loading && !error && !providerData && (
+               <p className="text-center text-gray-500 py-10">No se encontró información del proveedor.</p>
+          )}
+
       </div>
       <PieP />
 
-      {/* Renderizar el Modal condicionalmente */}
+      {/* Modal de Edición */}
       {isModalOpen && providerData && (
          <ModalActualizarProveedor
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            proveedorData={providerData} // Pasar los datos actuales al modal
-            onUpdateSuccess={handleUpdateSuccess} // Pasar la función de callback
+            // Pasar prop como la espera el modal (ej. 'initialData')
+            initialData={providerData} // Asegúrate que el nombre coincida con el modal
+            // Pasar el handler correcto que recarga datos
+            onSubmit={handleUpdateSuccess} // Este handler llama a fetchProviderData
+            isLoading={isUpdatingProfile} // DEBES tener un estado isUpdatingProfile si el modal no lo maneja
+            error={updateProfileError}    // DEBES tener un estado updateProfileError si el modal no lo maneja
          />
+         // NOTA: Necesitarás añadir los estados isUpdatingProfile y updateProfileError
+         // y modificar handleUpdateSuccess para que los gestione si tu modal
+         // depende de estas props (como en el ejemplo del modal de admin).
+         // Si tu modal de proveedor maneja su propia carga/error de submit, no necesitas pasarlos.
       )}
     </div>
   );

@@ -14,6 +14,7 @@ import {
     updateProveedorProfile,
     updateUsuarioProveedor,
     getUsuarioProveedorByProveedorId,
+    updateAdminRevisionStatus
 } from './formularios/fetchAltaProveedor';
 
 export default function AdministradorProveedoresPage() {
@@ -32,6 +33,7 @@ export default function AdministradorProveedoresPage() {
     const [editingProviderData, setEditingProviderData] = useState<ProveedorData | null>(null); // Datos para editar perfil
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false); // Modal Usuario Proveedor
     const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Datos para editar usuario
+    const [isLoadingRevisionChange, setIsLoadingRevisionChange] = useState<{ [key: number]: boolean }>({});
 
     // Estados de Carga/Error específicos de los Modales
     const [isFetchingEditData, setIsFetchingEditData] = useState(false); // Carga de datos *para* el modal
@@ -276,7 +278,41 @@ const handleCloseEditUserModal = () => {
       }
   };
 
+  const handleChangeRevisionStatus = async (idProveedor: number, nuevoEstatus: string) => {
+    console.log(`AdminPage: Changing revision status for ID ${idProveedor} to ${nuevoEstatus}`);
+    setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: true }));
+    setError(null); // Limpiar error general
 
+    // Optimistic UI Update (opcional): Actualizar estado local inmediatamente
+    setProveedores(prevProvs => prevProvs.map(p =>
+         p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
+    ));
+
+    try {
+        // Llama a la nueva función fetch que interactúa con la API de admin
+        await updateAdminRevisionStatus(idProveedor, nuevoEstatus);
+
+        // Si NO usaste Optimistic UI, o para confirmar, actualiza el estado local con la respuesta
+        // o recarga toda la lista para asegurar consistencia.
+        // Actualizar solo el proveedor modificado es más eficiente:
+        setProveedores(prevProvs => prevProvs.map(p =>
+             p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
+         ));
+        // Alternativa: Recargar toda la lista (más simple pero puede ser más lento)
+        // await fetchProvidersList();
+
+        console.log(`AdminPage: Revision status updated successfully for ID ${idProveedor}`);
+         // Opcional: Mostrar mensaje de éxito con un toast
+
+    } catch (err: any) {
+        console.error(`AdminPage: Error changing revision status for ID ${idProveedor}:`, err);
+        setError(`Error al actualizar estado de revisión: ${err.message}`);
+        // Revertir Optimistic UI si se usó
+        fetchProvidersList(); // Recargar para obtener el estado real
+    } finally {
+        setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
+    }
+};
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
@@ -306,14 +342,16 @@ const handleCloseEditUserModal = () => {
 
                 {/* Tabla */}
                 {!loading && !error && (
-                    <TablaDocumentos // Renombrar este componente si es confuso (e.g., TablaProveedoresAdmin)
-                    proveedores={proveedoresFiltrados}
-                    onViewDocuments={handleViewDocuments}
-                    onChangeStatus={handleChangeStatus}
-                    onEditProfile={handleEditProfileClick} // Pasa la función correcta
-                    onEditUser={handleEditUserClick}
-                    isLoadingStatusChange={loadingStatusChange} // Pasar el estado de carga individual
-                    isFetchingEditData={isFetchingEditData} // Pasar estado de carga general para modales
+                    <TablaDocumentos
+                        proveedores={proveedoresFiltrados}
+                        onViewDocuments={handleViewDocuments}
+                        onChangeStatus={handleChangeStatus} // Estatus general
+                        onChangeRevisionStatus={handleChangeRevisionStatus} // Estatus revisión
+                        isLoadingRevisionChange={isLoadingRevisionChange} // Carga revisión
+                        onEditProfile={handleEditProfileClick}
+                        onEditUser={handleEditUserClick}
+                        isLoadingStatusChange={loadingStatusChange} // Carga estatus general
+                        isFetchingEditData={isFetchingEditData}
                     />
                 )}
 

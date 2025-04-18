@@ -4,7 +4,8 @@ import {
     getProveedorById,
     updateProveedorCompleto,
     createProveedorCompleto,
-    getProveedorByUserId
+    getProveedorByUserId,
+    solicitarRevisionProveedor
 } from '../../../services/proveedoresservice'; // Ajusta la ruta
 
 // --- GET ---
@@ -179,4 +180,36 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ message: message, error: error.toString() }, { status });
    }
+}
+export async function PATCH(req: NextRequest) {
+    try {
+        // Para esta acción, solo necesitamos el ID del proveedor.
+        // Podríamos obtenerlo de la URL (si fuera una ruta dinámica) o del body.
+        // Asumamos que viene en el body por simplicidad y consistencia con PUT.
+        const data = await req.json();
+        const { id_proveedor } = data;
+
+        console.log(`ROUTE PATCH /api/proveedores - Received request to request revision for ID: ${id_proveedor}`);
+
+        // Validar ID
+        if (!id_proveedor || typeof id_proveedor !== 'number') {
+            return NextResponse.json({ message: 'ID de proveedor inválido o no proporcionado para solicitar revisión.' }, { status: 400 });
+        }
+
+        // Llamar al nuevo servicio específico
+        const resultado = await solicitarRevisionProveedor(id_proveedor);
+
+        console.log(`ROUTE PATCH /api/proveedores - Revision request successful for ID: ${id_proveedor}`);
+        // Devolver el resultado del servicio (que incluye el nuevo estado)
+        return NextResponse.json(resultado);
+
+    } catch (error: any) {
+        console.error("ROUTE ERROR PATCH /api/proveedores (solicitarRevision):", error);
+        // Manejar errores específicos del servicio 'solicitarRevisionProveedor'
+        let status = 500;
+        let message = error.message || 'Error desconocido al solicitar la revisión.';
+        if (message.includes("no encontrado")) status = 404;
+        // Puedes añadir más manejo si el servicio lanza errores específicos
+        return NextResponse.json({ message: message }, { status });
+    }
 }

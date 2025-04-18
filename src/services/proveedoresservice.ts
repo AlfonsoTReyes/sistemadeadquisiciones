@@ -38,6 +38,7 @@ interface ProveedorDetallado {
     id_usuario_proveedor?: number | null;
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;
+    estatus_revision?: string | null;
     razon_social?: string | null; // Moral
     nombre_representante?: string | null; // Moral
     apellido_p_representante?: string | null; // Moral
@@ -135,6 +136,7 @@ const procesarResultadoProveedor = (rows: any[]): ProveedorDetallado | null => {
         actividad_sat: firstRow.actividad_sat,
         proveedor_eventos: firstRow.proveedor_eventos,
         tipo_proveedor: tipo,
+        estatus_revision: firstRow.estatus_revision,
         // Inicializar específicos a null o según el tipo
         nombre_fisica: tipo === 'fisica' ? firstRow.nombre_fisica : null,
         apellido_p_fisica: tipo === 'fisica' ? firstRow.apellido_p_fisica : null,
@@ -171,21 +173,14 @@ export const getProveedorById = async (id: number): Promise<ProveedorDetallado |
     // El LEFT JOIN con proveedores_morales ahora puede devolver múltiples filas por proveedor
     const result = await sql`
       SELECT
-        p.*, -- Todos de proveedores (incluye actividad_sat, proveedor_eventos)
-        m.id_morales, -- ID único de la fila moral/representante
-        m.razon_social,
-        m.nombre_representante,
-        m.apellido_p_representante,
-        m.apellido_m_representante,
-        -- m.acta_constitutiva, m.poder_notarial, -- Eliminados
-        f.id_fisicas, -- Útil tener el ID de la tabla física también
-        f.nombre AS nombre_fisica,
-        f.apellido_p AS apellido_p_fisica,
-        f.apellido_m AS apellido_m_fisica,
-        f.curp
+        p.*, -- Todos de proveedores (incluirá estatus_revision)
+        -- Seleccionar explícitamente si se prefiere o hay ambigüedad
+        -- p.estatus_revision,
+        m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
+        f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
       FROM proveedores p
-      LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor -- Puede devolver múltiples filas 'm'
-      LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor   -- Devolverá 0 o 1 fila 'f'
+      LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
+      LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
       WHERE p.id_proveedor = ${id};
     `;
 
@@ -208,13 +203,14 @@ export const getProveedorByUserId = async (id_usuario_proveedor: number): Promis
       // Misma query que getProveedorById pero filtrando por id_usuario_proveedor
        const result = await sql`
          SELECT
-           p.*, m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
+           p.*, -- Incluye estatus_revision
+           -- p.estatus_revision, -- Explícito si se prefiere
+           m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
            f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
          FROM proveedores p
          LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
          LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
          WHERE p.id_usuario_proveedor = ${id_usuario_proveedor};
-         -- No usar LIMIT 1 aquí, necesitamos todas las filas de moral si existen
        `;
 
        return procesarResultadoProveedor(result.rows);
@@ -511,5 +507,51 @@ export const checkProveedorProfileExists = async (id_usuario_proveedor: number):
         console.error("Error checking provider profile existence:", error);
         // En caso de error, podría ser más seguro asumir que no existe o relanzar
         return false; // O: throw new Error("Error al verificar perfil");
+    }
+};
+
+/**
+ * Actualiza el estado de revisión de un proveedor a 'PENDIENTE_REVISION'.
+ * @param idProveedor El ID del proveedor que solicita la revisión.
+ * @returns Promise<{id_proveedor: number, estatus_revision: string}> - El ID y el nuevo estado.
+ * @throws Error si el proveedor no se encuentra o falla la actualización.
+ */
+export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{id_proveedor: number, estatus_revision: string}> => {
+    console.log(`SERVICE: Solicitando revisión para proveedor ID: ${idProveedor}`);
+    if (isNaN(idProveedor)) {
+        throw new Error("ID de proveedor inválido.");
+    }
+
+    try {
+        const result = await sql`
+            UPDATE proveedores
+            SET
+                estatus_revision = 'PENDIENTE_REVISION',
+                updated_at = NOW() -- Actualizar timestamp general también
+            WHERE id_proveedor = ${idProveedor}
+            RETURNING id_proveedor, estatus_revision;
+        `;
+
+        if (result.rowCount === 0) {
+            throw new Error(`Proveedor con ID ${idProveedor} no encontrado para solicitar revisión.`);
+        }
+
+        const updatedData = result.rows[0];
+        console.log(`SERVICE: Revisión solicitada exitosamente para ID: ${idProveedor}. Nuevo estado: ${updatedData.estatus_revision}`);
+
+        // --------------------------------------------------------
+        // --- PUNTO CLAVE PARA NOTIFICACIÓN EN TIEMPO REAL ---
+        // Aquí es donde integrarías la lógica para notificar al admin:
+        // - Emitir evento WebSocket: io.to('admin_room').emit('nueva_solicitud', { idProveedor });
+        // - Publicar en canal Pusher/Ably: pusher.trigger('admin-channel', 'nueva-solicitud', { idProveedor });
+        // - Enviar a cola de mensajes, etc.
+        // console.log("TODO: Implementar notificación en tiempo real al admin aquí.");
+        // --------------------------------------------------------
+
+        return updatedData;
+
+    } catch (error: any) {
+        console.error(`SERVICE ERROR en solicitarRevisionProveedor para ID ${idProveedor}:`, error);
+        throw new Error(`Error al solicitar la revisión: ${error.message || 'Error desconocido'}`);
     }
 };

@@ -41,7 +41,7 @@ export interface ProveedorData {
     updated_at?: string | null;
     fecha_solicitud?: string | null;
     id_usuario_proveedor?: number | null;
-  
+    estatus_revision?: string | null;
     // **NUEVOS CAMPOS (snake_case como vienen de la API/Servicio)**
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;

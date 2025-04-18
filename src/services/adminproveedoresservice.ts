@@ -37,6 +37,7 @@ interface ProveedorCompletoData {
     fecha_solicitud?: string | null;
     id_usuario_proveedor?: number | null;
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
+    estatus_revision?: string | null;
 
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;
@@ -94,6 +95,7 @@ interface UpdateProveedorAdminData {
 
     actividadSat?: string | null; // camelCase en la entrada JS/TS
     proveedorEventos?: boolean;   // camelCase en la entrada JS/TS
+    estatus_revision?: string | null;
 
     // Campos específicos (opcionales)
     razon_social?: string;
@@ -129,6 +131,7 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
                 p.rfc,
                 p.correo,
                 p.estatus,
+                p.estatus_revision,
                 p.telefono_uno,
                 -- Tomar razon_social o nombre de la fila correspondiente (será el de la primera fila encontrada por el ORDER BY)
                 COALESCE(m.razon_social, f.nombre) AS nombre_o_razon, -- Para mostrar en la tabla
@@ -147,6 +150,7 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
             rfc: row.rfc,
             correo: row.correo,
             estatus: row.estatus,
+            estatus_revision: row.estatus_revision,
             telefono: row.telefono_uno,
             // Determinar tipo basado en los flags booleanos (más robusto que chequear null)
             tipo_proveedor: row.es_moral ? 'moral' : (row.es_fisica ? 'fisica' : 'desconocido'),
@@ -220,7 +224,7 @@ export const getProveedorById = async (id: number): Promise<ProveedorCompletoDat
              const tipo = firstRow.razon_social ? 'moral' : (firstRow.nombre_fisica ? 'fisica' : 'desconocido');
              const proveedorBase: ProveedorCompletoData = { /*... mapeo base ...*/
                 id_proveedor: firstRow.id_proveedor, rfc: firstRow.rfc, /*...*/ actividad_sat: firstRow.actividad_sat, proveedor_eventos: firstRow.proveedor_eventos, tipo_proveedor: tipo,
-                nombre_fisica: tipo === 'fisica' ? firstRow.nombre_fisica : null, /*...*/ curp: tipo === 'fisica' ? firstRow.curp : null,
+                nombre_fisica: tipo === 'fisica' ? firstRow.nombre_fisica : null, /*...*/ curp: tipo === 'fisica' ? firstRow.curp : null, estatus_revision: firstRow.estatus_revision,
                 razon_social: tipo === 'moral' ? firstRow.razon_social : null, representantes: tipo === 'moral' ? [] : undefined
              };
              if (tipo === 'moral') {
@@ -796,4 +800,59 @@ export const updateUsuarioProveedor = async (usuarioData: any): Promise<any> => 
             throw new Error(`Error interno del servidor al actualizar usuario: ${error.message || 'Desconocido'}`);
         }
     }
+};
+
+/**
+ * Actualiza únicamente el estado de revisión de un proveedor (llamada por Admin).
+ * @param idProveedor El ID del proveedor a actualizar.
+ * @param nuevoEstatusRevision El nuevo estado ('PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO').
+ * @returns Promise<{id_proveedor: number, estatus_revision: string}> El ID y el nuevo estado actualizado.
+ * @throws Error si el proveedor no existe o la actualización falla.
+ */
+export const actualizarEstatusRevision = async (
+    idProveedor: number,
+    nuevoEstatusRevision: string
+): Promise<{ id_proveedor: number; estatus_revision: string }> => {
+
+    console.log(`SERVICE (Admin): Actualizando estatus_revision para ID ${idProveedor} a "${nuevoEstatusRevision}"`);
+
+    // Validación de entradas
+    if (isNaN(idProveedor)) {
+        throw new Error("ID de proveedor inválido.");
+    }
+    const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+    if (!nuevoEstatusRevision || !validStatuses.includes(nuevoEstatusRevision)) {
+        throw new Error(`Estatus de revisión inválido: "${nuevoEstatusRevision}". Valores permitidos: ${validStatuses.join(', ')}`);
+    }
+
+    try {
+        // Ejecutar el UPDATE específico
+        const result = await sql`
+            UPDATE proveedores
+            SET
+                estatus_revision = ${nuevoEstatusRevision},
+                updated_at = NOW() -- Actualizar también el timestamp general
+            WHERE id_proveedor = ${idProveedor}
+            RETURNING id_proveedor, estatus_revision; -- Devolver confirmación
+        `;
+
+        // Verificar si se actualizó alguna fila
+        if (result.rowCount === 0) {
+            throw new Error(`Proveedor con ID ${idProveedor} no encontrado.`);
+        }
+
+        const updatedData = result.rows[0];
+        console.log(`SERVICE (Admin): Estatus de revisión actualizado exitosamente para ID ${idProveedor} a "${updatedData.estatus_revision}"`);
+
+        // Aquí NO se dispara notificación al admin (él mismo hizo el cambio)
+        // Podrías disparar una notificación AL PROVEEDOR si quisieras informarle.
+
+        return updatedData;
+
+    } catch (error: any) {
+        console.error(`SERVICE ERROR (Admin) en actualizarEstatusRevision para ID ${idProveedor}:`, error);
+        // Re-lanzar error para que la API Route lo maneje
+        throw new Error(`Error al actualizar estado de revisión: ${error.message || 'Error desconocido'}`);
+    }
+    // No es necesario finally para liberar cliente si no se usó transacción explícita aquí
 };

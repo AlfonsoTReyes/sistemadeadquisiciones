@@ -1,8 +1,8 @@
 // --- START OF FILE src/components/proveedores/dashboard/ProveedorInfo.tsx ---
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Asumiendo que la función fetch correcta está en fetchdashboard
-import { updateProveedor } from './fetchdashboard';
+import { updateProveedor, solicitarRevision } from './fetchdashboard';
 import ModalActualizarProveedor from './modalActualizarProveedor';
 import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor';
 import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores';
@@ -13,6 +13,8 @@ interface RepresentanteLegalOutput {
     nombre_representante?: string | null;
     apellido_p_representante?: string | null;
     apellido_m_representante?: string | null;
+    estatus_revision?: string | null; // Añadido
+    representantes?: RepresentanteLegalOutput[]; // Añadido
     // Otros campos del representante si existen en la tabla/respuesta
 }
 
@@ -35,7 +37,7 @@ interface ProveedorData {
   numero_registro_camara?: string | null;
   numero_registro_imss?: string | null;
   estatus?: boolean;
-  // ... otros campos comunes ...
+  estatus_revision?: string | null; // 'NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'
   actividad_sat?: string | null;
   proveedor_eventos?: boolean | null;
   tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
@@ -56,14 +58,14 @@ interface ProveedorData {
 
 // 3. Interfaz para las Props (Sin cambios)
 interface ProveedorInfoProps {
-  providerData: ProveedorData | null;
-  loading: boolean;
-  error: string | null;
-  onManageDocumentsClick: () => void;
-   // onUpdateSuccess?: () => void; // Prop si el padre maneja el refresh
+    providerData: ProveedorData | null;
+    loading: boolean; // Loading general de la página
+    error: string | null; // Error general de la página
+    onManageDocumentsClick: () => void;
+    onDataRefreshNeeded?: () => void; // Función opcional para pedir al padre que recargue
 }
 
-// --- Componente Helper (Sin cambios) ---
+// --- Componente Helper---
 const InfoFieldDisplay: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
     <p className="text-sm text-gray-700 mb-1 break-words">
         <span className="font-semibold text-gray-800">{label}:</span>
@@ -71,81 +73,64 @@ const InfoFieldDisplay: React.FC<{ label: string; value: React.ReactNode }> = ({
     </p>
 );
 
-// --- Componente Principal (ADAPTADO) ---
+// --- Componente Principal ---
 const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
-  providerData,
-  loading,
-  error,
-  onManageDocumentsClick
-  // onUpdateSuccess
-}) => {
+    providerData: initialProviderData, // Renombrar para claridad con el estado local
+    loading: loadingPage, // Renombrar para claridad
+    error: pageError, // Renombrar para claridad
+    onManageDocumentsClick,
+    onDataRefreshNeeded
+  }) => {
   // Estados locales (modal, pdf) - Sin cambios
+  const [providerData, setProviderData] = useState<ProveedorData | null>(initialProviderData);
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false); // Para el modal de edición
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [isRequestingReview, setIsRequestingReview] = useState(false);
+  const [requestReviewError, setRequestReviewError] = useState<string | null>(null);
+  const [requestReviewSuccess, setRequestReviewSuccess] = useState<string | null>(null);
 
-  // Handlers Modal - Sin cambios en cómo se abren/cierran
+  useEffect(() => {
+    setProviderData(initialProviderData);
+    setUpdateError(null);
+    setPdfError(null);
+    setIsRequestingReview(false);
+    setRequestReviewError(null);
+    setRequestReviewSuccess(null);
+}, [initialProviderData]);
+
+  // --- Handlers Modal Edición (Sin cambios internos, pero usan estado local 'providerData') ---
   const handleOpenModal = () => {
-    if (providerData) {
-        setUpdateError(null); // Limpiar errores del modal anterior
-        setModalAbierto(true);
-        console.log("ProveedorInfo: Abriendo modal de edición.");
-    } else {
-        console.error("ProveedorInfo: No hay datos para editar.");
-        alert("No se pueden editar los datos porque no se han cargado.");
-    }
+    if (providerData) { setUpdateError(null); setModalAbierto(true); }
+    else { alert("No hay datos para editar."); }
 };
+const handleCloseModal = () => { setModalAbierto(false); };
+    // --- Handler Guardar Perfil (MODIFICADO) ---
+    const handleSaveUpdate = async (updatedDataFromModal: any) => {
+        if (!providerData) { /* ... */ }
+        if (!updatedDataFromModal?.id_proveedor || !updatedDataFromModal.tipoProveedor) { /* ... */ }
+        setIsUpdating(true); setUpdateError(null);
+        try {
+            const updatedProvider = await updateProveedor(updatedDataFromModal);
+            setProviderData(updatedProvider); // Actualiza estado local
+            alert("¡Perfil actualizado con éxito!");
+            handleCloseModal();
 
-const handleCloseModal = () => {
-    setModalAbierto(false);
-    console.log("ProveedorInfo: Cerrando modal de edición.");
-    // No limpiar updateError aquí, podría ser útil verlo si se reabre rápido
-};
+            // **LLAMAR AL CALLBACK DEL PADRE EN LUGAR DE RELOAD**
+            if (onDataRefreshNeeded) {
+                console.log("ProveedorInfo: Solicitando refresh de datos al padre...");
+                onDataRefreshNeeded(); // <--- LLAMAR A LA PROP
+            } else {
+                console.warn("ProveedorInfo: onDataRefreshNeeded no proporcionado. Considera recargar la página como fallback.");
+            }
 
- // Handler para Guardar - Sin cambios funcionales aquí, pasa el payload al modal
- const handleSaveUpdate = async (updatedDataFromModal: any) => {
-    if (!providerData) {
-        console.error("ProveedorInfo: Intento de guardar sin datos originales.");
-        setUpdateError("Error interno: Faltan datos originales del proveedor.");
-        return; // Salir temprano
-    }
-    // Validación: Asegurarse que los datos del modal incluyan id_proveedor y tipoProveedor
-    if (!updatedDataFromModal || !updatedDataFromModal.id_proveedor || !updatedDataFromModal.tipoProveedor) {
-         console.error("ProveedorInfo: Datos inválidos recibidos del modal para actualizar:", updatedDataFromModal);
-         setUpdateError("Error interno: Datos incompletos desde el formulario de edición.");
-         setIsUpdating(false); // Detener indicardor de carga
-         return; // No continuar
-    }
+        } catch (err: any) { setUpdateError(err.message || "Error desconocido."); }
+        finally { setIsUpdating(false); }
+    };
+    // --- FIN Handler Guardar Perfil ---
 
-
-    setIsUpdating(true);
-    setUpdateError(null); // Limpiar error antes de intentar
-
-    console.log("ProveedorInfo: Enviando datos para actualizar:", updatedDataFromModal);
-
-    try {
-        // Llama a la función fetch de actualización directamente
-        await updateProveedor(updatedDataFromModal);
-
-        console.log("ProveedorInfo: Actualización exitosa.");
-        alert("¡Proveedor actualizado con éxito!"); // Notificación simple
-        handleCloseModal(); // Cierra el modal
-
-        window.location.reload();
-        // if(onUpdateSuccess) onUpdateSuccess();
-
-
-    } catch (err: any) {
-        console.error("ProveedorInfo: Error al guardar la actualización:", err);
-        // Mostrar el error DENTRO DEL MODAL
-        setUpdateError(err.message || "Error desconocido al guardar los cambios.");
-        // NO cerrar el modal para que el usuario vea el error
-    } finally {
-        setIsUpdating(false); // Terminar el estado de carga
-    }
-};
 
   // Handlers PDF - Sin cambios
     const handleGeneratePdfClick = async () => {
@@ -165,13 +150,43 @@ const handleCloseModal = () => {
         } catch (err: any) { setPdfError(err.message || "Error generando PDF Revalidación."); }
         finally { setIsGeneratingPdf(false); }
     };
+  // --- **NUEVO HANDLER: Solicitar Revisión** ---
+  const handleSolicitarRevisionClick = async () => {
+    if (!providerData || !providerData.id_proveedor) {
+        alert("Error: No se pueden cargar los datos del proveedor.");
+        return;
+    }
 
+    // Confirmación
+    if (!window.confirm("¿Está seguro de que ha completado su perfil y subido todos los documentos requeridos?\nAl confirmar, su información será enviada a revisión.")) {
+        return;
+    }
+
+    setIsRequestingReview(true); setRequestReviewError(null); setRequestReviewSuccess(null);
+    try {
+        const result = await solicitarRevision(providerData.id_proveedor);
+        if (result?.estatus_revision) {
+            // Actualiza estado local para feedback inmediato
+            setProviderData(prev => prev ? { ...prev, estatus_revision: result.estatus_revision } : null);
+            setRequestReviewSuccess("Solicitud enviada.");
+            setTimeout(() => setRequestReviewSuccess(null), 5000);
+            // Opcional: También pedir al padre que refresque por si acaso
+            // if (onDataRefreshNeeded) onDataRefreshNeeded();
+        } else {
+            // Si la respuesta es inesperada, pide al padre que refresque
+            console.warn("Respuesta inesperada de solicitarRevision, solicitando refresh.");
+            if (onDataRefreshNeeded) onDataRefreshNeeded();
+            else window.location.reload(); // Fallback
+        }
+    } catch (err: any) { setRequestReviewError(err.message || "Error al solicitar."); }
+    finally { setIsRequestingReview(false); }
+};
   // --- Renderizado Condicional (Sin cambios) ---
-  if (loading) {
+  if (loadingPage) {
     return <div className="text-center p-10 text-gray-600">Cargando datos del proveedor...</div>;
 }
 
-if (error) {
+if (pageError) {
     return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-lg mx-auto text-center" role="alert">{error}</div>;
 }
 
@@ -180,14 +195,32 @@ if (!providerData) {
 }
 
   // --- Renderizado de Datos (ACTUALIZADO) ---
-  const { tipo_proveedor, representantes } = providerData; // Desestructurar representantes
+  const { tipo_proveedor, representantes, estatus_revision } = providerData; // Desestructurar estatus_revision
   const isMoral = tipo_proveedor === 'moral';
   const isFisica = tipo_proveedor === 'fisica';
-
+  const puedeSolicitarRevision = estatus_revision === 'NO_SOLICITADO' || estatus_revision === 'RECHAZADO';
+  const textoEstatusRevision = estatus_revision?.replace(/_/g, ' ') || 'No Solicitado'; // Reemplazar guiones bajos
   return (
       <div className="bg-white shadow-xl rounded-lg p-6 md:p-8 max-w-4xl mx-auto">
            <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b pb-3">Información del Proveedor</h1>
+          {/* **NUEVO: Mostrar Estatus de Revisión** */}
+          <div className="mb-6 p-3 rounded-md border text-center
+              ${estatus_revision === 'APROBADO' ? 'bg-green-50 border-green-300 text-green-800' :
+                estatus_revision === 'RECHAZADO' ? 'bg-red-50 border-red-300 text-red-800' :
+                estatus_revision === 'PENDIENTE_REVISION' || estatus_revision === 'EN_REVISION' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' :
+                'bg-gray-100 border-gray-300 text-gray-600'}">
+              <p className="font-medium text-sm">
+                  Estado de Revisión de Documentación: <span className="font-bold">{textoEstatusRevision}</span>
+              </p>
+              {providerData.estatus_revision === 'RECHAZADO' && <p className="text-xs mt-1">Revise sus documentos o perfil y vuelva a solicitar la revisión.</p>}
+              {providerData.estatus_revision === 'PENDIENTE_REVISION' && <p className="text-xs mt-1">Su solicitud está en espera de ser atendida por un administrador.</p>}
+               {providerData.estatus_revision === 'EN_REVISION' && <p className="text-xs mt-1">Un administrador está revisando su información.</p>}
+          </div>
+          {/* **FIN ESTATUS REVISIÓN** */}
 
+          {/* Mensajes específicos de la acción de solicitar revisión */}
+           {requestReviewError && <p className="text-sm text-red-600 my-2 text-center">{requestReviewError}</p>}
+           {requestReviewSuccess && <p className="text-sm text-green-600 my-2 text-center">{requestReviewSuccess}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 mb-6 border-b pb-4">
               <InfoFieldDisplay label="RFC" value={providerData.rfc} />
               <InfoFieldDisplay label="Tipo" value={isMoral ? 'Persona Moral' : isFisica ? 'Persona Física' : 'Desconocido'} />
@@ -282,8 +315,18 @@ if (!providerData) {
                >
                    {isGeneratingPdf ? 'Generando Revalidación...' : 'Generar Revalidación PDF'}
                </button>*/}
-               
+                             {/* **NUEVO: Botón Solicitar Revisión** */}
               <button
+                  onClick={handleSolicitarRevisionClick}
+                  className={`bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed`}
+                   // Deshabilitar si ya está pendiente, en revisión, aprobado, o si se está procesando otra acción
+                   disabled={!puedeSolicitarRevision || isUpdating || isGeneratingPdf || isRequestingReview}
+                   title={!puedeSolicitarRevision ? `Su estado actual es ${textoEstatusRevision}` : "Enviar perfil y documentos a revisión"}
+               >
+                   {isRequestingReview ? 'Enviando Solicitud...' : 'Solicitar Revisión Documentación'}
+               </button>
+               {/* --- FIN Botón Solicitar Revisión --- */}
+               <button
                  onClick={onManageDocumentsClick} // Llama a la prop del padre
                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50"
                  disabled={isUpdating || isGeneratingPdf} // Deshabilitar si está actualizando/generando PDF

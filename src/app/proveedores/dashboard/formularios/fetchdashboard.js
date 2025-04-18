@@ -62,3 +62,40 @@ export const getProveedorForUser = async (userId) => {
       throw err; // Re-lanza
   }
 };
+
+/**
+ * Solicita la revisión del perfil/documentos de un proveedor.
+ * Llama al endpoint PATCH /api/proveedores.
+ * @param {number} idProveedor - El ID del proveedor que solicita la revisión.
+ * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API (ej. { id_proveedor, estatus_revision }).
+ * @throws {Error} - Si el ID es inválido o la solicitud falla.
+ */
+export const solicitarRevision = async (idProveedor) => {
+    const providerIdNum = parseInt(idProveedor, 10);
+    if (isNaN(providerIdNum)) {
+        throw new Error("ID de proveedor inválido para solicitar revisión.");
+    }
+    console.log(`FETCH: solicitarRevision for ID: ${providerIdNum}`);
+    try {
+        const response = await fetch(API_URL, { // Llama al mismo endpoint base pero con PATCH
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id_proveedor: providerIdNum }), // Enviar solo el ID en el body
+        });
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+             console.error(`FETCH Error PATCH ${API_URL}: Status ${response.status} for ID ${providerIdNum}`, data);
+             throw new Error(data?.message || `Error ${response.status}: No se pudo solicitar la revisión.`);
+         }
+         if (!data) {
+             throw new Error("Respuesta inválida del servidor tras solicitar revisión.");
+         }
+        console.log(`FETCH: solicitarRevision successful for ID: ${providerIdNum}`);
+        return data; // Devuelve { id_proveedor, estatus_revision: 'PENDIENTE_REVISION' }
+
+    } catch(err) {
+        console.error(`FETCH Error solicitarRevision ID ${providerIdNum}:`, err);
+        throw err;
+    }
+};

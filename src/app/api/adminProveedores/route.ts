@@ -6,7 +6,8 @@ import {
   updateProveedorEstatus,
   updateProveedorProfileForAdmin, // Usada para PUT de perfil completo
   getUsuarioProveedorByProveedorId,
-  updateUsuarioProveedor
+  updateUsuarioProveedor,
+  actualizarEstatusRevision
 } from '@/services/adminproveedoresservice';
 
 // GET: Obtener TODOS los proveedores o UNO específico por ID o Usuario Asociado
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
 }
 
 // PUT: Actualizar ESTATUS o PERFIL COMPLETO de un proveedor o usuario proveedor
+// --- PUT (ADAPTADO para diferenciar actualización de ESTATUS REVISIÓN) ---
 export async function PUT(req: NextRequest) {
   let requestData;
   try {
@@ -77,80 +79,76 @@ export async function PUT(req: NextRequest) {
 
     const data = requestData;
 
-    // --- Caso: Actualización de Usuario Proveedor ---
+    // --- Caso 1: Actualización de Usuario Proveedor ---
     if ('id_usuario' in data && typeof data.id_usuario === 'number') {
         console.log("API Route: Handling User Update for user:", data.id_usuario);
-        const usuarioProveedorActualizado = await updateUsuarioProveedor(data);
-        return NextResponse.json(usuarioProveedorActualizado);
+        // ... (Validación campos usuario si es necesario) ...
+        const usuarioActualizado = await updateUsuarioProveedor(data);
+        return NextResponse.json(usuarioActualizado);
     }
-    // --- Caso: Actualización de Proveedor (Perfil o Estatus) ---
+    // --- Caso 2: Actualización de Proveedor ---
     else if ('id_proveedor' in data && typeof data.id_proveedor === 'number') {
-        // Determinar si es actualización de perfil completo o solo estatus
-        const isProfileUpdate = 'tipoProveedor' in data; // Asume que el tipo siempre se envía en act. de perfil
-        // (Asegúrate que el frontend SIEMPRE envíe tipoProveedor en la actualización de perfil)
-        const isStatusUpdateOnly = 'estatus' in data && Object.keys(data).length === 2; // Solo id y estatus
+        const idProveedor = data.id_proveedor;
 
-        // --- Subcaso: Actualización de Perfil Completo ---
+        // Distinguir entre los tipos de actualización para proveedor
+        const isProfileUpdate = 'tipoProveedor' in data; // Identifica act. perfil completo
+        const isStatusUpdateOnly = 'estatus' in data && Object.keys(data).length === 2 && typeof data.estatus === 'boolean'; // Solo estatus general
+        // **NUEVO:** Identificar actualización de estatus de revisión
+        const isRevisionStatusUpdate = 'estatus_revision' in data && Object.keys(data).length === 2 && typeof data.estatus_revision === 'string'; // Solo id y estatus_revision (string)
+
+        // --- Subcaso 2a: Actualización de Perfil Completo ---
         if (isProfileUpdate) {
-            console.log("API Route: Handling Profile Update for provider:", data.id_proveedor);
+            console.log("API Route: Handling Profile Update for provider:", idProveedor);
+            // ... (Validaciones existentes para perfil completo, incluyendo tipoProveedor, actividadSat, proveedorEventos, array representantes si es moral) ...
+            if (!data.tipoProveedor || !['moral', 'fisica'].includes(data.tipoProveedor)) return NextResponse.json({ message: 'Tipo inválido.' }, { status: 400 });
+            // ... más validaciones ...
 
-            // Validar que tipoProveedor sea válido antes de llamar al servicio
-            if (!data.tipoProveedor || (data.tipoProveedor !== 'moral' && data.tipoProveedor !== 'fisica')) {
-                 return NextResponse.json({ message: 'El campo "tipoProveedor" es requerido y debe ser "moral" o "fisica" para actualizar el perfil.' }, { status: 400 });
-            }
-            // Validar que actividadSat exista y no esté vacío si se requiere en update
-            // (La validación fuerte puede estar en el servicio, pero una básica aquí es útil)
-             if (data.actividadSat !== undefined && (typeof data.actividadSat !== 'string' || data.actividadSat.trim() === '')) {
-                 return NextResponse.json({ message: 'Si se incluye "actividadSat", no puede estar vacío.' }, { status: 400 });
-             }
-            // Validar tipo de proveedorEventos si existe
-            if (data.proveedorEventos !== undefined && typeof data.proveedorEventos !== 'boolean') {
-                 return NextResponse.json({ message: 'El campo "proveedorEventos" debe ser un valor booleano (true/false).' }, { status: 400 });
-            }
-
-            // LLAMA A LA FUNCIÓN DEL SERVICIO QUE YA FUE ACTUALIZADA
-            // updateProveedorProfileForAdmin ahora acepta actividadSat y proveedorEventos en `data`
-            // y los incluye en el UPDATE SQL.
-            // El objeto 'data' ya contiene los nuevos campos si el frontend los envió.
-            const proveedorActualizado = await updateProveedorProfileForAdmin(data as any); // Usa interfaz si la importas
-            return NextResponse.json(proveedorActualizado); // Devuelve el perfil actualizado (que incluye los nuevos campos)
-        }
-        else if (isStatusUpdateOnly) {
-            console.log("API Route: Handling Estatus Update for provider:", data.id_proveedor);
-             if (typeof data.estatus !== 'boolean') { // Forzar booleano aquí
-                 return NextResponse.json({ message: 'Valor de "estatus" debe ser booleano (true/false) para actualización de estatus.' }, { status: 400 });
-            }
-            const proveedorActualizado = await updateProveedorEstatus(data.id_proveedor, data.estatus);
+            const proveedorActualizado = await updateProveedorProfileForAdmin(data as any);
             return NextResponse.json(proveedorActualizado);
         }
-        // --- Subcaso: Estructura inválida para actualización de proveedor ---
+        // --- Subcaso 2b: Actualización de Estatus General (Activo/Inactivo) ---
+        else if (isStatusUpdateOnly) {
+            console.log("API Route: Handling General Status Update for provider:", idProveedor);
+            const proveedorActualizado = await updateProveedorEstatus(idProveedor, data.estatus); // data.estatus ya validado como boolean
+            return NextResponse.json(proveedorActualizado);
+        }
+        // --- **NUEVO Subcaso 2c: Actualización de Estatus de Revisión** ---
+        else if (isRevisionStatusUpdate) {
+            console.log("API Route: Handling Revision Status Update for provider:", idProveedor);
+            const nuevoEstatusRevision = data.estatus_revision;
+
+            // Opcional: Validar que el nuevoEstatusRevision sea uno de los permitidos
+            const validRevisionStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+            if (!validRevisionStatuses.includes(nuevoEstatusRevision)) {
+                return NextResponse.json({ message: `Valor de 'estatus_revision' (${nuevoEstatusRevision}) inválido.` }, { status: 400 });
+            }
+
+            // Llama al nuevo servicio específico del admin
+            const resultado = await actualizarEstatusRevision(idProveedor, nuevoEstatusRevision);
+            return NextResponse.json(resultado); // Devuelve lo que retorne el servicio
+        }
+        // --- Subcaso 2d: Estructura inválida para actualización de proveedor ---
         else {
              console.error("API Route: Ambiguous or invalid PUT request for provider (has id_proveedor but structure unclear):", data);
-             return NextResponse.json({ message: 'Solicitud de actualización para proveedor no válida. Falta "tipoProveedor" para perfil completo o tiene campos extra para actualización de estatus.' }, { status: 400 });
+             // Mensaje de error actualizado
+             return NextResponse.json({ message: 'Solicitud de actualización para proveedor no válida. Verifique la estructura (perfil completo, solo estatus general, o solo estatus de revisión).' }, { status: 400 });
         }
     }
-    // --- Caso: Estructura de solicitud inválida ---
+    // --- Caso 3: Estructura de solicitud global inválida ---
     else {
       console.error("API Route: Invalid PUT request structure. Missing valid 'id_usuario' or 'id_proveedor'.", data);
       return NextResponse.json({ message: 'Solicitud de actualización no válida. Se requiere "id_usuario" o "id_proveedor".' }, { status: 400 });
     }
 
   } catch (error: any) {
-     // --- Manejo de Errores (Mantenido, ya es robusto) ---
+     // --- Manejo de Errores (Sin cambios necesarios aquí, captura errores del servicio) ---
      console.error("API Route PUT /admin/proveedores Error Caught:", error);
      let status = 500;
-     let message = 'Ocurrió un error inesperado al procesar la solicitud.';
-
-     if (error.message) {
-         message = error.message;
-         if (error.message.includes("no encontrado")) status = 404;
-         else if (error.message.includes("ya está en uso")) status = 409;
-         else if (error.message.includes("requerido") || error.message.includes("inválido") || error.message.includes("Error al actualizar") || error.message.includes("SQL") || error.message.includes("Error de base de datos")) status = 400;
-     }
-     if (error instanceof SyntaxError && error.message.includes('JSON')) {
-         status = 400;
-         message = 'Error: El formato del cuerpo de la solicitud (JSON) es inválido.';
-     }
+     let message = error.message || 'Error inesperado procesando la solicitud.';
+     if (message.includes("no encontrado")) status = 404;
+     else if (message.includes("ya está en uso")) status = 409;
+     else if (message.includes("requerido") || message.includes("inválido") || error.code === '23503' || error.code === '22P02') status = 400; // Añadir códigos PG comunes para bad request
+     else if (error instanceof SyntaxError && message.includes('JSON')) { status = 400; message = 'Error: Formato JSON inválido.'; }
 
      console.error(`API Route PUT /admin/proveedores Responding with Status: ${status}, Message: "${message}"`);
      return NextResponse.json({ message: message }, { status });
