@@ -264,42 +264,7 @@ export const getDocumentosByProveedor = async (id_proveedor: number) => {
       throw new Error('Error al obtener los documentos del proveedor.');
   }
 };
-/**
- * Actualiza el estatus de un documento específico.
- * @param id_documento_proveedor - ID del documento a actualizar.
- * @param nuevoEstatus - El nuevo estado (podría ser string como 'Aprobado', 'Rechazado', 'Pendiente' o boolean)
- */
-export const updateEstatusDocumentoProveedor = async (
-  id_documento_proveedor: number,
-  nuevoEstatus: string | boolean // Ajusta el tipo según tu base de datos
-) => {
-  console.log(`DEBUG Service: Updating status for document ID ${id_documento_proveedor} to ${nuevoEstatus}`);
-  try {
-      if (isNaN(id_documento_proveedor)) {
-          throw new Error("ID de documento inválido.");
-      }
-      // Ajusta el tipo de dato para nuevoEstatus si es necesario (ej. boolean)
-      const result = await sql`
-          UPDATE documentos_proveedor
-          SET
-              estatus = ${nuevoEstatus},
-              updated_at = NOW() -- Corrige el nombre de columna si es diferente
-          WHERE id_documento_proveedor = ${id_documento_proveedor}
-          RETURNING *; -- Devuelve el documento actualizado
-      `;
 
-      if (result.rows.length === 0) {
-          throw new Error(`Documento con ID ${id_documento_proveedor} no encontrado.`);
-      }
-
-      console.log(`DEBUG Service: Document status updated successfully for ID ${id_documento_proveedor}`);
-      return result.rows[0];
-
-  } catch (error) {
-      console.error(`Error updating document status for ID ${id_documento_proveedor}:`, error);
-      throw new Error('Error al actualizar el estatus del documento.');
-  }
-};
 
 // Función helper para procesar el resultado de la query
 const procesarResultadoProveedor = (rows: any[]): ProveedorCompletoData | null => {

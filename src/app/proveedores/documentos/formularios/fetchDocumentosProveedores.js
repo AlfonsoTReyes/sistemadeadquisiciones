@@ -116,3 +116,53 @@ export const deleteDocumentoProveedor = async (id_documento_proveedor) => {
     return data ?? { message: "Documento eliminado exitosamente." };
   } catch (error) { console.error(`Error en deleteDocumentoProveedor ID ${docIdNum}:`, error); throw error; }
 };
+
+/**
+ * Obtiene la lista de comentarios asociados a un ID de documento específico (Vista Proveedor).
+ * Llama a GET /api/proveedoresDocumentos?documentoIdParaComentarios=[idDoc]
+ * @param {number | string} idDocumento - El ID del documento cuyos comentarios se buscan.
+ * @returns {Promise<Array<object>>} - Una promesa que resuelve a un array de comentarios (puede ser vacío).
+ * @throws {Error} - Si el ID es inválido o la petición falla.
+ */
+export const fetchComentariosPorDocumentoParaProveedor = async (idDocumento) => {
+  const docIdNum = parseInt(idDocumento, 10);
+  if (isNaN(docIdNum)) {
+      throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
+  }
+  console.log(`FETCH (Proveedor): fetchComentariosPorDocumentoParaProveedor Doc ID: ${docIdNum}`);
+
+  // Usa la URL base de documentos y añade el query param específico
+  const apiUrl = `${API_URL_DOCUMENTOS}?documentoIdParaComentarios=${docIdNum}`;
+
+  try {
+      const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store', // Evitar caché para comentarios
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+          // Manejar 404 si la API lo usa para "doc no encontrado o sin autorización"
+          if (response.status === 404) {
+              console.warn(`FETCH (Proveedor): Comentarios no encontrados o no autorizados (404) para Doc ID ${docIdNum}`);
+              return []; // Devolver array vacío en lugar de lanzar error
+          }
+          console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response:`, data);
+          throw new Error(data?.message || `Error ${response.status}: No se pudieron obtener los comentarios.`);
+      }
+      // Si la respuesta es OK pero el parseo falla o devuelve null
+      if (!data) {
+           console.warn(`FETCH (Proveedor): Respuesta vacía o inválida del servidor para comentarios Doc ID ${docIdNum}`);
+           return []; // Devolver array vacío
+      }
+
+      console.log(`FETCH (Proveedor): fetchComentariosPorDocumentoParaProveedor successful for Doc ID ${docIdNum}`);
+      return data; // Devuelve el array de comentarios
+
+  } catch (err) {
+      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception fetchComentariosPorDocumentoParaProveedor Doc ID ${docIdNum}:`, errorToThrow);
+      throw errorToThrow; // Re-lanzar para que el componente lo maneje
+  }
+};

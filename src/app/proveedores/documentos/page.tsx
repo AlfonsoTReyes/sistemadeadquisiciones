@@ -16,13 +16,10 @@ const DocumentosProveedorPage = () => {
 
     // --- Estados ---
     const [idUsuarioLogueado, setIdUsuarioLogueado] = useState<number | null>(null);
-    // **NUEVO:** Estado para el perfil completo del proveedor
     const [providerProfileData, setProviderProfileData] = useState<ProveedorCompletoData | null>(null);
-    // Estados para documentos y carga/errores
     const [documentos, setDocumentos] = useState<DocumentoProveedor[]>([]);
     const [loadingPage, setLoadingPage] = useState<boolean>(true); // Cubre carga de perfil Y documentos iniciales
     const [errorPage, setErrorPage] = useState<string | null>(null);
-    // Estado para modal (sin cambios)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
