@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; 
+import React, { useState, useEffect, useMemo, useCallback  } from 'react'; 
 import { useRouter } from 'next/navigation';
 import Menu from '../../menu_principal';
 import Pie from "../../pie";
@@ -22,111 +22,85 @@ export default function AdministradorProveedoresPage() {
     const router = useRouter();
 
     // Estados para la lista de proveedores, carga y errores
-    const [proveedores, setProveedores] = useState<ProveedorAdminListData[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({});
+    const [proveedores, setProveedores] = useState<ProveedorData[]>([]); // Lista para la tabla
+    const [loading, setLoading] = useState(true);          // Carga inicial
+    const [error, setError] = useState<string | null>(null); // Errores generales/fetch lista
+    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({}); // Carga cambio estatus
+    const [filtroRfc, setFiltroRfc] = useState('');       // Filtro RFC
+    const [filtroCorreo, setFiltroCorreo] = useState('');    // Filtro Correo
+
+    // Estados para Modales y sus datos
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false); // Modal Perfil Proveedor
+    const [editingProviderData, setEditingProviderData] = useState<ProveedorData | null>(null); // Datos para editar perfil
+    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false); // Modal Usuario Proveedor
+    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Datos para editar usuario
     const [isLoadingRevisionChange, setIsLoadingRevisionChange] = useState<{ [key: number]: boolean }>({});
-    const [filtroRfc, setFiltroRfc] = useState('');
-    const [filtroCorreo, setFiltroCorreo] = useState('');
-    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-    const [editingProviderData, setEditingProviderData] = useState<ProveedorCompletoData | null>(null);
-    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null);
-    const [isFetchingEditData, setIsFetchingEditData] = useState(false);
-    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-    const [updateProfileError, setUpdateProfileError] = useState<string | null>(null);
-    const [isUpdatingUser, setIsUpdatingUser] = useState(false);
-    const [updateUserError, setUpdateUserError] = useState<string | null>(null);
-    const [pendientesCount, setPendientesCount] = useState(0);
-    const pusherClientRef = useRef<PusherClient | null>(null);
-    const channelRef = useRef<any>(null);
+
+    // Estados de Carga/Error específicos de los Modales
+    const [isFetchingEditData, setIsFetchingEditData] = useState(false); // Carga de datos *para* el modal
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false); // Guardado modal perfil
+    const [updateProfileError, setUpdateProfileError] = useState<string | null>(null); // Error modal perfil
+    const [isUpdatingUser, setIsUpdatingUser] = useState(false);       // Guardado modal usuario
+    const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Error modal usuario
 
     // --- Carga Inicial de la Lista de Proveedores ---
-    const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
-        console.log("AdminPage: Fetching/Refreshing providers list...");
-        if(showLoadingIndicator) setLoading(true);
-        setError(null);
+    const cargarProveedores = useCallback(async () => {
+        console.log("AdminPage: Cargando lista proveedores...");
+        setLoading(true); setError(null);
         try {
-            const data = await fetchAllProveedores();
-            const validData = data || [];
-            setProveedores(validData);
-            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
-            setPendientesCount(count);
-            console.log(`AdminPage: Lista cargada. Pendientes: ${count}`);
-        } catch (err: any) { setError(err.message || "Error cargando proveedores."); setProveedores([]); setPendientesCount(0); }
-        finally { if(showLoadingIndicator) setLoading(false); }
+            const data = await fetchAllProveedores(); // Obtiene lista resumida
+            setProveedores(data || []);
+        } catch (err: any) { setError(err.message || "Error cargando proveedores."); }
+        finally { setLoading(false); }
     }, []);
-
-        // --- Carga Inicial ---
-        useEffect(() => {
-            setLoading(true);
-            cargarProveedores().finally(() => setLoading(false));
-        }, [cargarProveedores]);
     // --- NUEVO: useEffect para Pusher ---
-    // --- useEffect para Pusher (Con alert()) ---
     useEffect(() => {
-        if (pusherClientRef.current) return; // Evitar reinicializar
-
-        const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-        const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-
-        if (!key || !cluster) { console.error("AdminPage Pusher: Claves no encontradas."); return; }
-
-        try {
-            console.log("AdminPage Pusher: Initializing...");
-            pusherClientRef.current = new PusherClient(key, { cluster });
-            const channelName = 'admin-notifications';
-            const eventName = 'cambio_estado_proveedor';
-
-            console.log(`AdminPage Pusher: Subscribing to ${channelName}...`);
-            channelRef.current = pusherClientRef.current.subscribe(channelName);
-
-            channelRef.current.bind('pusher:subscription_succeeded', () => { console.log(`AdminPage Pusher: Subscribed to ${channelName}`); });
-            channelRef.current.bind('pusher:subscription_error', (err: any) => { console.error(`AdminPage Pusher: Subscription error for ${channelName}:`, err); });
-
-            const handleEvent = (data: any) => {
-                console.log(`PUSHER RECEIVED (Admin): ${eventName}`, data);
-
-                // **CAMBIO: Usar alert()**
-                const displayMessage = data.mensaje || `Proveedor ${data.idProveedor}: Estado actualizado a ${data.nuevoEstatus}. Revise la lista.`;
-                alert(`Notificación Admin:\n${displayMessage}`); // <-- Usar alert
-
-                // Refrescar lista para actualizar contador y estado visual
-                cargarProveedores(); // Llamar sin indicador de carga global
-            };
-
-            console.log(`AdminPage Pusher: Binding to event ${eventName}`);
-            channelRef.current.bind(eventName, handleEvent);
-
-            return () => {
-                 if (pusherClientRef.current && channelRef.current) {
-                     console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
-                     channelRef.current.unbind(eventName, handleEvent);
-                     pusherClientRef.current.unsubscribe(channelName);
-                     // No desconectar aquí necesariamente, podría usarse en otro lado
-                     // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
-                 }
-            };
-        } catch (error) {
-            console.error("AdminPage Pusher: Failed to initialize.", error);
-            setError("No se pudieron inicializar las notificaciones.");
+        // Solo inicializar si las variables de entorno existen
+        if (!process.env.NEXT_PUBLIC_PUSHER_KEY || !process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
+            console.error("Pusher client keys not found in environment variables.");
+            return;
         }
-    // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
-    }, [cargarProveedores]);
+        console.log("AdminPage: Initializing Pusher Client...");
+        // Usar claves públicas desde .env.local
+        const pusherClient = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+            cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+            // Otras opciones si son necesarias (authEndpoint si usas canales privados/presencia)
+        });
+                // Suscribirse al canal de notificaciones del admin
+        // Usar el mismo nombre de canal que en el backend ('admin-notifications')
+        const channel = pusherClient.subscribe('admin-notifications');
+        console.log("AdminPage: Subscribed to Pusher channel 'admin-notifications'");
+                // Escuchar el evento específico que envía el backend
+        // Usar el mismo nombre de evento ('nueva-solicitud-revision')
+        channel.bind('nueva-solicitud-revision', (data: any) => {
+            console.log("PUSHER RECEIVED EVENT: nueva-solicitud-revision", data);
+
+            // --- Lógica para manejar la notificación ---
+            // 1. Mostrar un Toast/Notificación
+            //    Usa una librería como react-toastify, sonner, etc.
+            //    toast.info(`Nueva solicitud de revisión de ${data.nombreProveedor || data.rfc}`);
+            alert(`¡Nueva solicitud de revisión!\nProveedor: ${data.nombreProveedor || data.rfc}\nMensaje: ${data.mensaje}`); // Alert simple como ejemplo
+
+            // 2. Opcional: Refrescar la lista de proveedores para ver el nuevo estado
+            //    Podrías añadir un indicador visual de "nuevo" o simplemente recargar.
+            //    Llama a la función que recarga la lista:
+            fetchProvidersList();
+
+            // 3. Opcional: Actualizar un contador de notificaciones en el menú, etc.
+        });
+                // Limpieza al desmontar el componente
+                return () => {
+                    console.log("AdminPage: Unsubscribing from Pusher channel 'admin-notifications'");
+                    pusherClient.unsubscribe('admin-notifications');
+                    // Opcional: Desconectar si ya no se necesita en otras partes
+                    // pusherClient.disconnect();
+                };
+            }, []);
+  useEffect(() => {
+    cargarProveedores();
+  }, [cargarProveedores]);
     // --- 2. HANDLER PARA VER DOCUMENTOS ---
-    const fetchProvidersList = useCallback(async () => {
-        // ... (lógica como antes)
-        console.log("AdminPage: Fetching/Refreshing providers list...");
-        setError(null);
-        try {
-            const data = await fetchAllProveedores();
-            const validData = data || [];
-            setProveedores(validData);
-            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
-            setPendientesCount(count);
-        } catch (err: any) { /* ... */ }
-    }, []);
+    
      const handleViewDocuments = (idProveedor: number) => {
         if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
              console.error("handleViewDocuments - ID inválido:", idProveedor);
@@ -347,66 +321,49 @@ const handleCloseEditUserModal = () => {
       }
   };
 
-    // --- Handler Cambiar Estatus de Revisión (CORREGIDO) ---
-    const handleChangeRevisionStatus = async (idProveedor: number, nuevoEstatus: string) => {
-        console.log(`AdminPage: Changing revision status ID ${idProveedor} to ${nuevoEstatus}`);
-        setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: true }));
-        setError(null);
+  const handleChangeRevisionStatus = async (idProveedor: number, nuevoEstatus: string) => {
+    console.log(`AdminPage: Changing revision status for ID ${idProveedor} to ${nuevoEstatus}`);
+    setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: true }));
+    setError(null); // Limpiar error general
 
-        const estadoPrevio = proveedores.find(p => p.id_proveedor === idProveedor)?.estatus_revision;
+    // Optimistic UI Update (opcional): Actualizar estado local inmediatamente
+    setProveedores(prevProvs => prevProvs.map(p =>
+         p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
+    ));
 
-        // Optimistic UI Update (Opcional pero recomendado)
+    try {
+        // Llama a la nueva función fetch que interactúa con la API de admin
+        await updateAdminRevisionStatus(idProveedor, nuevoEstatus);
+
+        // Si NO usaste Optimistic UI, o para confirmar, actualiza el estado local con la respuesta
+        // o recarga toda la lista para asegurar consistencia.
+        // Actualizar solo el proveedor modificado es más eficiente:
         setProveedores(prevProvs => prevProvs.map(p =>
-            p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
-        ));
-         // Actualizar contador optimista
-         if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
-            setPendientesCount(prev => {
-                let currentPendientes = proveedores.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
-                // Ajuste basado en el cambio REAL que se acaba de hacer en la UI optimista
-                if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') currentPendientes--;
-                if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') currentPendientes++;
-                 // Re-evaluar sobre el estado ACTUALIZADO si no se usó optimista arriba
-                 // const currentPendientes = proveedores.map(p => p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p).filter(p=>p.estatus_revision === 'PENDIENTE_REVISION').length;
-                return Math.max(0, currentPendientes);
-            });
-         }
+             p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
+         ));
+        // Alternativa: Recargar toda la lista (más simple pero puede ser más lento)
+        // await fetchProvidersList();
 
+        console.log(`AdminPage: Revision status updated successfully for ID ${idProveedor}`);
+         // Opcional: Mostrar mensaje de éxito con un toast
 
-        try {
-            // **LLAMAR A LA FUNCIÓN FETCH, NO AL SERVICIO**
-            await updateAdminRevisionStatus(idProveedor, nuevoEstatus); // Usa la función importada de fetchAltaProveedor.js
-
-            console.log(`AdminPage: Llamada fetch updateAdminRevisionStatus exitosa para ID ${idProveedor}`);
-            // Si la llamada fetch fue exitosa, la UI optimista ya está correcta.
-            // No es estrictamente necesario recargar toda la lista aquí.
-            // Podrías mostrar un toast de éxito.
-
-        } catch (err: any) {
-            console.error(`AdminPage: Error en fetch updateAdminRevisionStatus ID ${idProveedor}:`, err);
-            setError(`Error al actualizar estado: ${err.message}`);
-            // **Revertir Optimistic UI**
-            setProveedores(prevProvs => prevProvs.map(p =>
-                p.id_proveedor === idProveedor ? { ...p, estatus_revision: estadoPrevio ?? 'NO_SOLICITADO' } : p
-            ));
-             // Recalcular contador si la reversión afectó PENDIENTE
-             if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
-                 fetchProvidersList(); // Recargar para asegurar contador correcto tras error
-             }
-        } finally {
-            setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
-        }
-    };
-    // --- FIN Handler Estatus Revisión ---
+    } catch (err: any) {
+        console.error(`AdminPage: Error changing revision status for ID ${idProveedor}:`, err);
+        setError(`Error al actualizar estado de revisión: ${err.message}`);
+        // Revertir Optimistic UI si se usó
+        fetchProvidersList(); // Recargar para obtener el estado real
+    } finally {
+        setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
+    }
+};
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
                 <Menu />
             <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
-            <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
-                     Administración de Proveedores
-                     {pendientesCount > 0 && ( <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span> )}
-                 </h1>
+                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
+                    Administración de Proveedores
+                </h1>
 
                 {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">

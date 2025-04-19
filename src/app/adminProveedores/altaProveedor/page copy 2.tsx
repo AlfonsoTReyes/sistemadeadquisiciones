@@ -43,77 +43,61 @@ export default function AdministradorProveedoresPage() {
     const channelRef = useRef<any>(null);
 
     // --- Carga Inicial de la Lista de Proveedores ---
-    const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
-        console.log("AdminPage: Fetching/Refreshing providers list...");
-        if(showLoadingIndicator) setLoading(true);
-        setError(null);
+    const cargarProveedores = useCallback(async () => {
+        console.log("AdminPage: Cargando lista proveedores...");
+        setLoading(true); setError(null);
         try {
-            const data = await fetchAllProveedores();
-            const validData = data || [];
-            setProveedores(validData);
-            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
-            setPendientesCount(count);
-            console.log(`AdminPage: Lista cargada. Pendientes: ${count}`);
-        } catch (err: any) { setError(err.message || "Error cargando proveedores."); setProveedores([]); setPendientesCount(0); }
-        finally { if(showLoadingIndicator) setLoading(false); }
+            const data = await fetchAllProveedores(); // Obtiene lista resumida
+            setProveedores(data || []);
+        } catch (err: any) { setError(err.message || "Error cargando proveedores."); }
+        finally { setLoading(false); }
     }, []);
-
-        // --- Carga Inicial ---
-        useEffect(() => {
-            setLoading(true);
-            cargarProveedores().finally(() => setLoading(false));
-        }, [cargarProveedores]);
     // --- NUEVO: useEffect para Pusher ---
-    // --- useEffect para Pusher (Con alert()) ---
     useEffect(() => {
-        if (pusherClientRef.current) return; // Evitar reinicializar
-
-        const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-        const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-
-        if (!key || !cluster) { console.error("AdminPage Pusher: Claves no encontradas."); return; }
-
-        try {
-            console.log("AdminPage Pusher: Initializing...");
-            pusherClientRef.current = new PusherClient(key, { cluster });
-            const channelName = 'admin-notifications';
-            const eventName = 'cambio_estado_proveedor';
-
-            console.log(`AdminPage Pusher: Subscribing to ${channelName}...`);
-            channelRef.current = pusherClientRef.current.subscribe(channelName);
-
-            channelRef.current.bind('pusher:subscription_succeeded', () => { console.log(`AdminPage Pusher: Subscribed to ${channelName}`); });
-            channelRef.current.bind('pusher:subscription_error', (err: any) => { console.error(`AdminPage Pusher: Subscription error for ${channelName}:`, err); });
-
-            const handleEvent = (data: any) => {
-                console.log(`PUSHER RECEIVED (Admin): ${eventName}`, data);
-
-                // **CAMBIO: Usar alert()**
-                const displayMessage = data.mensaje || `Proveedor ${data.idProveedor}: Estado actualizado a ${data.nuevoEstatus}. Revise la lista.`;
-                alert(`Notificación Admin:\n${displayMessage}`); // <-- Usar alert
-
-                // Refrescar lista para actualizar contador y estado visual
-                cargarProveedores(); // Llamar sin indicador de carga global
-            };
-
-            console.log(`AdminPage Pusher: Binding to event ${eventName}`);
-            channelRef.current.bind(eventName, handleEvent);
-
-            return () => {
-                 if (pusherClientRef.current && channelRef.current) {
-                     console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
-                     channelRef.current.unbind(eventName, handleEvent);
-                     pusherClientRef.current.unsubscribe(channelName);
-                     // No desconectar aquí necesariamente, podría usarse en otro lado
-                     // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
-                 }
-            };
-        } catch (error) {
-            console.error("AdminPage Pusher: Failed to initialize.", error);
-            setError("No se pudieron inicializar las notificaciones.");
+        // Solo inicializar si las variables de entorno existen
+        if (!process.env.NEXT_PUBLIC_PUSHER_KEY || !process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
+            console.error("Pusher client keys not found in environment variables.");
+            return;
         }
-    // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
-    }, [cargarProveedores]);
+        console.log("AdminPage: Initializing Pusher Client...");
+        // Usar claves públicas desde .env.local
+        const pusherClient = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+            cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+            // Otras opciones si son necesarias (authEndpoint si usas canales privados/presencia)
+        });
+                // Suscribirse al canal de notificaciones del admin
+        // Usar el mismo nombre de canal que en el backend ('admin-notifications')
+        const channel = pusherClient.subscribe('admin-notifications');
+        console.log("AdminPage: Subscribed to Pusher channel 'admin-notifications'");
+                // Escuchar el evento específico que envía el backend
+        // Usar el mismo nombre de evento ('nueva-solicitud-revision')
+        channel.bind('nueva-solicitud-revision', (data: any) => {
+            console.log("PUSHER RECEIVED EVENT: nueva-solicitud-revision", data);
+
+            // --- Lógica para manejar la notificación ---
+            // 1. Mostrar un Toast/Notificación
+            //    Usa una librería como react-toastify, sonner, etc.
+            //    toast.info(`Nueva solicitud de revisión de ${data.nombreProveedor || data.rfc}`);
+            alert(`¡Nueva solicitud de revisión!\nProveedor: ${data.nombreProveedor || data.rfc}\nMensaje: ${data.mensaje}`); // Alert simple como ejemplo
+
+            // 2. Opcional: Refrescar la lista de proveedores para ver el nuevo estado
+            //    Podrías añadir un indicador visual de "nuevo" o simplemente recargar.
+            //    Llama a la función que recarga la lista:
+            fetchProvidersList();
+
+            // 3. Opcional: Actualizar un contador de notificaciones en el menú, etc.
+        });
+                // Limpieza al desmontar el componente
+                return () => {
+                    console.log("AdminPage: Unsubscribing from Pusher channel 'admin-notifications'");
+                    pusherClient.unsubscribe('admin-notifications');
+                    // Opcional: Desconectar si ya no se necesita en otras partes
+                    // pusherClient.disconnect();
+                };
+            }, []);
+  useEffect(() => {
+    cargarProveedores();
+  }, [cargarProveedores]);
     // --- 2. HANDLER PARA VER DOCUMENTOS ---
     const fetchProvidersList = useCallback(async () => {
         // ... (lógica como antes)
@@ -403,10 +387,9 @@ const handleCloseEditUserModal = () => {
         <div>
                 <Menu />
             <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
-            <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
-                     Administración de Proveedores
-                     {pendientesCount > 0 && ( <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span> )}
-                 </h1>
+                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
+                    Administración de Proveedores
+                </h1>
 
                 {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">

@@ -518,89 +518,57 @@ export const checkProveedorProfileExists = async (id_usuario_proveedor: number):
  * @throws Error si el proveedor no se encuentra o falla la actualización.
  */
 export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{id_proveedor: number, estatus_revision: string}> => {
-    console.log(`SERVICE (Proveedor): Solicitando revisión para ID: ${idProveedor}`);
+    console.log(`SERVICE: Solicitando revisión para proveedor ID: ${idProveedor}`);
     if (isNaN(idProveedor)) {
         throw new Error("ID de proveedor inválido.");
     }
-
     let client: VercelPoolClient | null = null;
     try {
         client = await sql.connect();
         await client.sql`BEGIN`;
 
-        // Actualizar estado en BD (con condición WHERE y RETURNING)
         const result = await client.sql`
             UPDATE proveedores
-            SET
-                estatus_revision = 'PENDIENTE_REVISION',
-                updated_at = NOW() -- Actualizar timestamp
+            SET estatus_revision = 'PENDIENTE_REVISION', updated_at = NOW()
             WHERE id_proveedor = ${idProveedor}
               AND (estatus_revision = 'NO_SOLICITADO' OR estatus_revision = 'RECHAZADO' OR estatus_revision IS NULL)
-            RETURNING
-                id_proveedor,
-                estatus_revision,
-                rfc,
-                -- Obtener nombre/razón social para notificación
-                (SELECT COALESCE(pf.nombre || ' ' || pf.apellido_p, pm.razon_social)
-                 FROM proveedores p2
-                 LEFT JOIN personas_fisicas pf ON p2.id_proveedor = pf.id_proveedor
-                 LEFT JOIN proveedores_morales pm ON p2.id_proveedor = pm.id_proveedor
-                 WHERE p2.id_proveedor = proveedores.id_proveedor
-                 LIMIT 1
-                ) AS nombre_display;
+            RETURNING id_proveedor, estatus_revision, rfc,
+                      (SELECT COALESCE(pf.nombre || ' ' || pf.apellido_p, pm.razon_social)
+                       FROM proveedores p2
+                       LEFT JOIN personas_fisicas pf ON p2.id_proveedor = pf.id_proveedor
+                       LEFT JOIN proveedores_morales pm ON p2.id_proveedor = pm.id_proveedor
+                       WHERE p2.id_proveedor = proveedores.id_proveedor) AS nombre_display;
         `;
 
-        // Verificar si se actualizó (si no, es porque el estado no era válido o no existía)
         if (result.rowCount === 0) {
-             await client.sql`ROLLBACK`;
-             const currentState = await sql`SELECT estatus_revision FROM proveedores WHERE id_proveedor = ${idProveedor}`;
-             const currentStatus = currentState.rows[0]?.estatus_revision;
-             if (!currentStatus) { throw new Error(`Proveedor con ID ${idProveedor} no encontrado.`); }
-             else { throw new Error(`No se pudo solicitar revisión. Estado actual: ${currentStatus}. Solo se puede solicitar desde 'NO SOLICITADO' o 'RECHAZADO'.`); }
+            throw new Error(`Proveedor con ID ${idProveedor} no encontrado para solicitar revisión.`);
         }
 
         const updatedData = result.rows[0];
-        console.log(`SERVICE (Proveedor): BD actualizada para solicitud. Nuevo estado: ${updatedData.estatus_revision}`);
+        console.log(`SERVICE: Revisión solicitada exitosamente para ID: ${idProveedor}. Nuevo estado: ${updatedData.estatus_revision}`);
 
-        // --- ***** NOTIFICACIÓN GENERALIZADA AL ADMIN ***** ---
-        try {
-            const adminChannel = 'admin-notifications'; // Canal Fijo para todos los admins
-            const evento = 'cambio_estado_proveedor';  // Evento Genérico
-            // Payload informativo para el admin
-            const notificationPayload = {
-                idProveedor: updatedData.id_proveedor,
-                rfc: updatedData.rfc,
-                nombreProveedor: updatedData.nombre_display || updatedData.rfc, // Usar nombre o RFC
-                nuevoEstatus: updatedData.estatus_revision, // Es 'PENDIENTE_REVISION'
-                mensaje: `El proveedor ${updatedData.nombre_display || updatedData.rfc} ha solicitado revisión de documentos/perfil.`,
-                timestamp: new Date().toISOString()
-            };
-
-            console.log(`SERVICE (Proveedor): Emitiendo evento '${evento}' a canal '${adminChannel}'`);
-            await triggerPusherEvent(adminChannel, evento, notificationPayload); // <-- LLAMADA IMPORTANTE
-            console.log("SERVICE (Proveedor): Evento para admin emitido exitosamente.");
-
-        } catch (notificationError) {
-            // Loguear error pero no fallar la operación principal
-            console.error(`SERVICE (Proveedor) ERROR: Fallo al emitir notificación Pusher al admin para ID ${idProveedor}:`, notificationError);
-        }
-        // --- ***** FIN Notificación al Admin ***** ---
+        const notificationPayload = {
+            idProveedor: updatedData.id_proveedor,
+            rfc: updatedData.rfc,
+            nombreProveedor: updatedData.nombre_display || updatedData.rfc,
+            mensaje: `El proveedor ${updatedData.nombre_display || updatedData.rfc} ha solicitado revisión.`,
+            timestamp: new Date().toISOString() // Añadir timestamp es útil
+        };
+                // Usar la función helper para abstraer la llamada
+        // Canal: 'admin-notifications' (o como lo llames)
+        // Evento: 'nueva-solicitud-revision' (o como lo llames)
+        await triggerPusherEvent('admin-notifications', 'nueva-solicitud-revision', notificationPayload);
 
         await client.sql`COMMIT`;
-        console.log(`SERVICE (Proveedor): Transacción COMMIT para solicitud ID: ${idProveedor}.`);
+        console.log(`SERVICE: Transacción COMMIT para solicitud revisión ID: ${idProveedor}.`);
 
-        // Devolver el estado confirmado
         return {
              id_proveedor: updatedData.id_proveedor,
              estatus_revision: updatedData.estatus_revision
         };
 
     } catch (error: any) {
-        if (client) { try { await client.sql`ROLLBACK`; } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr);} }
-        console.error(`SERVICE ERROR en solicitarRevisionProveedor ID ${idProveedor}:`, error);
-        // Relanzar para que la API Route lo maneje
+        console.error(`SERVICE ERROR en solicitarRevisionProveedor para ID ${idProveedor}:`, error);
         throw new Error(`Error al solicitar la revisión: ${error.message || 'Error desconocido'}`);
-    } finally {
-        if (client) { await client.release(); }
     }
 };

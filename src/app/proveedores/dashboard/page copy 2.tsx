@@ -12,7 +12,6 @@ import { getProveedorForUser } from './formularios/fetchdashboard'; // Ajusta ru
 // Importar interfaz completa si no está definida en ProveedorInfo
 import { ProveedorData as ProveedorCompletoData } from './formularios/ProveedorInfo'; // Ajusta ruta e interfaz
 
-
 export default function PageProveedorDashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
@@ -68,51 +67,66 @@ export default function PageProveedorDashboard() {
       router.push('/proveedores/login'); // Redirigir
     }
   }, [router, fetchProviderData]); // Depender de fetchProviderData
- // --- **useEffect para Suscripción Pusher del Proveedor (CORREGIDO)** ---
+ // --- **NUEVO: useEffect para Suscripción Pusher del Proveedor** ---
  useEffect(() => {
+  // Solo suscribirse si tenemos los datos del proveedor (especialmente el ID)
+  // y las claves de Pusher están disponibles.
   if (providerData?.id_proveedor && process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
       const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
       const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
       const providerId = providerData.id_proveedor;
-      const channelName = `proveedor-updates-${providerId}`;
-      const eventName = 'cambio_estado_proveedor';
+      const channelName = `admin-notifications`; // Canal específico del proveedor
 
-      console.log(`Dashboard Proveedor: Initializing Pusher for channel ${channelName}...`);
+      console.log(`Dashboard Proveedor: Initializing Pusher Client for channel ${channelName}...`);
       const pusherClient = new PusherClient(pusherKey, { cluster: pusherCluster });
+
+      // Suscribirse al canal específico
       const channel = pusherClient.subscribe(channelName);
+      console.log(`Dashboard Proveedor: Subscribed to Pusher channel ${channelName}`);
 
-      channel.bind('pusher:subscription_succeeded', () => { console.log(`Subscribed to ${channelName}`); });
-      channel.bind('pusher:subscription_error', (status: any) => { console.error(`Pusher subscription error for ${channelName}:`, status); });
+      // Escuchar el evento de actualización de estado de revisión
+      channel.bind('nueva-solicitud-revision', (data: any) => {
+          console.log("PUSHER RECEIVED (Proveedor): estatus_revision_actualizado", data);
 
-      // Función nombrada para el handler del evento
-      const handleStatusUpdate = (data: any) => {
-          console.log(`PUSHER RECEIVED (Proveedor): ${eventName}`, data);
+          // Validar que el evento sea para este proveedor (extra seguridad)
           if (data?.idProveedor === providerId) {
-               const displayMessage = data.mensaje || `El estado de revisión de su cuenta cambió a: ${data.nuevoEstatus}.`;
-               alert(`Notificación:\n${displayMessage}`); // <-- alert() restaurado
+               // 1. Mostrar Notificación al Proveedor
+               alert(`Actualización de Revisión:\n${data.mensaje}`);
+               // O usar un toast: toast.info(data.mensaje);
 
-               // Actualizar estado local
+               // 2. Actualizar el Estado Local Inmediatamente
                setProviderData(prevData => {
                    if (prevData && prevData.id_proveedor === data.idProveedor) {
+                       console.log(`Updating local status from ${prevData.estatus_revision} to ${data.nuevoEstatus}`);
                        return { ...prevData, estatus_revision: data.nuevoEstatus };
                    }
-                   return prevData;
+                   return prevData; // No cambiar si no coincide (no debería pasar)
                });
-          } else { console.warn("Pusher event ID mismatch."); }
-      // **PUNTO Y COMA AÑADIDO AQUÍ**
-      };
 
-      // Vincular el handler al evento
-      channel.bind(eventName, handleStatusUpdate);
+               // 3. Opcional: Si el estado cambió a RECHAZADO o APROBADO, podrías
+               //    querer hacer alguna acción adicional en la UI.
+               if (data.nuevoEstatus === 'APROBADO') {
+                   // Quizás mostrar confeti? :)
+               } else if (data.nuevoEstatus === 'RECHAZADO') {
+                  // Quizás resaltar la sección de documentos?
+               }
+          } else {
+              console.warn("Pusher event received, but provider ID doesn't match.", data);
+          }
+      });
 
-      // Limpieza
+      // Limpieza al desmontar o cuando cambie el idProveedor
       return () => {
-          console.log(`Dashboard Proveedor: Unsubscribing from ${channelName}`);
-          channel.unbind(eventName, handleStatusUpdate); // Usar handler nombrado
+          console.log(`Dashboard Proveedor: Unsubscribing from Pusher channel ${channelName}`);
           pusherClient.unsubscribe(channelName);
+           // pusherClient.disconnect(); // Desconectar solo si no se usa en ningún otro lado
       };
-  } else { /* ... logs ... */ }
-// Array de dependencias correcto
+  } else {
+      if (!providerData?.id_proveedor) console.log("Dashboard Proveedor: Pusher not initialized - missing provider ID.");
+      // else console.log("Dashboard Proveedor: Pusher not initialized - missing env keys.");
+  }
+// Depender de providerData.id_proveedor para re-suscribirse si cambia el proveedor mostrado
+// (aunque en un dashboard de proveedor, esto normalmente no cambia)
 }, [providerData?.id_proveedor]);
 // --- FIN useEffect Pusher Proveedor ---
  // --- Handlers Modal Edición ---

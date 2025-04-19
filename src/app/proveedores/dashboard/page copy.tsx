@@ -4,14 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PieP from "../../pie"; // Ajusta ruta
 import DynamicMenu from "../../menu_principal"; // Ajusta ruta
-import PusherClient from 'pusher-js'; // Importar cliente Pusher
 import ProveedorInfo from './formularios/ProveedorInfo'; // Ajusta ruta
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor'; // Ajusta ruta
 // Asumiendo que fetchdashboard tiene getProveedorForUser
 import { getProveedorForUser } from './formularios/fetchdashboard'; // Ajusta ruta
 // Importar interfaz completa si no está definida en ProveedorInfo
 import { ProveedorData as ProveedorCompletoData } from './formularios/ProveedorInfo'; // Ajusta ruta e interfaz
-
 
 export default function PageProveedorDashboard() {
   const router = useRouter();
@@ -68,53 +66,7 @@ export default function PageProveedorDashboard() {
       router.push('/proveedores/login'); // Redirigir
     }
   }, [router, fetchProviderData]); // Depender de fetchProviderData
- // --- **useEffect para Suscripción Pusher del Proveedor (CORREGIDO)** ---
- useEffect(() => {
-  if (providerData?.id_proveedor && process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
-      const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
-      const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-      const providerId = providerData.id_proveedor;
-      const channelName = `proveedor-updates-${providerId}`;
-      const eventName = 'cambio_estado_proveedor';
 
-      console.log(`Dashboard Proveedor: Initializing Pusher for channel ${channelName}...`);
-      const pusherClient = new PusherClient(pusherKey, { cluster: pusherCluster });
-      const channel = pusherClient.subscribe(channelName);
-
-      channel.bind('pusher:subscription_succeeded', () => { console.log(`Subscribed to ${channelName}`); });
-      channel.bind('pusher:subscription_error', (status: any) => { console.error(`Pusher subscription error for ${channelName}:`, status); });
-
-      // Función nombrada para el handler del evento
-      const handleStatusUpdate = (data: any) => {
-          console.log(`PUSHER RECEIVED (Proveedor): ${eventName}`, data);
-          if (data?.idProveedor === providerId) {
-               const displayMessage = data.mensaje || `El estado de revisión de su cuenta cambió a: ${data.nuevoEstatus}.`;
-               alert(`Notificación:\n${displayMessage}`); // <-- alert() restaurado
-
-               // Actualizar estado local
-               setProviderData(prevData => {
-                   if (prevData && prevData.id_proveedor === data.idProveedor) {
-                       return { ...prevData, estatus_revision: data.nuevoEstatus };
-                   }
-                   return prevData;
-               });
-          } else { console.warn("Pusher event ID mismatch."); }
-      // **PUNTO Y COMA AÑADIDO AQUÍ**
-      };
-
-      // Vincular el handler al evento
-      channel.bind(eventName, handleStatusUpdate);
-
-      // Limpieza
-      return () => {
-          console.log(`Dashboard Proveedor: Unsubscribing from ${channelName}`);
-          channel.unbind(eventName, handleStatusUpdate); // Usar handler nombrado
-          pusherClient.unsubscribe(channelName);
-      };
-  } else { /* ... logs ... */ }
-// Array de dependencias correcto
-}, [providerData?.id_proveedor]);
-// --- FIN useEffect Pusher Proveedor ---
  // --- Handlers Modal Edición ---
  const handleOpenEditModal = () => {
     if (providerData) { setIsModalOpen(true); }
@@ -161,11 +113,12 @@ export default function PageProveedorDashboard() {
          {!loading && !error && providerData && (
             <ProveedorInfo
                 providerData={providerData}
-                loading={false}
-                error={null}
+                loading={false} // El loading principal ya pasó
+                error={null} // El error principal ya se mostró
                 onManageDocumentsClick={handleManageDocumentsClick}
-                // Pasar la función de refresh para que ProveedorInfo la use
-                onDataRefreshNeeded={() => { if (userId) fetchProviderData(userId); }}
+                onDataRefreshNeeded={() => {
+                    if (userId) fetchProviderData(userId);
+                }}
             />
          )}
 
