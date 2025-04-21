@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   obtenerOrdenesDia,
-  obtenerOrdenDiaPorId, obtenerOrdenDiaParticipantesPorId,
-  crearOrdenDia,
-  actualizarOrdenDia,
-  eliminarOrdenDia
+  obtenerOrdenDiaPorId, obtenerOrdenDiaParticipantesPorId, obtenerOrdenDiaParticipantesConfirmacionPorId,
+  crearOrdenDia, obtenerOrdenDiaParticipantesAll,
+  actualizarOrdenDia, eliminarParticipantesOrdenDia, actualizarPuntosOrdenDia, 
+  eliminarOrdenDia, obtenerOrdenDiaPorIdUno
 } from "../../../services/ordendiaservice";
 import {
-    createConfirmacion,
+    createConfirmacion, 
   } from "../../../services/confirmacionordenservices";
+import {
+  obtenerActaPorOrden, 
+} from "../../../services/actaservice";
 
 // GET: obtener todas o una por solicitud
 export async function GET(req: NextRequest) {
@@ -16,9 +19,36 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const solicitud = searchParams.get("solicitud");
     const participantes = searchParams.get("participantes");
+    const usuario = searchParams.get("usuario");
+    const sistema = searchParams.get("sistema");
+    const id = searchParams.get("id");
 
     if (solicitud) {
-        const orden = await obtenerOrdenDiaPorId(parseInt(solicitud));
+      const ordenes = await obtenerOrdenDiaPorId(parseInt(solicitud));
+    
+      if (!ordenes || ordenes.length === 0) {
+        return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+      }
+    
+      // Consultar acta para cada orden
+      const ordenesConActa = await Promise.all(
+        ordenes.map(async (orden) => {
+          const acta = await obtenerActaPorOrden(orden.id_orden_dia);
+          return {
+            ...orden,
+            acta: acta || null,
+          };
+        })
+      );
+    
+      return NextResponse.json(ordenesConActa);
+    }
+    
+    
+    
+
+    if (id) {
+        const orden = await obtenerOrdenDiaPorIdUno(parseInt(id));
         if (!orden) {
             return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
         }
@@ -26,13 +56,30 @@ export async function GET(req: NextRequest) {
     }
 
     if (participantes) {
-
       const orden = await obtenerOrdenDiaParticipantesPorId(parseInt(participantes));
       if (!orden) {
           return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
       }
       return NextResponse.json(orden);
     }
+
+
+    if(sistema !=='UNIVERSAL'){
+      if (usuario) {
+        const orden = await obtenerOrdenDiaParticipantesConfirmacionPorId(parseInt(usuario));
+        if (!orden) {
+            return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(orden);
+      }
+    }else{
+      const solicitud = await obtenerOrdenDiaParticipantesAll();
+        if (!solicitud) {
+          return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(solicitud);
+    }
+
 
     const ordenes = await obtenerOrdenesDia();
     return NextResponse.json(ordenes);
@@ -101,41 +148,56 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const {
-      id_orden_dia,
-      id_solicitud,
-      id_secretaria,
-      seccion,
-      asunto_general,
-      no_oficio,
-      lugar,
-      hora,
-      puntos_tratar,
-      participantes_base,
-      usuarios_invitados
-    } = await req.json();
+      id_orden_dia, asunto_general, no_oficio,id_evento,
+      hora, puntos_tratar, participantes_base, usuarios_invitados, tipo_formulario } = await req.json();
 
     if (!id_orden_dia) {
       return NextResponse.json({ message: "id requerido para actualizar" }, { status: 400 });
     }
 
-    const actualizado = await actualizarOrdenDia(id_orden_dia, {
-      id_solicitud,
-      id_secretaria,
-      seccion,
-      asunto_general,
-      no_oficio,
-      lugar,
-      hora,
-      puntos_tratar,
-      participantes_base,
-      usuarios_invitados
-    });
+    if(tipo_formulario == 1){
+        const actualizado = await actualizarOrdenDia(id_orden_dia, {
+          id_evento,
+          hora: hora.split("T")[1] + ":00",
+          no_oficio,
+          asunto_general
+        });
+    
+        if (!actualizado) {
+          return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+        }
+        return NextResponse.json(actualizado);
+    }else{
+      const eliminar = await eliminarParticipantesOrdenDia(id_orden_dia);
 
-    if (!actualizado) {
-      return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+      const actualizado = await actualizarPuntosOrdenDia(id_orden_dia, {
+        puntos_tratar
+      });
+
+      for (const id_usuario of participantes_base) {
+        await createConfirmacion({
+          id_orden_dia,
+          id_usuario,
+          tipo_usuario: 'base'
+        });
+      }
+  
+      // 🟢 Registrar usuarios invitados
+      for (const id_usuario of usuarios_invitados) {
+        await createConfirmacion({
+          id_orden_dia,
+          id_usuario,
+          tipo_usuario: 'invitado'
+        });
+      }
+  
+  
+      if (!actualizado && !eliminar) {
+        return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+      }
+      return NextResponse.json(actualizado);
     }
 
-    return NextResponse.json(actualizado);
   } catch (error) {
     console.error("error al actualizar orden del día:", error);
     return NextResponse.json({ message: "error al actualizar orden del día", error }, { status: 500 });

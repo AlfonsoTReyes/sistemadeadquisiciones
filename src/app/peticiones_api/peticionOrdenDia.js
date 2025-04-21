@@ -11,6 +11,16 @@ export const fetchOrdenesDia = async (solicitud) => {
   }
 };
 
+export const fetchOrdenesUsuario = async (usuario, sistema) => {
+  try {
+    const res = await fetch(`${API_ORDEN_DIA}?usuario=${usuario}&sistema=${sistema}`);
+    if (!res.ok) throw new Error("Error al obtener órdenes del día");
+    return await res.json();
+  } catch (err) {
+    throw new Error(err.message || "Error desconocido");
+  }
+};
+
 /** Crear una nueva orden del día */
 export const createOrdenDia = async (data) => {
   try {

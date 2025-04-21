@@ -13,6 +13,7 @@ const SolicitudPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [ordenes, setOrdenes] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hayOrdenActiva, setHayOrdenActiva] = useState<boolean>(false);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -31,14 +32,20 @@ const SolicitudPage = () => {
 
     setLoading(true);
     try {
-        const data = await fetchOrdenesDia(idSolicitud);
-        console.log(data);
-        setOrdenes(data);
+      const data = await fetchOrdenesDia(idSolicitud);
+      setOrdenes(data);
+      console.log(data);
+      // Verificar si existe una orden activa (no cancelada ni terminada)
+      const existeActiva = data.some(
+        (orden: any) =>
+          orden.estatus !== "cancelada" && orden.estatus !== "terminada"
+      );
+      setHayOrdenActiva(existeActiva);
     } catch (err) {
-        console.error("Error al obtener las órdenes del día:", err);
-        setError("No se pudo cargar la información.");
+      console.error("Error al obtener las órdenes del día:", err);
+      setError("No se pudo cargar la información.");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -56,12 +63,18 @@ const SolicitudPage = () => {
         {error && <p className="text-center text-red-500">{error}</p>}
 
         <div className="flex justify-end mb-4">
-          <button
-            onClick={openModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            + Nueva orden del día
-          </button>
+          {/* {hayOrdenActiva ? ( */}
+            <p className="text-red-600 font-semibold text-sm bg-red-100 px-4 py-2 rounded shadow border border-red-300">
+              Ya existe una orden del día activa. Solo puedes crear una nueva si la anterior fue cancelada o terminada.
+            </p>
+          {/* ) : ( */}
+            <button
+              onClick={openModal}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              + Nueva orden del día
+            </button>
+          {/* )} */}
         </div>
 
         <TablaSolicitudes ordenes={ordenes} onActualizar={fetchData} />
