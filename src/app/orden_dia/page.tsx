@@ -63,18 +63,18 @@ const SolicitudPage = () => {
         {error && <p className="text-center text-red-500">{error}</p>}
 
         <div className="flex justify-end mb-4">
-          {/* {hayOrdenActiva ? ( */}
+          {hayOrdenActiva ? (
             <p className="text-red-600 font-semibold text-sm bg-red-100 px-4 py-2 rounded shadow border border-red-300">
               Ya existe una orden del día activa. Solo puedes crear una nueva si la anterior fue cancelada o terminada.
             </p>
-          {/* ) : ( */}
+          ) : (
             <button
               onClick={openModal}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               + Nueva orden del día
             </button>
-          {/* )} */}
+          )}
         </div>
 
         <TablaSolicitudes ordenes={ordenes} onActualizar={fetchData} />

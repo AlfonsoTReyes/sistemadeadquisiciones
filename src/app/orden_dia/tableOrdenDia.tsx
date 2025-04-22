@@ -217,12 +217,15 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
                   Editar acta
                 </button>
   
-                <button
-                  onClick={() => generarPDFActa(orden.id_orden_dia)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                >
-                  Generar PDF
-                </button>
+                {orden.acta?.id_acta && (
+                  <button
+                    onClick={() => generarPDFActa(orden.acta!.id_acta)} // `!` le dice a TypeScript que sí existe
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                  >
+                    Generar PDF
+                  </button>
+                )}
+
               </div>
             </div>
           );
