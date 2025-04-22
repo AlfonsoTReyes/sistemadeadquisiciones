@@ -13,6 +13,55 @@ export const getConfirmaciones = async () => {
   }
 };
 
+export const createComentario = async (data: {
+  id_origen: number;
+  tipo_origen: string;
+  comentario: string;
+  respuesta_a?: number | null;
+  id_usuario?: number;
+  id_solicitud: number;
+}) => {
+    try {
+        const { id_origen, tipo_origen, comentario, respuesta_a, id_usuario } = data;
+
+        const result = await sql`
+        INSERT INTO comentarios_orden_dia
+        (id_origen, tipo_origen, comentario, respuesta_a, id_usuario, created_at)
+        VALUES
+        (${id_origen}, ${tipo_origen}, ${comentario}, ${respuesta_a || null}, ${id_usuario || null}, NOW())
+        RETURNING *;
+        `;
+        return result.rows[0]; // Retorna el nuevo comentario insertado
+    } catch (error) {
+        console.error("Error al crear comentario:", error);
+        throw error;
+    }
+};
+
+
+export const getOrdenDiaPorComentarios = async (id_origen: number, tipo_origen: string) => {
+  try {
+      const result = await sql`
+          SELECT cd.id_comentario,
+                  cd.id_origen,
+                  cd.tipo_origen,
+                  cd.comentario,
+                  cd.respuesta_a,
+                  cd.created_at,
+                  u.nombre AS nombre_usuario
+          FROM comentarios_orden_dia AS cd
+          LEFT JOIN usuarios AS u ON cd.id_usuario = u.id_usuario 
+          WHERE cd.id_origen = ${id_origen} AND cd.tipo_origen = ${tipo_origen}
+          ORDER BY cd.created_at ASC;
+          `;
+      return result.rows;
+  } catch (error) {
+      console.error("Error al obtener comentarios por solicitud/documento:", error);
+      throw error;
+  }
+};
+
+
 export const getConfirmacionById = async (id: number) => {
   try {
     const result = await sql`
@@ -93,3 +142,19 @@ export const deleteConfirmacion = async (id: number) => {
     throw error;
   }
 };
+
+
+export const confirmarLecturaOrden = async (id_orden_dia: number, id_usuario: number) => {
+
+  const result = await sql`
+    UPDATE confirmaciones_orden_dia
+    SET 
+      confirmado = true,
+      fecha_visto = NOW(),
+      fecha_confirmado = NOW(),
+      updated_at = NOW()
+    WHERE id_orden_dia = ${id_orden_dia} AND id_usuario = ${id_usuario}
+    RETURNING *;
+  `;
+  return result.rows[0];
+};  
