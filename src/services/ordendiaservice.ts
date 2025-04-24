@@ -84,46 +84,55 @@ export const obtenerOrdenesDia = async () => {
 export const obtenerOrdenDiaPorIdUno = async (id_orden_dia: number) => {
   try {
     const result = await sql`
-    SELECT 
-      od.id_orden_dia,
-      od.id_solicitud,
-      od.asunto_general,
-      od.no_oficio,
-      od.lugar,
-      od.hora,
-      od.puntos_tratar,
-      od.created_at,
-      od.updated_at,
-      od.id_evento,
-      ec.fecha_inicio,
-      ec.tipo_evento,
-      json_agg(
-        json_build_object(
-          'id_confirmacion', c.id_confirmacion,
-          'id_usuario', u.id_usuario,
-          'nombre', u.nombre,
-          'apellidos', u.apellidos,
-          'email', u.email,
-          'puesto', u.puesto,
-          'confirmado', c.confirmado,
-          'fecha_visto', c.fecha_visto,
-          'fecha_confirmado', c.fecha_confirmado,
-          'observaciones', c.observaciones,
-          'tipo_usuario', c.tipo_usuario
-        )
-      ) FILTER (WHERE c.id_confirmacion IS NOT NULL) AS participantes
-    FROM 
-      ordenes_dia od
-    JOIN 
-      eventos_comite ec ON od.id_evento = ec.id_evento
-    LEFT JOIN 
-      confirmaciones_orden_dia c ON od.id_orden_dia = c.id_orden_dia
-    LEFT JOIN 
-      usuarios u ON u.id_usuario = c.id_usuario
-    WHERE 
-      od.id_orden_dia = ${id_orden_dia}
-    GROUP BY 
-      od.id_orden_dia, ec.fecha_inicio,       ec.tipo_evento;
+      SELECT 
+        od.id_orden_dia,
+        od.id_solicitud,
+        od.asunto_general,
+        od.no_oficio,
+        od.lugar,
+        od.hora,
+        od.puntos_tratar,
+        od.created_at,
+        od.updated_at,
+        od.id_evento,
+        ec.fecha_inicio,
+        ec.tipo_evento,
+
+        -- NUEVO: traer id_adjudicacion desde solicitud_adquisicion
+        sa.id_adjudicacion,
+
+        json_agg(
+          json_build_object(
+            'id_confirmacion', c.id_confirmacion,
+            'id_usuario', u.id_usuario,
+            'nombre', u.nombre,
+            'apellidos', u.apellidos,
+            'email', u.email,
+            'puesto', u.puesto,
+            'confirmado', c.confirmado,
+            'fecha_visto', c.fecha_visto,
+            'fecha_confirmado', c.fecha_confirmado,
+            'observaciones', c.observaciones,
+            'tipo_usuario', c.tipo_usuario
+          )
+        ) FILTER (WHERE c.id_confirmacion IS NOT NULL) AS participantes
+
+      FROM 
+        ordenes_dia od
+      JOIN 
+        eventos_comite ec ON od.id_evento = ec.id_evento
+      LEFT JOIN 
+        solicitud_adquisicion sa ON sa.id_solicitud = od.id_solicitud -- 👈 JOIN para traer adjudicación
+      LEFT JOIN 
+        confirmaciones_orden_dia c ON od.id_orden_dia = c.id_orden_dia
+      LEFT JOIN 
+        usuarios u ON u.id_usuario = c.id_usuario
+
+      WHERE 
+        od.id_orden_dia = ${id_orden_dia}
+
+      GROUP BY 
+        od.id_orden_dia, ec.fecha_inicio, ec.tipo_evento, sa.id_adjudicacion
     `;
 
     return result.rows[0];
@@ -132,6 +141,7 @@ export const obtenerOrdenDiaPorIdUno = async (id_orden_dia: number) => {
     throw error;
   }
 };
+
 
 
 // Obtener una orden por ID

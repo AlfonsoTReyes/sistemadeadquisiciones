@@ -29,4 +29,19 @@ export const getAdjudicacionId = async (id: string) => {
   }
 };
 
+export const getAdjudicacionTipo = async (id: string) => {
+  try {
+    console.log(id);
+    const result = await sql`
+      SELECT * FROM tipos_adjudicacion WHERE tipo_adquisicion = ${id};
+    `;
+    return result.rows; 
+    
+  } catch (error) {
+    console.log(error);
+    throw error; 
+  }
+};
+
+
 

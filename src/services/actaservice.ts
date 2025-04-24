@@ -224,9 +224,65 @@ export const obtenerActaPorActa = async (id_acta: number) => {
   }
 };
 
+export const obtenerAsistentesPorOrdenDia = async (id_orden_dia: number) => {
+  try {
+    // 🔹 Obtener la información del acta
+    const actaResult = await sql`
+      SELECT 
+        id_acta,
+        id_orden_dia,
+        fecha_sesion,
+        hora_inicio,
+        hora_cierre,
+        puntos_tratados,
+        asuntos_generales,
+        estatus,
+        created_at,
+        updated_at
+      FROM actas_sesion
+      WHERE id_orden_dia = ${id_orden_dia}
+      LIMIT 1
+    `;
 
+    if (actaResult.rows.length === 0) return null;
 
+    const acta = actaResult.rows[0];
 
+    // 🔹 Obtener los asistentes de esa acta
+    const asistentesResult = await sql`
+      SELECT 
+        aa.id_asistente,
+        aa.id_acta,
+        aa.id_usuario,
+        u.nombre,
+        u.apellidos,
+        u.puesto,
+        u.email,
+        u.rostro,
+        aa.tipo_asistente,
+        aa.firma,
+        aa.confirmado,
+        aa.created_at AS fecha_registro
+      FROM asistentes_acta aa
+      INNER JOIN usuarios u ON aa.id_usuario = u.id_usuario
+      WHERE aa.id_acta = ${acta.id_acta}
+    `;
+
+    // 🔹 Devolver estructura unificada
+    return {
+      ...acta,
+      puntos_tratados: Array.isArray(acta.puntos_tratados)
+        ? acta.puntos_tratados
+        : acta.puntos_tratados?.replace(/[{}"]/g, "").split(",") || [],
+      asistentes: asistentesResult.rows
+    };
+    
+
+  } catch (error) {
+    console.error("❌ Error al obtener acta y asistentes:", error);
+    throw error;
+  }
+};
 
 
 /**
@@ -241,6 +297,23 @@ export const obtenerAsistentesPorActa = async (id_acta: number) => {
     return result.rows[0];
   } catch (error) {
     console.error("❌ Error al obtener asistentes del acta:", error);
+    throw error;
+  }
+};
+
+
+export const firmarAsistente = async (id_acta: number, id_usuario: number) => {
+  try {
+    const result = await sql`
+      UPDATE asistentes_acta
+      SET firma = NOW()
+      WHERE id_acta = ${id_acta} AND id_usuario = ${id_usuario}
+      RETURNING *;
+    `;
+
+    return result.rows[0]; // o .rows si quieres todo
+  } catch (error) {
+    console.error("❌ Error al firmar el acta:", error);
     throw error;
   }
 };

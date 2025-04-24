@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { guardarActaSesion, guardarAsistentesActa, firmarAsistente,
+import { guardarActaSesion, guardarAsistentesActa,
   obtenerActaPorActa, obtenerAsistentesPorOrdenDia
  } from "../../../services/actaservice";
 
@@ -102,36 +102,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Error al guardar acta", error }, { status: 500 });
   }
 }
-
-
-export async function PUT(req: NextRequest) {
-  try {
-    const { id_acta, id_usuario, comentario } = await req.json();
-
-    if (!id_acta || !id_usuario) {
-      return NextResponse.json({ message: "Faltan campos obligatorios" }, { status: 400 });
-    }
-
-    if (comentario) {
-      // 👉 Es una solicitud de corrección
-      const actualizado = await solicitarCorreccionActa(id_acta, id_usuario, comentario);
-      if (!actualizado) {
-        return NextResponse.json({ message: "No se pudo solicitar la corrección" }, { status: 404 });
-      }
-      return NextResponse.json({ success: true, tipo: "correccion" });
-    }
-
-    // 👉 Si no hay comentario, es firma
-    const firmado = await firmarAsistente(id_acta, id_usuario);
-    if (!firmado) {
-      return NextResponse.json({ message: "Asistente no encontrado o no actualizado" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, tipo: "firma", firmado });
-
-  } catch (error) {
-    console.error("❌ Error en PUT actas_sesion:", error);
-    return NextResponse.json({ message: "Error interno", error }, { status: 500 });
-  }
-}
-
