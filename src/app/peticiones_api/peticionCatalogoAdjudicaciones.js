@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 
 const API_URL = "/api/catalogoAdjudicaciones"; // Definir la URL base de la API
 
@@ -26,6 +25,19 @@ export const fetchAdjudicacionesById = async (id) => {
     throw new Error(err.message);
   }
 };
+
+export const fetchAdjudicacionesByTipoAdq = async (adquisicion) => {
+  try {
+    const response = await fetch(`${API_URL}?adquisicion=${adquisicion}`);
+    if (!response.ok) {
+      throw new Error("Error al obtener las requisiciones");
+    }
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
 
 /** Crea un nuevo usuario en la API */
 export const createAdjudicaciones = async (requisicionData) => {

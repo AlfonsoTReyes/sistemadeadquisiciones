@@ -85,6 +85,17 @@ export const geDictamenOrdenDiaById = async (id_orden) => {
   }
 };
 
+
+export const obtenerActaPorOrden = async (id_orden) => {
+  try {
+    const res = await fetch(`${API_ACTAS}?orden=${id_orden}`);
+    if (!res.ok) throw new Error("Orden del día no encontrada");
+    return await res.json();
+  } catch (err) {
+    throw new Error(err.message || "Error desconocido");
+  }
+};
+
 /** Crear acta de sesión vinculada a una orden del día */
 export const guardarActaSesion = async (data) => {
   try {
