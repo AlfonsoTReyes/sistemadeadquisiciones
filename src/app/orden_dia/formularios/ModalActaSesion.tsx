@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getOrdenDiaById } from "../../peticiones_api/peticionOrdenDia";
 import { getUsers } from "../../peticiones_api/fetchUsuarios";
 import { guardarActaSesion } from "../../peticiones_api/peticionActaSesion";
+import { fetchAdjudicacionesById, fetchAdjudicacionesByTipoAdq } from "../../peticiones_api/peticionCatalogoAdjudicaciones";
 
 interface ModalActaSesionProps {
   idOrden: number;
@@ -19,7 +20,9 @@ const ModalActaSesion: React.FC<ModalActaSesionProps> = ({ idOrden, onClose, onS
     const [nuevoPunto, setNuevoPunto] = useState("");
     const [fechaSesion, setFechaSesion] = useState("");
     const [horaInicio, setHoraInicio] = useState("");
-
+    const [idAdjudicacion, setIdAdjudicacion] = useState<number | null>(null);
+    const [adjudicacionInfo, setAdjudicacionInfo] = useState<any>(null);
+    const [listaAdjudicaciones, setListaAdjudicaciones] = useState<any[]>([]);
 
     const [base, setBase] = useState<number[]>([]);
     const [invitados, setInvitados] = useState<number[]>([]);
@@ -27,36 +30,44 @@ const ModalActaSesion: React.FC<ModalActaSesionProps> = ({ idOrden, onClose, onS
 
     useEffect(() => {
         const cargarDatos = async () => {
-        const [usuariosData, ordenData] = await Promise.all([
-            getUsers(),
-            getOrdenDiaById(idOrden)
-        ]);
-        setUsuarios(usuariosData || []);
-        setOrden(ordenData);
-        setPuntos(ordenData.puntos_tratar || []);
-        setFechaSesion(ordenData.fecha_inicio.split("T")[0]);
-        setHoraInicio(ordenData.hora);
+            const [usuariosData, ordenData] = await Promise.all([
+                getUsers(),
+                getOrdenDiaById(idOrden)
+            ]);
+            setUsuarios(usuariosData || []);
+            setOrden(ordenData);
+            setPuntos(ordenData.puntos_tratar || []);
+            setFechaSesion(ordenData.fecha_inicio.split("T")[0]);
+            setHoraInicio(ordenData.hora);
+            
+            const asistentes = ordenData.participantes || [];
 
+            setBase(
+                asistentes
+                .filter((p: any) => p.tipo_usuario === "base")
+                .map((p: any) => p.id_usuario)
+            );
 
-        const asistentes = ordenData.participantes || [];
+            setInvitados(
+                asistentes
+                .filter((p: any) => p.tipo_usuario === "invitado")
+                .map((p: any) => p.id_usuario)
+            );
 
-        setBase(
-            asistentes
-            .filter((p: any) => p.tipo_usuario === "base")
-            .map((p: any) => p.id_usuario)
-        );
+            setRequirente(
+                asistentes
+                .filter((p: any) => p.tipo_usuario === "requirente")
+                .map((p: any) => p.id_usuario)
+            );
+            const idAdj = ordenData?.id_adjudicacion;
+            if (idAdj) {
+            setIdAdjudicacion(idAdj);
+            const adj = await fetchAdjudicacionesById(idAdj); 
+            setAdjudicacionInfo(adj);
 
-        setInvitados(
-            asistentes
-            .filter((p: any) => p.tipo_usuario === "invitado")
-            .map((p: any) => p.id_usuario)
-        );
-
-        setRequirente(
-            asistentes
-            .filter((p: any) => p.tipo_usuario === "requirente")
-            .map((p: any) => p.id_usuario)
-        );
+            const lista = await fetchAdjudicacionesByTipoAdq(adj.tipo_adquisicion);
+            setListaAdjudicaciones(lista);
+            }
         };
 
         cargarDatos();
@@ -234,6 +245,20 @@ const ModalActaSesion: React.FC<ModalActaSesionProps> = ({ idOrden, onClose, onS
             {renderSelectUsuarios("Asistentes base", base, setBase)}
             {renderSelectUsuarios("Asistentes invitados", invitados, setInvitados)}
             {renderSelectUsuarios("Asistentes área requirente", requirente, setRequirente)}
+
+            {listaAdjudicaciones.length > 0 && (
+                <div className="mt-4">
+                    <label className="font-semibold block mb-1">Otras adjudicaciones del mismo tipo</label>
+                    <select className="w-full border rounded p-2">
+                    {listaAdjudicaciones.map((adj) => (
+                        <option key={adj.id_tipo_adjudicacion} value={adj.id_tipo_adjudicacion}>
+                        {adj.nombre} - ${adj.monto_min} a ${adj.monto_max}
+                        </option>
+                    ))}
+                    </select>
+                </div>
+            )}
+
 
             {/* Botones */}
             <div className="flex justify-end mt-6 gap-4">

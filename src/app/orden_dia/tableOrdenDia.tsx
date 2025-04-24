@@ -165,14 +165,14 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
                       Editar
                     </button>
                     <button
-                    onClick={() => {
-                      setIdOrdenSeleccionada(orden.id_orden_dia);
-                      setMostrarModalActa(true);
-                    }}
-                    className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
-                  >
-                    Crear acta de sesión
-                  </button>
+                      onClick={() => {
+                        setIdOrdenSeleccionada(orden.id_orden_dia);
+                        setMostrarModalActa(true);
+                      }}
+                      className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+                    >
+                      Crear acta de sesión
+                    </button>
                   </>
                 )}
               </div>

@@ -34,7 +34,6 @@ const SolicitudPage = () => {
     try {
       const data = await fetchOrdenesDia(idSolicitud);
       setOrdenes(data);
-      console.log(data);
       // Verificar si existe una orden activa (no cancelada ni terminada)
       const existeActiva = data.some(
         (orden: any) =>

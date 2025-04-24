@@ -35,7 +35,6 @@ interface OpcionSelect {
 const TablaUComite: React.FC<{ ordenes: OrdenDia[] }> = ({ ordenes }) => {
   const [ordenActiva, setOrdenActiva] = useState<OrdenDia | null>(null);
   const [modal, setModal] = useState<"" | "confirmar" | "solicitud" | "participantes" | "comentario" | "dictamen">("");
-
   const [filtroAsunto, setFiltroAsunto] = useState<OpcionSelect | null>(null);
   const [filtroNomenclatura, setFiltroNomenclatura] = useState<OpcionSelect | null>(null);
   const [filtroEstatus, setFiltroEstatus] = useState<OpcionSelect | null>(null);
