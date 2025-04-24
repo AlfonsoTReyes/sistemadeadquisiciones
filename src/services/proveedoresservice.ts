@@ -13,7 +13,7 @@ interface RepresentanteLegalInput {
 }
 
 // Interfaz para datos devueltos (ahora con array de representantes)
-interface ProveedorDetallado {
+export interface ProveedorDetallado {
     id_proveedor: number;
     rfc?: string;
     giro_comercial?: string;
@@ -602,5 +602,45 @@ export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{
         throw new Error(`Error al solicitar la revisión: ${error.message || 'Error desconocido'}`);
     } finally {
         if (client) { await client.release(); }
+    }
+};
+/**
+ * Obtiene una lista simplificada de proveedores (activos) para usar en selects/dropdowns.
+ * @returns Promise<Array<{ id: number; label: string }>>
+ */
+export const getProveedoresForSelect = async (): Promise<{ id: number; label: string }[]> => {
+    console.log("SERVICE Proveedores: getProveedoresForSelect called");
+    try {
+        // Selecciona ID y un nombre descriptivo combinando razón social/nombre/rfc
+        // Filtra por estatus activo si es relevante para seleccionar en contratos
+        const result = await sql`
+            SELECT
+                p.id_proveedor AS id,
+                COALESCE(
+                    pm.razon_social,
+                    TRIM(CONCAT(pf.nombre, ' ', pf.apellido_p, ' ', pf.apellido_m)),
+                    p.rfc,
+                    'ID: ' || p.id_proveedor::text -- Fallback muy básico
+                ) AS label
+            FROM proveedores p
+            LEFT JOIN (
+                -- Obtener una sola razón social por proveedor moral
+                SELECT DISTINCT ON (id_proveedor) id_proveedor, razon_social
+                FROM proveedores_morales
+            ) pm ON p.id_proveedor = pm.id_proveedor
+            LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
+            WHERE p.estatus = true -- O el filtro que consideres apropiado (ej: aprobados)
+            ORDER BY label ASC;
+        `;
+        console.log(`SERVICE Proveedores: Found ${result.rows.length} active providers for select.`);
+        // Asegurarse que label no sea null o vacío si es posible
+         return result.rows.map(row => ({
+             ...row,
+             label: row.label?.trim() || `ID: ${row.id}` // Limpiar y fallback final
+         })) as { id: number; label: string }[];
+
+    } catch (error) {
+        console.error("SERVICE Proveedores: Error fetching providers for select:", error);
+        throw new Error('Error al obtener la lista de proveedores para selección.');
     }
 };

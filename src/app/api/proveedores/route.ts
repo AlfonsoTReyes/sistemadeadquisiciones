@@ -5,7 +5,8 @@ import {
     updateProveedorCompleto,
     createProveedorCompleto,
     getProveedorByUserId,
-    solicitarRevisionProveedor
+    solicitarRevisionProveedor,
+    getProveedoresForSelect
 } from '../../../services/proveedoresservice'; // Ajusta la ruta
 
 // --- GET ---
@@ -14,46 +15,57 @@ export async function GET(req: NextRequest) {
       const { searchParams } = new URL(req.url);
       const id_proveedor  = searchParams.get('id_proveedor');
       const id_usuario_proveedor = searchParams.get('id_usuario_proveedor');
+      const forSelect = searchParams.get('forSelect'); // <-- LEER NUEVO PARÁMETRO
 
-      if (id_usuario_proveedor) {
+      // --- CASO 1: Obtener lista para Select ---
+      if (forSelect === 'true') {
+          console.log("ROUTE GET /proveedores: Request for select options");
+          const proveedoresOptions = await getProveedoresForSelect(); // Llama a la nueva función del servicio
+          return NextResponse.json(proveedoresOptions); // Devuelve la lista simplificada
+      }
+      // --- CASO 2: Obtener por ID de Usuario Proveedor ---
+      else if (id_usuario_proveedor) {
         // --- Obtener por ID de Usuario ---
         console.log(`ROUTE GET: Request for user ID: ${id_usuario_proveedor}`);
         const userIdNum = parseInt(id_usuario_proveedor, 10);
         if (isNaN(userIdNum)) {
             return NextResponse.json({ message: 'ID de usuario proveedor inválido' }, { status: 400 });
         }
-        const proveedor = await getProveedorByUserId(userIdNum); // Servicio ya devuelve array reps
+        const proveedor = await getProveedorByUserId(userIdNum);
         if (!proveedor) {
             return NextResponse.json({ message: 'Perfil de proveedor no encontrado para este usuario.' }, { status: 404 });
         }
         console.log(`ROUTE GET: Found profile for user ID: ${userIdNum}`);
-        return NextResponse.json(proveedor); // Devuelve objeto con array 'representantes' si es moral
+        return NextResponse.json(proveedor);
 
-      } else if (id_proveedor) {
+      }
+      // --- CASO 3: Obtener por ID de Proveedor ---
+      else if (id_proveedor) {
         // --- Obtener por ID de Proveedor ---
           console.log(`ROUTE GET: Request for provider ID: ${id_proveedor}`);
           const providerIdNum = parseInt(id_proveedor, 10);
           if (isNaN(providerIdNum)) {
               return NextResponse.json({ message: 'ID de proveedor inválido' }, { status: 400 });
           }
-          const proveedor = await getProveedorById(providerIdNum); // Servicio ya devuelve array reps
+          const proveedor = await getProveedorById(providerIdNum);
           if (!proveedor) {
               return NextResponse.json({ message: 'Proveedor no encontrado' }, { status: 404 });
           }
           console.log(`ROUTE GET: Found profile for provider ID: ${providerIdNum}`);
-          return NextResponse.json(proveedor); // Devuelve objeto con array 'representantes' si es moral
-      } else {
-          console.log("ROUTE GET: No ID provided.");
-          return NextResponse.json({ message: 'Se requiere id_proveedor o id_usuario_proveedor' }, { status: 400 });
+          return NextResponse.json(proveedor);
+      }
+      // --- CASO 4: Sin parámetros válidos ---
+      else {
+          console.log("ROUTE GET: No valid identifier provided (id_proveedor, id_usuario_proveedor, or forSelect=true).");
+          // Mensaje de error actualizado para incluir la nueva opción
+          return NextResponse.json({ message: 'Se requiere un parámetro válido (forSelect=true, id_proveedor o id_usuario_proveedor)' }, { status: 400 });
       }
     } catch (error: any) {
      console.error("ROUTE GET /api/proveedores Generic Error:", error);
-     // Usar mensaje del servicio si existe
      const status = error.message?.includes("no encontrado") ? 404 : 500;
      return NextResponse.json({ message: error.message || 'Error general al obtener proveedor', error: error.toString() }, { status });
     }
 }
-
 // --- PUT ---
 export async function PUT(req: NextRequest) {
     try {

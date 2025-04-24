@@ -99,3 +99,42 @@ export const getDetallesSolicitudPorId = async (id: number) => {
     throw error;
   }
 };
+interface SelectOption {
+  id: number;
+  label: string;
+}
+
+/**
+* Obtiene una lista simplificada de solicitudes de adquisición para usar en selects.
+* Considera añadir filtros (ej. por estatus) si es necesario.
+* @returns Promise<SelectOption[]>
+*/
+export const getSolicitudesForSelect = async (): Promise<SelectOption[]> => {
+  console.log("SERVICE SolicitudAdquisicion: getSolicitudesForSelect called");
+  try {
+      // Selecciona ID y un label descriptivo. Combina folio, asunto y fecha.
+      // Añade un filtro WHERE si solo quieres mostrar solicitudes aprobadas, etc.
+      // Ejemplo: WHERE estatus = 'Aprobada'
+      const result = await sql`
+          SELECT
+              id_solicitud AS id,
+              CONCAT(
+                  COALESCE(folio, 'SF-' || id_solicitud::text), -- Usa folio o un prefijo + ID
+                  ' - ',
+                  COALESCE(asunto, 'Sin Asunto'),
+                  ' (',
+                  TO_CHAR(fecha_solicitud, 'DD/MM/YYYY'), -- Formatea fecha
+                  ')'
+              ) AS label
+          FROM solicitud_adquisicion
+          -- WHERE estatus = 'Aprobada' -- DESCOMENTA Y AJUSTA SI NECESITAS FILTRAR
+          ORDER BY fecha_solicitud DESC, id_solicitud DESC; -- Ordenar por fecha reciente
+      `;
+      console.log(`SERVICE SolicitudAdquisicion: Found ${result.rows.length} solicitudes for select.`);
+      return result.rows as SelectOption[];
+
+  } catch (error) {
+      console.error("SERVICE SolicitudAdquisicion: Error fetching solicitudes for select:", error);
+      throw new Error('Error al obtener la lista de solicitudes para selección.');
+  }
+};
