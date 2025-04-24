@@ -1,0 +1,179 @@
+// src/app/proveedores/articulos/formularios/articulosFetch.js (o la ruta que corresponda)
+const API_PROVEEDOR_ARTICULOS_URL = "/api/proveedores/articulos";
+
+
+/**
+ * Obtiene la lista de artículos para un proveedor específico.
+ * Llama a GET /api/proveedor/articulos?id_proveedor=...[&activoOnly=...]
+ * @param {number} idProveedor - El ID del proveedor.
+ * @param {boolean} [activoOnly=true] - Si se deben obtener solo los artículos activos.
+ * @returns {Promise<Array<object>>} - Array de artículos (ahora pueden incluir partida_descripcion).
+ * @throws {Error}
+ */
+export const fetchArticulosProveedor = async (idProveedor, activoOnly = true) => {
+    console.log(`FETCH: Solicitando artículos para proveedor ID: ${idProveedor}, ActivoOnly: ${activoOnly}`);
+    if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
+        const errorMsg = `Fetch Error: 'idProveedor' es requerido y numérico. Valor: ${idProveedor}`;
+        console.error(errorMsg); throw new Error(errorMsg);
+    }
+
+    const params = new URLSearchParams({ id_proveedor: idProveedor.toString() });
+    if (!activoOnly) { params.append('activoOnly', 'false'); }
+    const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?${params.toString()}`;
+
+    console.log(`FETCH: Calling GET ${apiUrlWithQuery}`);
+    try {
+        const response = await fetch(apiUrlWithQuery);
+        if (!response.ok) {
+            let errorData = { message: `Error ${response.status}: ${response.statusText}` };
+            try { errorData = await response.json(); } catch (e) { /* Ignorar */ }
+            console.error(`FETCH Error GET ${apiUrlWithQuery}: Status ${response.status}. Response:`, errorData);
+            throw new Error(errorData.message || `Error al obtener artículos: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`FETCH: Artículos obtenidos para proveedor ${idProveedor} (${data.length}).`);
+        return data;
+    } catch (error) {
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
+        console.error(`FETCH Exception en fetchArticulosProveedor para ID ${idProveedor}:`, errorToThrow.message);
+        throw errorToThrow;
+    }
+};
+
+/**
+ * Crea un nuevo artículo para un proveedor.
+ * Llama a POST /api/proveedor/articulos
+ * @param {object} articuloData - Objeto con los datos. DEBE incluir id_proveedor, codigo_partida, descripcion, unidad_medida, stock, precio_unitario.
+ * @returns {Promise<object>} - El artículo creado.
+ * @throws {Error}
+ */
+export const createArticuloProveedorFetch = async (articuloData) => {
+    console.log(`FETCH: Intentando crear artículo para prov ${articuloData?.id_proveedor}, partida ${articuloData?.codigo_partida}`);
+    console.log(`FETCH: Payload para crear:`, JSON.stringify(articuloData, null, 2));
+
+    // Validación MÁS ESTRICTA aquí, incluyendo codigo_partida
+    if (!articuloData || typeof articuloData.id_proveedor !== 'number' || isNaN(articuloData.id_proveedor)) {
+        throw new Error("Fetch Error: 'id_proveedor' numérico es requerido en articuloData.");
+    }
+    if (typeof articuloData.codigo_partida !== 'string' || !articuloData.codigo_partida.trim()) {
+        throw new Error("Fetch Error: 'codigo_partida' es requerido en articuloData.");
+    }
+    if (!articuloData.descripcion || !articuloData.unidad_medida || articuloData.stock === undefined || articuloData.precio_unitario === undefined) {
+         throw new Error("Fetch Error: Faltan campos requeridos (descripcion, unidad_medida, stock, precio_unitario).");
+    }
+
+    try {
+        const response = await fetch(API_PROVEEDOR_ARTICULOS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(articuloData), // El objeto ya contiene codigo_partida
+        });
+
+        if (!response.ok) {
+            let errorData = { message: `Error ${response.status}: ${response.statusText}` };
+            try { errorData = await response.json(); } catch (e) { /* Ignorar */ }
+            console.error(`FETCH Error POST ${API_PROVEEDOR_ARTICULOS_URL}: Status ${response.status}. Payload: ${JSON.stringify(articuloData)}. Response:`, errorData);
+            throw new Error(errorData.message || `Error al crear artículo: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`FETCH: Artículo creado exitosamente. Respuesta:`, data);
+        return data;
+    } catch (error) {
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
+        console.error(`FETCH Exception en createArticuloProveedorFetch para prov ${articuloData?.id_proveedor}:`, errorToThrow.message);
+        throw errorToThrow;
+    }
+};
+
+/**
+ * Actualiza un artículo existente.
+ * Llama a PUT /api/proveedor/articulos?id_articulo=...
+ * @param {number} idArticulo - ID del artículo a actualizar.
+ * @param {object} articuloUpdateData - Objeto con campos a actualizar. DEBE incluir id_proveedor. Puede incluir codigo_partida.
+ * @returns {Promise<object>} - El artículo actualizado.
+ * @throws {Error}
+ */
+export const updateArticuloProveedorFetch = async (idArticulo, articuloUpdateData) => {
+    console.log(`FETCH: Intentando actualizar artículo ID: ${idArticulo} para prov ${articuloUpdateData?.id_proveedor}`);
+    console.log(`FETCH: Payload para actualizar:`, JSON.stringify(articuloUpdateData, null, 2));
+
+    // Validaciones
+    if (typeof idArticulo !== 'number' || isNaN(idArticulo)) {
+        throw new Error(`Fetch Error: 'idArticulo' es requerido y numérico. Valor: ${idArticulo}`);
+    }
+     if (!articuloUpdateData || typeof articuloUpdateData.id_proveedor !== 'number' || isNaN(articuloUpdateData.id_proveedor)) {
+        throw new Error("Fetch Error: 'articuloUpdateData' debe incluir 'id_proveedor' numérico.");
+    }
+    // Validación de codigo_partida si se incluye en la actualización
+    if (articuloUpdateData.hasOwnProperty('codigo_partida') && (typeof articuloUpdateData.codigo_partida !== 'string' || !articuloUpdateData.codigo_partida.trim())) {
+         throw new Error("Fetch Error: Si se incluye 'codigo_partida' para actualizar, no puede estar vacío.");
+    }
+
+    const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?id_articulo=${idArticulo}`;
+    console.log(`FETCH: Calling PUT ${apiUrlWithQuery}`);
+
+    try {
+        const response = await fetch(apiUrlWithQuery, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(articuloUpdateData), // Envía el objeto completo (incluyendo id_proveedor y opcionalmente codigo_partida)
+        });
+
+        if (!response.ok) {
+            let errorData = { message: `Error ${response.status}: ${response.statusText}` };
+            try { errorData = await response.json(); } catch (e) { /* Ignorar */ }
+            console.error(`FETCH Error PUT ${apiUrlWithQuery}: Status ${response.status}. Payload: ${JSON.stringify(articuloUpdateData)}. Response:`, errorData);
+            throw new Error(errorData.message || `Error al actualizar artículo ${idArticulo}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`FETCH: Actualización de artículo ${idArticulo} exitosa. Respuesta:`, data);
+        return data;
+    } catch (error) {
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
+        console.error(`FETCH Exception en updateArticuloProveedorFetch para artículo ID ${idArticulo}:`, errorToThrow.message);
+        throw errorToThrow;
+    }
+};
+
+/**
+ * Elimina un artículo de un proveedor.
+ * Llama a DELETE /api/proveedor/articulos?id_articulo=...&id_proveedor=...
+ * @param {number} idArticulo - ID del artículo a eliminar.
+ * @param {number} idProveedor - ID del proveedor.
+ * @returns {Promise<object>} - Respuesta de éxito de la API.
+ * @throws {Error}
+ */
+export const deleteArticuloProveedorFetch = async (idArticulo, idProveedor) => {
+    console.log(`FETCH: Intentando eliminar artículo ID: ${idArticulo} para proveedor ID: ${idProveedor}`);
+
+    // Validaciones
+    if (typeof idArticulo !== 'number' || isNaN(idArticulo)) {
+        throw new Error(`Fetch Error: 'idArticulo' es requerido y numérico. Valor: ${idArticulo}`);
+    }
+    if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
+        throw new Error(`Fetch Error: 'idProveedor' es requerido y numérico. Valor: ${idProveedor}`);
+    }
+
+    const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?id_articulo=${idArticulo}&id_proveedor=${idProveedor}`;
+    console.log(`FETCH: Calling DELETE ${apiUrlWithQuery}`);
+
+    try {
+        const response = await fetch(apiUrlWithQuery, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            let errorData = { message: `Error ${response.status}: ${response.statusText}` };
+            try { errorData = await response.json(); } catch (e) { /* Ignorar */ }
+            console.error(`FETCH Error DELETE ${apiUrlWithQuery}: Status ${response.status}. Response:`, errorData);
+            throw new Error(errorData.message || `Error al eliminar artículo ${idArticulo}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`FETCH: Eliminación de artículo ${idArticulo} exitosa. Respuesta:`, data);
+        return data;
+    } catch (error) {
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
+        console.error(`FETCH Exception en deleteArticuloProveedorFetch para artículo ID ${idArticulo}:`, errorToThrow.message);
+        throw errorToThrow;
+    }
+};
