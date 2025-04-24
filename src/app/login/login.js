@@ -7,6 +7,7 @@ const useLoginService = () => {
   // estados para login tradicional
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
 
   // función para obtener los permisos del usuario
   const fetchPermissions = async (idRol) => {
@@ -47,30 +48,27 @@ const useLoginService = () => {
   // autenticación tradicional con email y contraseña
   const handleLogin = async (e) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       alert("por favor, ingresa tu email y contraseña.");
       return;
     }
-
+  
+    setIsLoadingLogin(true); // ← iniciar carga
+  
     const operacion = `inicio sesión la persona con el correo ${email}`;
     const tabla_afectada = "login";
     const datos_nuevos = "solo inicio sesión al sistema";
-
-    console.log("enviando solicitud a /api/login con:", { email, password, operacion, tabla_afectada, datos_nuevos });
-
+  
     try {
       const response = await fetch("/api/login", {
         method: "post",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, password, operacion, tabla_afectada, datos_nuevos }),
       });
-
-      console.log("respuesta recibida:", response);
-
+  
       const data = await response.json();
-      console.log("datos procesados:", data.usuario);
-
+  
       if (data.token) {
         sessionStorage.setItem("token", data.token);
         sessionStorage.setItem("userRole", data.usuario.id_rol.toString());
@@ -79,11 +77,9 @@ const useLoginService = () => {
         sessionStorage.setItem("userId", data.usuario.id_usuario);
         sessionStorage.setItem("userSistema", data.usuario.sistema);
         sessionStorage.setItem("userSecre", data.usuario.id_secretaria);
-
-        // obtener permisos con el rol del usuario
+  
         await fetchPermissions(data.usuario.id_rol.toString());
-
-        // determinar la ruta de redirección
+  
         const redirectPath = getRedirectPath(data.usuario.sistema);
         router.push(redirectPath);
       } else {
@@ -92,8 +88,11 @@ const useLoginService = () => {
     } catch (error) {
       console.error("error en login tradicional:", error);
       alert("hubo un problema con el inicio de sesión.");
+    } finally {
+      setIsLoadingLogin(false); // ← finalizar carga
     }
   };
+  
 
   return {
     email,
@@ -101,6 +100,7 @@ const useLoginService = () => {
     password,
     setPassword,
     handleLogin,
+    isLoadingLogin,
   };
 };
 
