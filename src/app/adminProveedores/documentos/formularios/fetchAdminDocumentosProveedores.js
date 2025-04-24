@@ -1,9 +1,9 @@
-// URL para las operaciones con documentos (obtener lista, actualizar estatus)
-//const DOCS_API_URL = "/api/proveedoresDocumentos"; // Ajusta si tu ruta es diferente
-const DOCS_API_URL = "/api/adminDocumuentosProveedores"; // Ajusta si tu ruta es diferente
-
-// URL para obtener detalles del proveedor
-const PROVEEDOR_API_URL = "/api/proveedores"; // Asumiendo que esta es la ruta para GET por ID
+// --- URLs de API ---
+// URL base para la mayoría de las operaciones de admin sobre proveedores y usuarios
+const ADMIN_PROVEEDORES_API_URL = '/api/adminProveedores';
+// URL específica para documentos y comentarios (si la separaste, si no, usa la de arriba)
+const DOCS_API_URL = "/api/adminDocumuentosProveedores"; // Comentada si usas la misma ruta base
+const DOCS_COMMENTS_API_URL = '/api/adminDocumuentosProveedores'; // Asumiendo que se maneja en la misma ruta con query params
 
 /**
  * Obtiene los detalles de UN proveedor específico por su ID principal.
@@ -19,8 +19,8 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor) => {
      console.error(errorMsg);
      throw new Error(errorMsg);
   }
-  console.log(`DEBUG Fetch: Calling fetchProveedorDetallesPorIdAdmin for ID ${idProveedor}`);
-  const apiUrl = `${PROVEEDOR_API_URL}?id_proveedor=${idProveedor}`;
+  console.log(`FETCH (Admin): fetchProveedorDetallesPorIdAdmin ID ${idProveedor}`);
+  const apiUrl = `${ADMIN_PROVEEDORES_API_URL}?id_proveedor=${idProveedor}`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -61,8 +61,8 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor) => {
      console.error(errorMsg);
      throw new Error(errorMsg);
   }
-  console.log(`DEBUG Fetch: Calling fetchDocumentosPorProveedorAdmin for ID ${idProveedor}`);
-  const apiUrl = `${DOCS_API_URL}?id_proveedor=${idProveedor}`;
+  console.log(`FETCH (Admin): fetchDocumentosPorProveedorAdmin ID ${idProveedor}`);
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_proveedor=${idProveedor}`; // Usa la URL correcta
 
   try {
     const response = await fetch(apiUrl, {
@@ -142,5 +142,129 @@ export const updateDocumentoStatusAdmin = async (idDocumento, nuevoEstatus) => {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
     console.error(`Fetch Error in updateDocumentoStatusAdmin for Doc ID ${idDocumento}:`, errorToThrow);
     throw errorToThrow;
+  }
+};
+/**
+ * Obtiene la lista de comentarios para un documento específico.
+ * Llama a GET /api/adminProveedores?documentoIdParaComentarios=[idDoc]
+ * @param {number} idDocumento - El ID del documento.
+ * @returns {Promise<Array<object>>} - Array de objetos comentario.
+ */
+export const fetchComentariosPorDocumentoAdmin = async (idDocumento) => {
+  const docIdNum = parseInt(idDocumento, 10);
+  if (isNaN(docIdNum)) {
+      throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
+  }
+  console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin Doc ID ${docIdNum}`);
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?documentoIdParaComentarios=${docIdNum}`;
+
+  try {
+      const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store', // Evitar caché para comentarios
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+          console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response:`, data);
+          throw new Error(data?.message || `Error ${response.status}: No se pudieron obtener los comentarios.`);
+      }
+      if (!data) { throw new Error("Respuesta inválida del servidor al obtener comentarios."); }
+
+      console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin successful for Doc ID ${docIdNum}`);
+      return data; // Devuelve el array de comentarios
+
+  } catch (err) {
+      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception fetchComentariosPorDocumentoAdmin Doc ID ${docIdNum}:`, errorToThrow);
+      throw errorToThrow;
+  }
+};
+
+/**
+* Crea un nuevo comentario en un documento (Admin).
+* Llama a POST /api/adminProveedores (enviando datos del comentario en el body)
+* @param {number} idDocumento - ID del documento a comentar.
+* @param {string} comentarioTexto - El texto del comentario.
+* @param {number} idUsuarioAdmin - El ID del admin que comenta (¡Obtenerlo de forma segura!).
+* @returns {Promise<object>} - El comentario recién creado.
+*/
+export const createComentarioAdmin = async (idDocumento, comentarioTexto, idUsuarioAdmin) => {
+  const docIdNum = parseInt(idDocumento, 10);
+  const adminIdNum = parseInt(idUsuarioAdmin, 10); // <-- AHORA SE VALIDA EL RECIBIDO
+
+  if (isNaN(docIdNum) || isNaN(adminIdNum)) { // Validación ahora incluye adminIdNum
+      throw new Error("Fetch Error: ID de documento o ID de admin inválido.");
+  }
+  if (typeof comentarioTexto !== 'string' || comentarioTexto.trim() === '') {
+      throw new Error("Fetch Error: El texto del comentario es requerido.");
+  }
+  console.log(`FETCH (Admin): createComentarioAdmin for Doc ID ${docIdNum} by Admin ID ${adminIdNum}`);
+  const apiUrl = '/api/adminDocumuentosProveedores'; // Endpoint POST (Asegúrate que sea el correcto)
+
+  try {
+      const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // **CAMBIO: Enviar también idUsuarioAdmin**
+          body: JSON.stringify({
+              id_documento_proveedor: docIdNum,
+              comentario: comentarioTexto.trim(),
+              id_usuario_admin: adminIdNum // <--- Se envía el ID desde el frontend
+          }),
+      });
+      // ... (Manejo de respuesta y errores como antes) ...
+      const data = await response.json().catch(() => null);
+      if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: No se pudo crear comentario.`); }
+      if (!data) { throw new Error("Respuesta inválida del servidor."); }
+      console.log(`FETCH (Admin): createComentarioAdmin successful`);
+      return data;
+
+  } catch(err) {
+       const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+       console.error(`FETCH Exception createComentarioAdmin Doc ID ${docIdNum}:`, errorToThrow);
+       throw errorToThrow;
+  }
+};
+
+/**
+* Elimina un comentario específico por su ID (Admin).
+* Llama a DELETE /api/adminProveedores?id_comentario=[idComentario]
+* @param {number} idComentario - El ID del comentario a eliminar.
+* @returns {Promise<object>} - Respuesta de la API (ej. { message: "..." }).
+*/
+export const deleteComentarioAdmin = async (idComentario) => {
+  const commentIdNum = parseInt(idComentario, 10);
+  if (isNaN(commentIdNum)) {
+      throw new Error("Fetch Error: ID de comentario inválido para eliminar.");
+  }
+  console.log(`FETCH (Admin): deleteComentarioAdmin ID: ${commentIdNum}`);
+  // Construir URL con query param para DELETE
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_comentario=${commentIdNum}`;
+
+  try {
+      const response = await fetch(apiUrl, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }, // Aunque no hay body, es buena práctica
+      });
+
+      let data = null;
+      if (response.status !== 204) { // Si no es 'No Content', intentar leer body
+          data = await response.json().catch(() => null);
+      }
+
+      if (!response.ok) {
+          console.error(`FETCH Error DELETE ${apiUrl}: Status ${response.status}. Response:`, data);
+          throw new Error(data?.message || `Error ${response.status}: No se pudo eliminar el comentario.`);
+      }
+
+      console.log(`FETCH (Admin): deleteComentarioAdmin successful for ID: ${commentIdNum}`);
+      return data ?? { success: true, message: 'Comentario eliminado.' }; // Devolver respuesta o éxito genérico
+
+  } catch (err) {
+      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception deleteComentarioAdmin ID ${commentIdNum}:`, errorToThrow);
+      throw errorToThrow;
   }
 };

@@ -23,21 +23,20 @@
     "@tiptap/starter-kit": "^2.11.5",
     "@vercel/postgres": "^0.10.0",
     "bcryptjs": "^3.0.2",
+    "docxtemplater": "^3.61.1",
     "dotenv": "^16.4.7",
     "face-api.js": "^0.22.2",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
- 
-
-
-
     "jspdf-autotable": "^5.0.2",
-
     "next": "15.1.7",
     "num2words": "^1.0.2",
     "pdf-lib": "^1.17.1",
     "pdfmake": "^0.2.18",
     "pg": "^8.13.3",
+    "pizzip": "^3.1.8",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-webcam": "^7.2.0",

@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Menu from '../../menu_principal'; // Ajusta ruta
 import Pie from "../../pie"; // Ajusta ruta
@@ -45,6 +45,11 @@ export default function GestionArticulosProveedorPage() {
     // Estados del Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingArticulo, setEditingArticulo] = useState<ArticuloProveedor | null>(null); // null para crear, objeto para editar
+
+        // --- Estados de Filtro ---
+        const [filtroPartida, setFiltroPartida] = useState<string>(''); // '' significa todas
+        const [filtroDescripcion, setFiltroDescripcion] = useState<string>('');
+        const [filtroEstatus, setFiltroEstatus] = useState<string>('todos'); // 'todos', 'activo', 'inactivo'
 
     // 1. Obtener idProveedor desde sessionStorage (sin cambios)
     useEffect(() => {
@@ -199,6 +204,33 @@ export default function GestionArticulosProveedorPage() {
         }
     };
 
+    // --- NUEVO: Lógica de Filtrado Frontend ---
+    const articulosFiltrados = useMemo(() => {
+        // Copia original para no mutar el estado
+        let itemsFiltrados = [...articulos];
+
+        // 1. Filtrar por Partida
+        if (filtroPartida) {
+            itemsFiltrados = itemsFiltrados.filter(item => item.codigo_partida === filtroPartida);
+        }
+
+        // 2. Filtrar por Descripción (case-insensitive)
+        if (filtroDescripcion) {
+            const descLower = filtroDescripcion.toLowerCase();
+            itemsFiltrados = itemsFiltrados.filter(item =>
+                item.descripcion.toLowerCase().includes(descLower)
+            );
+        }
+
+        // 3. Filtrar por Estatus
+        if (filtroEstatus !== 'todos') {
+            const estatusBuscado = filtroEstatus === 'activo'; // true si es 'activo', false si es 'inactivo'
+            itemsFiltrados = itemsFiltrados.filter(item => item.estatus === estatusBuscado);
+        }
+
+        return itemsFiltrados;
+    }, [articulos, filtroPartida, filtroDescripcion, filtroEstatus]); // Dependencias
+    // --- FIN Lógica de Filtrado ---
 
     // --- RENDERIZADO ---
     return (
@@ -219,17 +251,76 @@ export default function GestionArticulosProveedorPage() {
                 {/* Contenido principal */}
                 {!loadingPage && idProveedor && !errorPage && (
                     <>
+                                            {/* --- SECCIÓN DE FILTROS --- */}
+                                            <div className="mb-6 p-4 bg-white shadow rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            {/* Filtro Partida */}
+                            <div>
+                                <label htmlFor="filtroPartida" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Filtrar por Partida:
+                                </label>
+                                <select
+                                    id="filtroPartida"
+                                    value={filtroPartida}
+                                    onChange={(e) => setFiltroPartida(e.target.value)}
+                                    disabled={loadingPartidas || loadingArticulos || !!errorPartidas}
+                                    className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
+                                >
+                                    <option value="">-- Todas --</option>
+                                    {loadingPartidas && <option disabled>Cargando...</option>}
+                                    {!loadingPartidas && partidasCatalogo.map((p) => (
+                                        <option key={p.codigo} value={p.codigo}>
+                                            {p.codigo} - {p.descripcion}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errorPartidas && <p className="text-xs text-red-500 mt-1">{errorPartidas}</p>}
+                            </div>
+
+                            {/* Filtro Descripción */}
+                            <div>
+                                <label htmlFor="filtroDescripcion" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Buscar por Descripción:
+                                </label>
+                                <input
+                                    type="text"
+                                    id="filtroDescripcion"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                    placeholder="Escriba para buscar..."
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    disabled={loadingArticulos}
+                                />
+                            </div>
+
+                             {/* Filtro Estatus */}
+                             <div>
+                                <label htmlFor="filtroEstatus" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Filtrar por Estatus:
+                                </label>
+                                <select
+                                    id="filtroEstatus"
+                                    value={filtroEstatus}
+                                    onChange={(e) => setFiltroEstatus(e.target.value)}
+                                    disabled={loadingArticulos}
+                                    className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                >
+                                    <option value="todos">Todos</option>
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                        {/* --- FIN SECCIÓN DE FILTROS --- */}
                         <div className="mb-4 text-right">
-                            <button
+                        <button
                                 onClick={() => handleOpenModal(null)}
-                                // Deshabilitar si el catálogo de partidas no se ha cargado
-                                disabled={loadingPartidas || !!errorPartidas}
+                                disabled={loadingPartidas || !!errorPartidas} // Necesita partidas para crear
                                 className={`font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                                     (loadingPartidas || !!errorPartidas)
                                     ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
                                     : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
                                 }`}
-                                title={ (loadingPartidas || !!errorPartidas) ? "Cargando o error al cargar partidas necesarias" : "Agregar Nuevo Artículo"}
+                                title={(loadingPartidas || !!errorPartidas) ? "Cargando o error al cargar partidas" : "Agregar Nuevo Artículo"}
                             >
                                 Agregar Nuevo Artículo
                             </button>
@@ -244,11 +335,10 @@ export default function GestionArticulosProveedorPage() {
 
                         {/* Tabla de Artículos */}
                         <TablaArticulos
-                            articulos={articulos} // Ahora los artículos pueden tener partida_descripcion
+                            articulos={articulosFiltrados} // <-- PASA LA LISTA FILTRADA
                             onEdit={handleOpenModal}
                             onDelete={handleDeleteArticulo}
                             isLoading={loadingArticulos}
-                            // isDeleting={isDeleting} // Puedes pasar esto para mostrar spinner en la fila
                         />
                     </>
                 )}

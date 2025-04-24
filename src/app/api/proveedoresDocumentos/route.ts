@@ -1,107 +1,145 @@
+// src/app/api/proveedoresDocumentos/route.ts <-- Ruta para acciones del PROVEEDOR sobre sus docs/comentarios
+
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
-import { guardarDocumentoUsuarioAdicional, obtenerDocumentosPorProveedor, obtenerDocumentoProveedorPorId, eliminarDocumentoAdicionalPorId } from "../../../services/documentoproveedorservice";
-import { unlink } from "fs/promises";
+// Importar funciones del servicio del PROVEEDOR
+import {
+    guardarDocumentoProveedor,
+    obtenerDocumentosPorProveedor,
+    obtenerDocumentoProveedorPorId, // Necesaria para verificar pertenencia y obtener ruta
+    eliminarDocumentoProveedor,
+    obtenerComentariosPorDocumentoParaProveedor
+} from "../../../services/documentoproveedorservice"; // Asegúrate que esta ruta sea correcta
 
+// Importar función para obtener datos del proveedor logueado (del servicio de proveedor)
+import { getProveedorByUserId } from "../../../services/proveedoresservice"; // Ajusta ruta a tu servicio principal de proveedor
 
-// GET: obtener documentos por solicitud
+// --- GET: Obtener documentos O comentarios ---
 export async function GET(req: NextRequest) {
+  console.log("API GET /proveedoresDocumentos (SIN AUTH - ¡RIESGO!)");
   try {
     const { searchParams } = new URL(req.url);
     const idProveedor = searchParams.get("id_proveedor");
+    const idDocParaComentarios = searchParams.get("documentoIdParaComentarios");
 
-    if (!idProveedor) {
-      return NextResponse.json({ message: "id_proveedor es requerido" }, { status: 400 });
+    // --- Obtener Comentarios ---
+    if (idDocParaComentarios) {
+        const idDocumento = parseInt(idDocParaComentarios, 10);
+        if (isNaN(idDocumento)) return NextResponse.json({ message: 'ID documento inválido.' }, { status: 400 });
+        // Falta validación de pertenencia!
+        const comentarios = await obtenerComentariosPorDocumentoParaProveedor(idDocumento);
+        return NextResponse.json(comentarios ?? []);
+    }
+    // --- Obtener Documentos ---
+    else if (idProveedor) {
+        const providerIdNum = parseInt(idProveedor, 10);
+        if (isNaN(providerIdNum)) return NextResponse.json({ message: 'ID proveedor inválido.' }, { status: 400 });
+        // Falta validación de pertenencia!
+        const docs = await obtenerDocumentosPorProveedor(providerIdNum);
+        return NextResponse.json(docs ?? []);
+    }
+    else {
+        return NextResponse.json({ message: 'Se requiere "id_proveedor" o "documentoIdParaComentarios".' }, { status: 400 });
     }
 
-    const docs = await obtenerDocumentosPorProveedor(parseInt(idProveedor));
-    return NextResponse.json(docs);
-  } catch (error) {
-    console.error("Error al obtener documentos:", error);
-    return NextResponse.json({ message: "error en servidor", error }, { status: 500 });
+  } catch (error: any) {
+      console.error("Error GET /proveedoresDocumentos (Proveedor):", error);
+      return NextResponse.json({ message: error.message || 'Error en el servidor al obtener datos.' }, { status: 500 });
   }
 }
 
-// POST: subir documento
+// --- POST: Subir nuevo documento por el PROVEEDOR ---
+// (Asumiendo que el proveedor NO crea comentarios)
 export async function POST(req: NextRequest) {
+  console.log("API POST /proveedoresDocumentos (SIN AUTH - ¡RIESGO!): Handling file upload.");
   try {
-    const formData = await req.formData();
-    const file = formData.get("archivo") as File;
-    const tipo_documento = formData.get("tipo_documento") as string;
-    const id_proveedor = formData.get("id_proveedor") as string;
-    const id_usuario = formData.get("userId") as string | null;
+      const formData = await req.formData();
+      const file = formData.get("archivo") as File | null;
+      const tipo_documento = formData.get("tipo_documento") as string | null;
+      const id_proveedor_str = formData.get("id_proveedor") as string | null; // ID del proveedor al que pertenece
+      const id_usuario_str = formData.get("userId") as string | null;      // ID del usuario que supuestamente sube
 
-    if (!file || !tipo_documento || !id_proveedor || !id_usuario) {
-      return NextResponse.json({ message: "faltan campos" }, { status: 400 });
-    }
+      // Validaciones básicas de los datos recibidos del form
+      if (!file || typeof file.arrayBuffer !== 'function') return NextResponse.json({ message: "Archivo inválido o faltante." }, { status: 400 });
+      if (!tipo_documento?.trim()) return NextResponse.json({ message: "Tipo de documento requerido." }, { status: 400 });
+      if (!id_proveedor_str || isNaN(parseInt(id_proveedor_str, 10))) return NextResponse.json({ message: "ID de proveedor inválido." }, { status: 400 });
+      if (!id_usuario_str || isNaN(parseInt(id_usuario_str, 10))) return NextResponse.json({ message: "ID de usuario (userId) inválido." }, { status: 400 });
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+      const id_proveedor = parseInt(id_proveedor_str, 10);
+      const id_usuario = parseInt(id_usuario_str, 10); // Se asume que este es el id_usuario_proveedor
 
-    // crea la carpeta public/tipo/id_proveedor
-    const folderPath = path.join(
-      process.cwd(),
-      "public",
-      tipo_documento,
-      id_proveedor
-    );
-    await mkdir(folderPath, { recursive: true });
+      // --- Lógica para guardar archivo ---
+      const buffer = Buffer.from(await file.arrayBuffer());
+      // Usar el ID PROVEEDOR proporcionado en la ruta
+      const folderPath = path.join(process.cwd(), "public", "uploads", tipo_documento, id_proveedor_str);
+      await mkdir(folderPath, { recursive: true });
+      const uniqueSuffix = uuidv4();
+      const fileExtension = path.extname(file.name);
+      const baseName = path.basename(file.name, fileExtension);
+      const safeBaseName = baseName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
+      const fileName = `${tipo_documento}_${safeBaseName}_${uniqueSuffix}${fileExtension}`;
+      const filePath = path.join(folderPath, fileName);
+      await writeFile(filePath, buffer);
+      // Guardar ruta relativa a 'public'
+      const ruta_archivo = `uploads/${tipo_documento}/${id_proveedor_str}/${fileName}`;
+      // --- Fin lógica guardar archivo ---
 
-    const fileName = `${tipo_documento}_${uuidv4()}_${file.name}`;
-    const filePath = path.join(folderPath, fileName);
+      console.log(`API POST: Calling service guardarDocumentoProveedor with provided IDs`);
+      // Llama al servicio pasando los IDs recibidos del formulario
+      const savedDoc = await guardarDocumentoProveedor({
+          id_proveedor: id_proveedor,
+          tipo_documento,
+          nombre_original: file.name,
+          ruta_archivo,
+          id_usuario_proveedor: id_usuario, // Se usa el ID enviado en 'userId'
+          estatusInicial: "PENDIENTE_REVISION"
+      });
 
-    await writeFile(filePath, buffer);
+      return NextResponse.json(savedDoc, { status: 201 });
 
-    const ruta_archivo = `${tipo_documento}/${id_proveedor}/${fileName}`;
-
-    const savedDoc = await guardarDocumentoUsuarioAdicional({
-      id_proveedor: parseInt(id_proveedor),
-      tipo_documento,
-      nombre_original: file.name,
-      ruta_archivo,
-      id_usuario: parseInt(id_usuario),
-      estatus: "pendiente"
-    });
-
-    return NextResponse.json(savedDoc);
-  } catch (error) {
-    console.error("Error al subir documento:", error);
-    return NextResponse.json({ message: "error al subir documento", error }, { status: 500 });
+  } catch (error: any) {
+      console.error("Error POST /proveedoresDocumentos (Upload SIN AUTH):", error);
+      // Simplificar mensaje de error ya que no hay contexto de sesión
+      return NextResponse.json({ message: error.message || "Error al subir documento" }, { status: 500 });
   }
 }
 
 
+// --- DELETE: Proveedor elimina SUS documentos ---
 export async function DELETE(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+     const { searchParams } = new URL(req.url);
+     const idDocParam = searchParams.get('id_documento_proveedor');
+     if (!idDocParam) return NextResponse.json({ message: 'Falta "id_documento_proveedor".' }, { status: 400 });
 
-    if (!id) {
-      return NextResponse.json({ message: "id es requerido" }, { status: 400 });
-    }
+     const idDocumento = parseInt(idDocParam, 10);
+     if (isNaN(idDocumento)) return NextResponse.json({ message: 'ID de documento inválido.' }, { status: 400 });
 
-    const documento = await obtenerDocumentoProveedorPorId(parseInt(id));
+     console.log(`API DELETE /proveedoresDocumentos (SIN AUTH): Request delete doc ID: ${idDocumento}`);
 
-    if (!documento) {
-      return NextResponse.json({ message: "Documento no encontrado" }, { status: 404 });
-    }
+     // Obtener info del doc para borrar archivo físico
+     const documento = await obtenerDocumentoProveedorPorId(idDocumento);
+     if (!documento) return NextResponse.json({ message: "Documento no encontrado" }, { status: 404 });
 
-    // eliminar archivo físico
-    const filePath = path.join(process.cwd(), "public", documento.ruta_archivo);
-    try {
-      await unlink(filePath);
-    } catch (fsError) {
-      console.warn("No se pudo eliminar el archivo físico:", fsError);
-      // no detenemos el proceso si el archivo ya no existe
-    }
+     const filePath = path.join(process.cwd(), "public", documento.ruta_archivo);
 
-    // eliminar de la base de datos
-    await eliminarDocumentoAdicionalPorId(parseInt(id));
+     await eliminarDocumentoProveedor(idDocumento); // Llama al servicio
 
-    return NextResponse.json({ success: true, message: "Documento eliminado correctamente" });
-  } catch (error) {
-    console.error("Error al eliminar documento:", error);
-    return NextResponse.json({ message: "Error al eliminar documento", error }, { status: 500 });
-  }
+        // Intentar eliminar archivo físico
+        try { await unlink(filePath); console.log(`API DELETE: Physical file deleted: ${filePath}`); }
+        catch (fsError: any) { /* ... warning si no existe ... */ }
+
+        return NextResponse.json({ success: true, message: "Documento eliminado." });
+
+     } catch (error: any) {
+        console.error("API Route DELETE /proveedoresDocumentos Error:", error);
+        let status = 500; let message = error.message || 'Error inesperado al eliminar.';
+        if (message.includes("no encontrado")) status = 404;
+        if (message.includes("inválido")) status = 400;
+        // Capturar error de FK si el doc tiene comentarios y la FK es RESTRICT
+        if (message.includes("tiene comentarios asociados")) status = 409; // Conflict
+        return NextResponse.json({ message: message }, { status });
+     }
 }

@@ -6,40 +6,46 @@ import { sql } from '@vercel/postgres';
 
 // Representa un artículo como se mostrará en el catálogo
 interface ArticuloCatalogo {
-    id_producto: number; // Corregido: usa el nombre de columna de productos_proveedor
-    nombre_producto: string; // Corregido
+    id_articulo: number;
+    codigo_partida: string; // <-- AÑADIDO: Código de la partida del artículo
     descripcion: string;
     unidad_medida: string;
-    precio: number; // Asumiendo que quieres mostrar el precio
-    // No incluimos stock aquí, ya que es más para gestión interna del proveedor
+    precio_unitario: number;
+    // partida_descripcion?: string; // Podríamos añadir la desc de la partida del artículo aquí también si fuera útil
 }
 
-// Representa una partida asociada a un proveedor en el catálogo
 interface PartidaProveedorCatalogo {
     codigo_partida: string;
-    descripcion: string; // De la tabla catalogo_partidas_presupuestarias
+    descripcion: string;
 }
 
-// Representa la información completa de un proveedor para el catálogo
 interface ProveedorCatalogo {
     id_proveedor: number;
     rfc: string;
-    // Incluye los campos de la tabla 'proveedores' que quieras mostrar:
-    nombre_o_razon_social: string; // Necesitaremos lógica para obtener esto (JOIN o lógica JS)
+    nombre_o_razon_social: string;
     giro_comercial: string | null;
     correo: string | null;
     telefono_uno: string | null;
     pagina_web: string | null;
-    // ... otros campos relevantes de 'proveedores' ...
-    partidas: PartidaProveedorCatalogo[]; // Array de partidas asociadas
-    articulos: ArticuloCatalogo[]; // Array de artículos asociados
+    partidas: PartidaProveedorCatalogo[];
+    articulos: ArticuloCatalogo[]; // Usa la interfaz actualizada
 }
 
-// Interfaz para el catálogo de partidas (para el filtro)
 interface CatalogoPartidaFiltro {
     codigo: string;
     descripcion: string;
 }
+
+// Tipo intermedio para la fila de la BD (Actualizado)
+type ArticuloDbRow = {
+    id_articulo: number;
+    id_proveedor: number;
+    codigo_partida: string; // <-- AÑADIDO
+    descripcion: string;
+    unidad_medida: string;
+    precio_unitario: string;
+};
+
 
 
 // --- Funciones del Servicio ---
@@ -74,107 +80,107 @@ export const getAllPartidasParaFiltro = async (): Promise<CatalogoPartidaFiltro[
  * @returns {Promise<ProveedorCatalogo[]>} - Array de proveedores con detalles.
  */
 export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | null = null): Promise<ProveedorCatalogo[]> => {
-    console.log(`SERVICE: Fetching providers catalog. Filter by partida: ${codigoPartidaFiltro ?? 'None'}`);
+    console.log(`SERVICE: Fetching UNIQUE providers catalog (Manual Query Build). Filter: ${codigoPartidaFiltro ?? 'None'}`);
     try {
-        // 1. Definir y ejecutar la consulta de proveedores base
-        let proveedoresQuery;
+        // --- 1. Obtener proveedores base (CONSTRUCCIÓN MANUAL) ---
+        let proveedoresResult; // Para almacenar el resultado de la query
+
+        // Define la lista de campos a seleccionar
+        const selectFields = `
+            p.id_proveedor, p.rfc, p.giro_comercial, p.correo, p.telefono_uno, p.pagina_web,
+            COALESCE(pf.nombre || ' ' || pf.apellido_p || ' ' || pf.apellido_m, pm.razon_social) AS nombre_o_razon_social
+        `;
+
+        // Define cláusulas comunes
+         const fromClause = `
+            FROM proveedores p
+            LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
+            LEFT JOIN proveedores_morales pm ON p.id_proveedor = pm.id_proveedor
+        `;
+        const whereBase = ` WHERE p.estatus = TRUE `;
+        const orderBy = ` ORDER BY p.id_proveedor, COALESCE(pf.nombre, pm.razon_social) ASC `; // Necesario para DISTINCT ON
+
+        // Construir la query completa
+        let queryText: string;
+
         if (codigoPartidaFiltro) {
-            // --- Consulta COMPLETA con filtro de partida ---
             console.log(`SERVICE: Applying filter for partida: ${codigoPartidaFiltro}`);
-            proveedoresQuery = sql`
-                SELECT
-                    p.id_proveedor, p.rfc, p.giro_comercial, p.correo, p.telefono_uno, p.pagina_web,
-                    COALESCE(pf.nombre || ' ' || pf.apellido_p || ' ' || pf.apellido_m, pm.razon_social) AS nombre_o_razon_social
-                FROM proveedores p
-                LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
-                LEFT JOIN proveedores_morales pm ON p.id_proveedor = pm.id_proveedor
-                WHERE p.estatus = TRUE
-                AND EXISTS (
-                    SELECT 1
-                    FROM proveedor_partidas pp
-                    WHERE pp.id_proveedor = p.id_proveedor AND pp.codigo_partida = ${codigoPartidaFiltro} -- El único parámetro ($1)
-                )
-                ORDER BY nombre_o_razon_social ASC;
+            // Construir query CON filtro de partida
+            queryText = `
+                SELECT DISTINCT ON (p.id_proveedor) ${selectFields}
+                ${fromClause}
+                ${whereBase}
+                  AND EXISTS (
+                      SELECT 1
+                      FROM proveedor_partidas pp
+                      WHERE pp.id_proveedor = p.id_proveedor AND pp.codigo_partida = $1 -- Placeholder $1
+                  )
+                ${orderBy}
             `;
+            // Ejecutar con parámetro usando sql.query()
+            proveedoresResult = await sql.query(queryText, [codigoPartidaFiltro]);
+
         } else {
-            // --- Consulta COMPLETA sin filtro de partida ---
-            console.log(`SERVICE: Fetching all active providers.`);
-            proveedoresQuery = sql`
-                SELECT
-                    p.id_proveedor, p.rfc, p.giro_comercial, p.correo, p.telefono_uno, p.pagina_web,
-                    COALESCE(pf.nombre || ' ' || pf.apellido_p || ' ' || pf.apellido_m, pm.razon_social) AS nombre_o_razon_social
-                FROM proveedores p
-                LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
-                LEFT JOIN proveedores_morales pm ON p.id_proveedor = pm.id_proveedor
-                WHERE p.estatus = TRUE
-                ORDER BY nombre_o_razon_social ASC;
-            `; // <-- Esta consulta es estática, no debe generar "$1"
+            console.log(`SERVICE: Fetching all active unique providers.`);
+            // Construir query SIN filtro de partida
+            queryText = `
+                SELECT DISTINCT ON (p.id_proveedor) ${selectFields}
+                ${fromClause}
+                ${whereBase}
+                ${orderBy}
+            `;
+             // Ejecutar SIN parámetros usando sql.query()
+             proveedoresResult = await sql.query(queryText);
         }
-        // Ejecutar la consulta seleccionada
-        const proveedoresResult = await proveedoresQuery;
+        // --- Fin Construcción/Ejecución SQL ---
+
+        // **proveedoresBase ahora contendrá filas únicas**
         const proveedoresBase = proveedoresResult.rows;
+        console.log(`SERVICE: Found ${proveedoresBase.length} UNIQUE base providers.`);
+        if (proveedoresBase.length === 0) return [];
 
-        // --- Resto de la función (sin cambios desde la versión anterior corregida) ---
-        if (proveedoresBase.length === 0) {
-            console.log("SERVICE: No providers found matching criteria.");
-            return [];
-        }
         const proveedorIds = proveedoresBase.map(p => p.id_proveedor);
-        console.log(`SERVICE: Found ${proveedoresBase.length} base providers. IDs: ${proveedorIds.join(', ')}`);
 
-        // 2. Obtener Partidas Asociadas
-        console.log("SERVICE: Fetching associated partidas...");
+        // --- 2. Obtener Partidas Asociadas (Sin cambios) ---
+        // Usar plantilla etiquetada aquí es seguro porque ${proveedorIds} es un array
         const partidasResult = await sql`
-            SELECT
-                pp.id_proveedor,
-                pp.codigo_partida,
-                cp.descripcion
-            FROM proveedor_partidas pp
-            INNER JOIN catalogo_partidas_presupuestarias cp ON pp.codigo_partida = cp.codigo
-            WHERE pp.id_proveedor = ANY (${proveedorIds}) -- Más eficiente que IN para arrays grandes
+            SELECT pp.id_proveedor, pp.codigo_partida, cp.descripcion
+            FROM proveedor_partidas pp JOIN catalogo_partidas_presupuestarias cp ON pp.codigo_partida = cp.codigo
+            WHERE pp.id_proveedor = ANY (${proveedorIds})
             ORDER BY pp.id_proveedor, pp.codigo_partida;
         `;
         const todasLasPartidas = partidasResult.rows;
-        console.log(`SERVICE: Found ${todasLasPartidas.length} associated partidas.`);
 
-        // 3. Obtener Artículos Asociados (usando consulta corregida anteriormente)
-        console.log("SERVICE: Fetching associated active articles (articulos_proveedor)...");
-        const articulosResult = await sql<ProveedorCatalogo>`
-             SELECT id_articulo, id_proveedor, descripcion, unidad_medida, precio_unitario
-             FROM articulos_proveedor
-             WHERE id_proveedor = ANY (${proveedorIds}) AND estatus = TRUE
-             ORDER BY id_proveedor, descripcion ASC;
+        // --- 3. Obtener Artículos Asociados (Sin cambios) ---
+        console.log("SERVICE: Fetching associated active articles...");
+        // Usar plantilla etiquetada aquí es seguro
+        const articulosResult = await sql<ArticuloDbRow>`
+            SELECT id_articulo, id_proveedor, codigo_partida, descripcion, unidad_medida, precio_unitario
+            FROM articulos_proveedor
+            WHERE id_proveedor = ANY (${proveedorIds}) AND estatus = TRUE
+            ORDER BY id_proveedor, codigo_partida, descripcion ASC;
         `;
         const todosLosArticulosDb = articulosResult.rows;
-        console.log(`SERVICE: Found ${todosLosArticulosDb.length} raw active articles from DB.`);
+        console.log(`SERVICE: Found ${todosLosArticulosDb.length} raw active articles.`);
 
-
-        // 4. Combinar los datos en JavaScript
+        // 4. Combinar los datos (Sin cambios en este bloque)
         console.log("SERVICE: Combining data...");
         const proveedoresCompletos: ProveedorCatalogo[] = proveedoresBase.map(proveedor => {
-
-            // Filtrar partidas para este proveedor específico
-            const partidasDelProveedor: PartidaProveedorCatalogo[] = todasLasPartidas
+            const partidasDelProveedor = todasLasPartidas
                 .filter(partida => partida.id_proveedor === proveedor.id_proveedor)
-                .map(p => ({ // Mapear al formato de la interfaz PartidaProveedorCatalogo
-                    codigo_partida: p.codigo_partida,
-                    descripcion: p.descripcion
-                }));
+                .map(p => ({ codigo_partida: p.codigo_partida, descripcion: p.descripcion }));
 
-            // Filtrar artículos para este proveedor específico Y MAPEAR a la interfaz ArticuloCatalogo
-            const articulosDelProveedor: ArticuloCatalogo[] = todosLosArticulosDb
+            const articulosDelProveedor = todosLosArticulosDb
                 .filter(articuloDb => articuloDb.id_proveedor === proveedor.id_proveedor)
-                .map(dbRow => ({ // Mapear la fila de la BD al formato ArticuloCatalogo
+                .map(dbRow => ({
                     id_articulo: dbRow.id_articulo,
+                    codigo_partida: dbRow.codigo_partida,
                     descripcion: dbRow.descripcion,
                     unidad_medida: dbRow.unidad_medida,
-                    precio_unitario: parseFloat(dbRow.precio_unitario) // Asegura que sea número
-                    // Se omite id_proveedor y stock del objeto final
+                    precio_unitario: parseFloat(dbRow.precio_unitario) || 0
                 }));
 
-            // Construir el objeto final para este proveedor
             return {
-                // Datos base del proveedor obtenidos en la primera consulta
                 id_proveedor: proveedor.id_proveedor,
                 rfc: proveedor.rfc,
                 nombre_o_razon_social: proveedor.nombre_o_razon_social,
@@ -182,26 +188,16 @@ export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | nu
                 correo: proveedor.correo,
                 telefono_uno: proveedor.telefono_uno,
                 pagina_web: proveedor.pagina_web,
-                // Arrays anidados de partidas y artículos filtrados/mapeados
                 partidas: partidasDelProveedor,
                 articulos: articulosDelProveedor,
             };
-        }); // Fin del map sobre proveedoresBase
+        });
 
         console.log("SERVICE: Data combination complete.");
-        return proveedoresCompletos;
+        return proveedoresCompletos; // Devuelve array sin proveedores duplicados
 
     } catch (error: any) {
-        // ... (Manejo de errores sin cambios) ...
-        console.error("SERVICE ERROR in getProveedoresConDetalles:", error);
-        if (error.message.includes('column') && error.message.includes('does not exist')) {
-             throw new Error(`Error de base de datos: ${error.message}. Revisa nombres de columna en la consulta SQL del servicio.`);
-        }
+         console.error("SERVICE ERROR in getProveedoresConDetalles:", error);
         throw new Error(`Error al obtener el catálogo de proveedores: ${error.message}`);
     }
-}; // Fin de getProveedoresConDetalles
-
-// NOTA: Este servicio es principalmente para LEER datos para el catálogo público.
-// Las funciones CREATE, UPDATE, DELETE para proveedores individuales
-// probablemente pertenecerían a un servicio de administración (`adminProveedoresService.ts`)
-// o al servicio propio del proveedor (`proveedorProfileService.ts`).
+};

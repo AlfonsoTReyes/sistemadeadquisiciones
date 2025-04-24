@@ -1,42 +1,56 @@
 // src/components/administradorProveedores/documentos/VistaDocumentosAdmin.tsx (NUEVO COMPONENTE)
-
-"use client"; // Necesario para hooks
-
+"use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilePdf, faFileImage, faFileAlt, faEye, faSpinner, faCheckCircle, faTimesCircle, faQuestionCircle, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons'; // Añade/ajusta iconos
+import { faFilePdf, faFileImage, faFileAlt, faEye, faSpinner, faCheckCircle, faTimesCircle, faQuestionCircle, faEdit, faSave, faTimes, faCommentDots, faChevronDown, faChevronUp, faPaperPlane, faTrashAlt } from '@fortawesome/free-solid-svg-icons'; // Añadir iconos
 
-// Importa las funciones fetch CORRECTAS para esta vista
+// Importa las funciones fetch CORRECTAS
 import {
-  fetchDocumentosPorProveedorAdmin, // La que obtiene la lista para este proveedor
-  updateDocumentoStatusAdmin      // La que actualiza el estatus
-} from './fetchAdminDocumentosProveedores'; // Ajusta la ruta a tu archivo fetch de admin docs
+  fetchDocumentosPorProveedorAdmin,
+  updateDocumentoStatusAdmin,
+  fetchComentariosPorDocumentoAdmin,
+  createComentarioAdmin,
+  deleteComentarioAdmin // Asumiendo que existe y la quieres usar
+} from './fetchAdminDocumentosProveedores'; // Ajusta ruta
 
 // Importa la interfaz del Documento
-import { DocumentoProveedor } from '../interfaces'; // Ajusta ruta
+import { DocumentoProveedor, ComentarioDocProveedor, CreateComentarioData } from '../interfaces'; // Ajusta ruta
 
-// Props que recibirá este componente desde la página principal
+// Props del componente principal (AÑADIR ID ADMIN)
 interface VistaDocumentosAdminProps {
-  idProveedor: number; // El ID del proveedor cuyos documentos se mostrarán
-}
+    idProveedor: number;
+    // **NUEVO: ID del admin logueado, necesario para crear comentarios**
+    idUsuarioAdminLogueado: number;
+  }
+  
+  // Props para la fila (AÑADIR ID ADMIN)
+  interface DocumentoRowProps {
+      documento: DocumentoProveedor;
+      onStatusChange: (idDocumento: number, nuevoEstatus: string | boolean) => Promise<void>;
+      idUsuarioAdminLogueado: number;
+  }
 
-// Componente para una FILA de la tabla de documentos
-interface DocumentoRowProps {
-    documento: DocumentoProveedor;
-    onStatusChange: (idDocumento: number, nuevoEstatus: string | boolean) => Promise<void>; // Función para llamar a la API de cambio de estatus
-    // Añade otros props si necesitas más info o acciones
-}
-
-const DocumentoRow: React.FC<DocumentoRowProps> = ({ documento, onStatusChange }) => {
+// --- Componente DocumentoRow (MODIFICADO) ---
+const DocumentoRow: React.FC<DocumentoRowProps> = ({
+    documento,
+    onStatusChange,
+    idUsuarioAdminLogueado // Recibir ID admin
+}) => {
+    // Estados para estatus (como antes)
     const [isEditingStatus, setIsEditingStatus] = useState(false);
-    // El estado local podría ser string o boolean, depende de tu DB y preferencias
-    const [currentStatus, setCurrentStatus] = useState<string | boolean>(documento.estatus ?? 'Pendiente'); // Valor inicial
+    const [currentStatus, setCurrentStatus] = useState<string | boolean>(documento.estatus ?? 'Pendiente');
     const [newStatus, setNewStatus] = useState<string | boolean>(documento.estatus ?? 'Pendiente');
     const [isLoadingStatus, setIsLoadingStatus] = useState(false);
     const [errorStatus, setErrorStatus] = useState<string | null>(null);
+    const STATUS_OPTIONS = ['Pendiente', 'Aprobado', 'Rechazado', 'Solicitar Corrección'];
 
-    // Posibles estados (ajusta según tu lógica de negocio)
-    const STATUS_OPTIONS = ['Pendiente', 'Aprobado', 'Rechazado', 'Solicitar Corrección']; // Ejemplo con strings
+    // --- **NUEVO: Estados para Comentarios** ---
+    const [comentarios, setComentarios] = useState<ComentarioDocProveedor[]>([]);
+    const [showComentarios, setShowComentarios] = useState(false); // Controla visibilidad
+    const [loadingComentarios, setLoadingComentarios] = useState(false);
+    const [errorComentarios, setErrorComentarios] = useState<string | null>(null);
+    const [nuevoComentario, setNuevoComentario] = useState(""); // Texto del nuevo comentario
+    const [isSubmittingComentario, setIsSubmittingComentario] = useState(false);
 
     const getFileIcon = (fileName: string) => {
         const extension = fileName.split('.').pop()?.toLowerCase();
@@ -89,24 +103,103 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({ documento, onStatusChange }
         // Por defecto o Pendiente / null / false
         return { icon: faQuestionCircle, color: 'text-gray-500', text: 'Pendiente' };
     };
+    // --- **NUEVO: Funciones para Comentarios** ---
+    const toggleComentarios = async () => {
+        const newState = !showComentarios;
+        setShowComentarios(newState);
+        setErrorComentarios(null); // Limpiar error al abrir/cerrar
 
+        // Cargar comentarios solo si se abre y no se han cargado antes (o si quieres recargar siempre)
+        if (newState && comentarios.length === 0) {
+             cargarComentarios();
+        }
+    };
+
+    const cargarComentarios = async () => {
+        setLoadingComentarios(true);
+        setErrorComentarios(null);
+        try {
+            const fetchedComentarios = await fetchComentariosPorDocumentoAdmin(documento.id_documento_proveedor);
+            setComentarios(fetchedComentarios || []);
+        } catch (err) {
+            console.error("Error cargando comentarios:", err);
+            setErrorComentarios((err as Error).message || "Error al cargar comentarios.");
+        } finally {
+            setLoadingComentarios(false);
+        }
+    };
+
+    const handleNuevoComentarioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setNuevoComentario(e.target.value);
+        setErrorComentarios(null); // Limpiar error al escribir
+    };
+
+    const handleCrearComentario = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!nuevoComentario.trim()) {
+            setErrorComentarios("El comentario no puede estar vacío.");
+            return;
+        }
+        const adminId = idUsuarioAdminLogueado; // Usar la prop recibida
+    
+        if (!adminId || isNaN(adminId) || !documento?.id_documento_proveedor || isNaN(documento.id_documento_proveedor)) {
+            setErrorComentarios("Error: ID de usuario administrador o ID de documento no válido.");
+            return;
+        }
+    
+        setIsSubmittingComentario(true);
+        setErrorComentarios(null);
+    
+        try {
+            await createComentarioAdmin(
+                documento.id_documento_proveedor, // 1er argumento: idDocumento
+                nuevoComentario.trim(),           // 2do argumento: comentarioTexto
+                adminId                          // 3er argumento: idUsuarioAdmin
+            );
+    
+            setNuevoComentario(""); // Limpiar textarea
+            await cargarComentarios(); // Recargar lista de comentarios
+    
+        } catch (err: any) {
+            console.error("Error creando comentario:", err);
+            setErrorComentarios(err.message || "Error al guardar comentario.");
+        } finally {
+            setIsSubmittingComentario(false);
+        }
+    };
+
+     // Opcional: Handler para eliminar comentario (necesitarías un botón en la lista de comentarios)
+     const handleEliminarComentarioClick = async (idComentario: number) => {
+         if (!window.confirm("¿Seguro que quieres eliminar este comentario?")) return;
+         setErrorComentarios(null);
+         try {
+             await deleteComentarioAdmin(idComentario);
+             cargarComentarios(); // Recargar lista
+         } catch (err) {
+             setErrorComentarios((err as Error).message || "Error al eliminar comentario.");
+         }
+     };
+    // --- FIN Funciones Comentarios ---
     const statusInfo = getStatusIndicator(currentStatus);
 
     return (
-        <tr className="bg-white border-b hover:bg-gray-50">
-            {/* Tipo y Nombre */}
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                <FontAwesomeIcon icon={getFileIcon(documento.nombre_original)} className="mr-2 text-gray-500" />
-                {documento.tipo_documento}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                {documento.nombre_original}
-            </td>
-             {/* Fecha Carga */}
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {documento.created_at ? new Date(documento.created_at).toLocaleDateString() : 'N/A'}
-            </td>
-             {/* Estatus Actual y Edición */}
+        // Usar React.Fragment para poder retornar múltiples elementos (tr + tr condicional)
+        <>
+            {/* --- Fila Principal del Documento (como antes, pero con botón comentarios) --- */}
+            <tr className="bg-white border-b hover:bg-gray-50">
+                {/* Tipo y Nombre */}
+                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 align-top">
+                    <FontAwesomeIcon icon={getFileIcon(documento.nombre_original)} className="mr-2 text-gray-400" />
+                    {documento.tipo_documento}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-700 align-top break-words">
+                    {documento.nombre_original}
+                </td>
+                {/* Fecha Carga */}
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 align-top">
+                    {documento.created_at ? new Date(documento.created_at).toLocaleDateString() : 'N/A'}
+                </td>
+                {/* Estatus Actual y Edición */}
              <td className="px-6 py-4 whitespace-nowrap text-sm">
                 {!isEditingStatus ? (
                     <span className={`flex items-center ${statusInfo.color}`}>
@@ -138,40 +231,93 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({ documento, onStatusChange }
                  {/* Mostrar error de guardado de estatus */}
                  {errorStatus && isEditingStatus && <p className="text-xs text-red-500 mt-1">{errorStatus}</p>}
             </td>
-             {/* Acciones: Ver y Editar Estatus */}
-             <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-3">
-             <a
-    href={`/${documento.ruta_archivo}`} // Asume que ruta_archivo es algo como 'uploads/docs/mi_archivo.pdf'
-                                        // y está dentro de la carpeta 'public' de Next.js.
-                                        // El '/' inicial lo hace relativo a la raíz del sitio web.
-    target="_blank"                     // Abre en una nueva pestaña
-    rel="noopener noreferrer"           // Buenas prácticas de seguridad para target="_blank"
-    className="text-blue-600 hover:text-blue-800 hover:underline" // Clases de estilo (ej. Tailwind)
-    title={`Ver/Descargar ${documento.nombre_original || 'documento'}`} // Texto al pasar el mouse
->
-    {/* Puedes poner texto o un icono aquí */}
-    Ver Documento
-    {/* O podrías mostrar el nombre del archivo como enlace: */}
-    {/* {documento.nombre_original} */}
-</a>
-                {!isEditingStatus && (
-                    <button
-                    onClick={handleStatusEditToggle}
-                    className="font-medium text-indigo-600 hover:underline"
-                    title="Cambiar Estatus"
-                    >
-                        <FontAwesomeIcon icon={faEdit} className="mr-1" /> Cambiar Estatus
-                    </button>
-                )}
-            </td>
-        </tr>
+                {/* Acciones */}
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-center space-x-2 align-top">
+                    {/* Botón Ver */}
+                    <a href={`/${documento.ruta_archivo}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs" title="Ver/Descargar">Ver</a>
+                    {/* Botón Editar Estatus */}
+                    {!isEditingStatus && ( <button onClick={handleStatusEditToggle} className="text-indigo-600 hover:underline text-xs" title="Cambiar Estatus"><FontAwesomeIcon icon={faEdit} /> Cambiar</button> )}
+                     {/* **NUEVO: Botón Comentarios** */}
+                     <button onClick={toggleComentarios} className="text-gray-600 hover:text-black text-xs" title={showComentarios ? "Ocultar Comentarios" : "Ver/Añadir Comentarios"}>
+                        <FontAwesomeIcon icon={faCommentDots} className="mr-1"/>
+                        ({comentarios.length}) {/* Mostrar contador */}
+                        <FontAwesomeIcon icon={showComentarios ? faChevronUp : faChevronDown} className="ml-1 text-xs"/>
+                     </button>
+                </td>
+            </tr>
+
+            {/* --- **NUEVO: Fila Condicional para Mostrar/Añadir Comentarios** --- */}
+            {showComentarios && (
+                <tr className="bg-gray-50 border-b">
+                    {/* Usar colspan para que ocupe todas las columnas */}
+                    <td colSpan={5} className="px-6 py-4">
+                        <div className="max-w-2xl mx-auto"> {/* Limitar ancho para legibilidad */}
+                             <h4 className="text-sm font-semibold text-gray-700 mb-3">Comentarios del Documento</h4>
+                             {/* Sección para mostrar errores de comentarios */}
+                             {errorComentarios && <p className="text-xs text-red-600 mb-2">{errorComentarios}</p>}
+
+                             {/* Lista de Comentarios */}
+                             {loadingComentarios ? (
+                                 <p className="text-xs text-gray-500 italic">Cargando comentarios...</p>
+                             ) : comentarios.length > 0 ? (
+                                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2 mb-4 custom-scrollbar">
+                                     {comentarios.map(com => (
+                                         <div key={com.id_comentario} className="p-2 border rounded bg-white text-xs">
+                                             <p className="text-gray-800">{com.comentario}</p>
+                                             <p className="text-gray-500 mt-1 text-right">
+                                                 - {com.nombre_admin || 'Admin'} {com.apellidos_admin || ''} el {new Date(com.created_at).toLocaleString()}
+                                                 {/* Opcional: Botón Eliminar Comentario */}
+                                                 <button onClick={() => handleEliminarComentarioClick(com.id_comentario)} className="ml-2 text-red-500 hover:text-red-700 text-xs"> (Eliminar)</button>
+                                             </p>
+                                         </div>
+                                     ))}
+                                 </div>
+                             ) : (
+                                 <p className="text-xs text-gray-500 italic mb-3">No hay comentarios para este documento.</p>
+                             )}
+
+                             {/* Formulario para Añadir Comentario */}
+                             <form onSubmit={handleCrearComentario} className="mt-2">
+                                 <label htmlFor={`nuevoComentario-${documento.id_documento_proveedor}`} className="block text-xs font-medium text-gray-600 mb-1">Añadir Comentario:</label>
+                                 <textarea
+                                     id={`nuevoComentario-${documento.id_documento_proveedor}`}
+                                     rows={2}
+                                     value={nuevoComentario}
+                                     onChange={handleNuevoComentarioChange}
+                                     className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                     placeholder="Escriba su comentario aquí..."
+                                     disabled={isSubmittingComentario}
+                                     required
+                                 />
+                                 <div className="text-right mt-2">
+                                     <button
+                                         type="submit"
+                                         className="button-primary-small disabled:opacity-50"
+                                         disabled={isSubmittingComentario || !nuevoComentario.trim()}
+                                     >
+                                         {isSubmittingComentario ? (
+                                             <><FontAwesomeIcon icon={faSpinner} spin className="mr-1"/> Enviando...</>
+                                         ) : (
+                                             <><FontAwesomeIcon icon={faPaperPlane} className="mr-1"/> Enviar</>
+                                         )}
+                                     </button>
+                                 </div>
+                             </form>
+                        </div>
+                    </td>
+                </tr>
+            )}
+            {/* --- FIN Fila Condicional --- */}
+        </>
     );
 }
 
 
 // --- Componente Principal de la Vista ---
-const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor }) => {
-
+const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({
+    idProveedor,
+    idUsuarioAdminLogueado // <-- Recibir ID del admin
+}) => {
   const [documentos, setDocumentos] = useState<DocumentoProveedor[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
@@ -209,7 +355,6 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor
   const handleDocumentStatusChange = async (idDocumento: number, nuevoEstatus: string | boolean): Promise<void> => {
       setErrorGlobal(null); // Limpia errores globales antes de intentar
       setSuccessMessage(null);
-      // console.log(`Admin View: Attempting to change status for doc ${idDocumento} to ${nuevoEstatus}`); // Debug
 
       // ¡Retornamos la promesa para que DocumentoRow sepa si tuvo éxito o no!
       return updateDocumentoStatusAdmin(idDocumento, nuevoEstatus)
@@ -240,7 +385,7 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor
   // --- Renderizado ---
   return (
     <div className="p-4 md:p-6 bg-white shadow rounded-lg">
-        {/* Mensajes Globales */}
+        {/* ... (Mensajes Globales como antes) ... */}
         {successMessage && (
             <div className="p-3 mb-4 border-l-4 bg-green-100 border-green-500 text-green-700" role="alert">
             <p>{successMessage}</p>
@@ -252,6 +397,7 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor
             </div>
         )}
 
+
         {/* Tabla de Documentos */}
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Documentos Cargados</h2>
         {isLoadingDocs ? (
@@ -261,15 +407,16 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor
         ) : errorGlobal && !documentos.length ? ( // Si hubo error y no hay documentos
              <p className="text-center text-gray-500 italic py-4">No se pudieron cargar los documentos.</p>
         ): (
-            <div className="overflow-x-auto border rounded">
+            <div className="overflow-x-auto border rounded shadow-sm">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Archivo</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Carga</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
-                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            {/* Ajustar encabezados si es necesario */}
+                            <th scope="col" className="...">Tipo Doc.</th>
+                            <th scope="col" className="...">Nombre Archivo</th>
+                            <th scope="col" className="...">Cargado</th>
+                            <th scope="col" className="...">Estatus</th>
+                            <th scope="col" className="...">Acciones / Comentarios</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -277,14 +424,23 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({ idProveedor
                             <DocumentoRow
                                 key={doc.id_documento_proveedor}
                                 documento={doc}
-                                onStatusChange={handleDocumentStatusChange} // Pasa la función handler
+                                onStatusChange={handleDocumentStatusChange}
+                                // **PASAR ID ADMIN A LA FILA**
+                                idUsuarioAdminLogueado={idUsuarioAdminLogueado}
                             />
                         ))}
                     </tbody>
                 </table>
             </div>
         )}
-    </div> // Cierre del div principal
+        {/* Estilos para scrollbar si es necesario */}
+        <style jsx>{`
+             .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+             .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+             .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 3px; }
+             .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        `}</style>
+    </div>
   );
 };
 

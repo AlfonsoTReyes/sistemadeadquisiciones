@@ -1,10 +1,11 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback  } from 'react'; 
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; 
 import { useRouter } from 'next/navigation';
 import Menu from '../../menu_principal';
 import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores';
-import { ProveedorData } from './interface';
+import PusherClient from 'pusher-js'; // Importar cliente Pusher
+import { ProveedorData, UsuarioProveedorData  } from './interface';
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
 import ModalActualizarUsuarioProveedor from './formularios/modalActualizarUsuario';
 import {
@@ -13,65 +14,119 @@ import {
     getProveedorProfileById,
     updateProveedorProfile,
     updateUsuarioProveedor,
-    getUsuarioProveedorByProveedorId
+    getUsuarioProveedorByProveedorId,
+    updateAdminRevisionStatus
 } from './formularios/fetchAltaProveedor';
-
- interface UsuarioProveedorData {
-   id_usuario: number;
-   usuario: string;
-   nombre: string;
-   apellido_p: string;
-   apellido_m: string;
-   correo: string;
-   estatus: string;
- }
 
 export default function AdministradorProveedoresPage() {
     const router = useRouter();
 
     // Estados para la lista de proveedores, carga y errores
-    const [proveedores, setProveedores] = useState<ProveedorData[]>([]);
-    const [loading, setLoading] = useState(true); // Carga inicial de la lista
-    const [error, setError] = useState<string | null>(null); // Errores generales o de fetch
-    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({}); // Para botones Activar/Desactivar
-    // --- NUEVOS ESTADOS PARA FILTROS ---
+    const [proveedores, setProveedores] = useState<ProveedorAdminListData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingStatusChange, setLoadingStatusChange] = useState<{ [key: number]: boolean }>({});
+    const [isLoadingRevisionChange, setIsLoadingRevisionChange] = useState<{ [key: number]: boolean }>({});
     const [filtroRfc, setFiltroRfc] = useState('');
     const [filtroCorreo, setFiltroCorreo] = useState('');
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+    const [editingProviderData, setEditingProviderData] = useState<ProveedorCompletoData | null>(null);
+    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null);
+    const [isFetchingEditData, setIsFetchingEditData] = useState(false);
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+    const [updateProfileError, setUpdateProfileError] = useState<string | null>(null);
+    const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+    const [updateUserError, setUpdateUserError] = useState<string | null>(null);
+    const [pendientesCount, setPendientesCount] = useState(0);
+    const pusherClientRef = useRef<PusherClient | null>(null);
+    const channelRef = useRef<any>(null);
 
-  // Estado para el modal de PERFIL de proveedor
-  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [editingProviderData, setEditingProviderData] = useState<ProveedorData | null>(null);
-  const [isFetchingEditData, setIsFetchingEditData] = useState(false); // Carga de datos para *cualquier* modal
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false); // Guardado del modal de perfil
-  const [updateProfileError, setUpdateProfileError] = useState<string | null>(null); // Error del modal de perfil
+    // --- Carga Inicial de la Lista de Proveedores ---
+    const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
+        console.log("AdminPage: Fetching/Refreshing providers list...");
+        if(showLoadingIndicator) setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchAllProveedores();
+            const validData = data || [];
+            setProveedores(validData);
+            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
+            setPendientesCount(count);
+            console.log(`AdminPage: Lista cargada. Pendientes: ${count}`);
+        } catch (err: any) { setError(err.message || "Error cargando proveedores."); setProveedores([]); setPendientesCount(0); }
+        finally { if(showLoadingIndicator) setLoading(false); }
+    }, []);
 
-  // Estado para el modal de USUARIO proveedor
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null); // Estado para los datos del *usuario* a editar
-  const [isUpdatingUser, setIsUpdatingUser] = useState(false); // Estado de carga para la actualización del *usuario*
-  const [updateUserError, setUpdateUserError] = useState<string | null>(null); // Estado de error para la actualización del *usuario*
-  // Estado para carga de cambio de estatus individual
-  const [isLoadingStatusChange, setIsLoadingStatusChange] = useState<{ [key: number]: boolean }>({});
+        // --- Carga Inicial ---
+        useEffect(() => {
+            setLoading(true);
+            cargarProveedores().finally(() => setLoading(false));
+        }, [cargarProveedores]);
+    // --- NUEVO: useEffect para Pusher ---
+    // --- useEffect para Pusher (Con alert()) ---
+    useEffect(() => {
+        if (pusherClientRef.current) return; // Evitar reinicializar
 
-      // --- Carga Inicial de Proveedores ---
-  const cargarProveedores = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchAllProveedores();
-      setProveedores(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+        const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
-  useEffect(() => {
-    cargarProveedores();
-  }, [cargarProveedores]);
+        if (!key || !cluster) { console.error("AdminPage Pusher: Claves no encontradas."); return; }
+
+        try {
+            console.log("AdminPage Pusher: Initializing...");
+            pusherClientRef.current = new PusherClient(key, { cluster });
+            const channelName = 'admin-notifications';
+            const eventName = 'cambio_estado_proveedor';
+
+            console.log(`AdminPage Pusher: Subscribing to ${channelName}...`);
+            channelRef.current = pusherClientRef.current.subscribe(channelName);
+
+            channelRef.current.bind('pusher:subscription_succeeded', () => { console.log(`AdminPage Pusher: Subscribed to ${channelName}`); });
+            channelRef.current.bind('pusher:subscription_error', (err: any) => { console.error(`AdminPage Pusher: Subscription error for ${channelName}:`, err); });
+
+            const handleEvent = (data: any) => {
+                console.log(`PUSHER RECEIVED (Admin): ${eventName}`, data);
+
+                // **CAMBIO: Usar alert()**
+                const displayMessage = data.mensaje || `Proveedor ${data.idProveedor}: Estado actualizado a ${data.nuevoEstatus}. Revise la lista.`;
+                alert(`Notificación Admin:\n${displayMessage}`); // <-- Usar alert
+
+                // Refrescar lista para actualizar contador y estado visual
+                cargarProveedores(); // Llamar sin indicador de carga global
+            };
+
+            console.log(`AdminPage Pusher: Binding to event ${eventName}`);
+            channelRef.current.bind(eventName, handleEvent);
+
+            return () => {
+                 if (pusherClientRef.current && channelRef.current) {
+                     console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
+                     channelRef.current.unbind(eventName, handleEvent);
+                     pusherClientRef.current.unsubscribe(channelName);
+                     // No desconectar aquí necesariamente, podría usarse en otro lado
+                     // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
+                 }
+            };
+        } catch (error) {
+            console.error("AdminPage Pusher: Failed to initialize.", error);
+            setError("No se pudieron inicializar las notificaciones.");
+        }
+    // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
+    }, [cargarProveedores]);
     // --- 2. HANDLER PARA VER DOCUMENTOS ---
-    
+    const fetchProvidersList = useCallback(async () => {
+        // ... (lógica como antes)
+        console.log("AdminPage: Fetching/Refreshing providers list...");
+        setError(null);
+        try {
+            const data = await fetchAllProveedores();
+            const validData = data || [];
+            setProveedores(validData);
+            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
+            setPendientesCount(count);
+        } catch (err: any) { /* ... */ }
+    }, []);
      const handleViewDocuments = (idProveedor: number) => {
         if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
              console.error("handleViewDocuments - ID inválido:", idProveedor);
@@ -161,46 +216,67 @@ export default function AdministradorProveedoresPage() {
       });
   }, [proveedores, filtroRfc, filtroCorreo]); // Dependencias del memo
 
-     // --- Editar PERFIL Proveedor ---
-  const handleEditProfileClick = async (idProveedor: number) => {
-    console.log("Abriendo modal de perfil para proveedor ID:", idProveedor);
-    setIsFetchingEditData(true); // Inicia carga de datos
-    setUpdateProfileError(null); // Limpia error previo
-    setEditingProviderData(null); // Limpia datos previos
-    try {
-      // Llama a la función del servicio para obtener perfil
-      const data = await getProveedorProfileById(idProveedor); // Asegúrate que esta sea la función importada correcta
-      console.log("DATOS RECIBIDOS DEL FETCH:", data); // <--- ¡AÑADE ESTE CONSOLE.LOG!
-      setEditingProviderData(data); // Guarda los datos obtenidos
-      setIsEditProfileModalOpen(true); // Abre el modal
-    } catch (err: any) {
-      setUpdateProfileError(err.message); // Muestra error si falla la carga
-    } finally {
-      setIsFetchingEditData(false); // Termina carga de datos
-    }
-  };
+    // --- Handlers para Modal Editar PERFIL Proveedor ---
+    const handleEditProfileClick = async (idProveedor: number) => {
+        console.log("AdminPage: Abriendo modal perfil ID:", idProveedor);
+        setIsFetchingEditData(true);
+        setUpdateProfileError(null);
+        setEditingProviderData(null);
+        setIsEditProfileModalOpen(false);
+        try {
+            // Llama a fetch para obtener datos COMPLETOS (incluye array representantes)
+            const data = await getProveedorProfileById(idProveedor);
+            if (!data) throw new Error(`Perfil no encontrado (ID: ${idProveedor}).`);
 
-  const handleCloseEditProfileModal = () => {
-    setIsEditProfileModalOpen(false);
-    setEditingProviderData(null);
-    setUpdateProfileError(null);
-  };
+            // **Añadir log detallado aquí para verificar 'representantes'**
+            console.log("AdminPage: Datos COMPLETOS recibidos para modal perfil:", JSON.stringify(data, null, 2));
 
-  const handleSaveProfileUpdate = async (payloadFromModal: any) => {
-    setIsUpdatingProfile(true); // Inicia estado de guardado
-    setUpdateProfileError(null);
-    try {
-      await updateProveedorProfile(payloadFromModal); // Llama a la función de servicio para guardar
-      handleCloseEditProfileModal(); // Cierra el modal
-      await cargarProveedores(); // Recarga la lista principal para ver cambios
-      alert("Perfil del proveedor actualizado exitosamente."); // Feedback
-    } catch (err: any) {
-      console.error("Error saving profile:", err);
-      setUpdateProfileError(err.message); // Muestra error en el modal
-    } finally {
-      setIsUpdatingProfile(false); // Termina estado de guardado
-    }
-  };
+            setEditingProviderData(data as ProveedorCompletoData); // Guardar datos completos
+            setIsEditProfileModalOpen(true); // Abrir modal
+
+        } catch (err: any) {
+            console.error("AdminPage: Error cargando datos para editar perfil:", err);
+            setError(err.message || 'Error al cargar datos para editar.'); // Error general en la página
+        } finally {
+            setIsFetchingEditData(false);
+        }
+    };
+
+    const handleCloseEditProfileModal = () => {
+        setIsEditProfileModalOpen(false);
+        setEditingProviderData(null);
+        setUpdateProfileError(null);
+    };
+
+    // Handler para guardar cambios del PERFIL (SIN CAMBIOS FUNCIONALES NECESARIOS)
+    // Recibe el payload del modal (que ya debe incluir los nuevos campos si se editaron)
+    // y lo pasa a la función fetch 'updateProveedorProfile' que ya está preparada.
+    const handleSaveProfileUpdate = async (payloadFromModal: any) => {
+        // Validar payload básico recibido del modal
+         if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) {
+             console.error("AdminPage handleSaveProfileUpdate: Payload inválido desde el modal", payloadFromModal);
+             setUpdateProfileError("Error interno: Datos incompletos recibidos desde el formulario.");
+             return; // No continuar
+         }
+        setIsUpdatingProfile(true); // Inicia estado de guardado (para modal perfil)
+        setUpdateProfileError(null); // Limpia error previo del modal
+        try {
+            console.log("AdminPage: Enviando datos actualizados del perfil a fetch:", payloadFromModal);
+            await updateProveedorProfile(payloadFromModal); // Llama al fetch que ya maneja los nuevos campos
+            console.log("AdminPage: Perfil actualizado exitosamente.");
+            handleCloseEditProfileModal(); // Cierra el modal
+            await cargarProveedores(); // Recarga la lista principal
+            alert("Perfil del proveedor actualizado exitosamente.");
+
+        } catch (err: any) {
+            console.error("AdminPage: Error guardando perfil:", err);
+            // Mostrar el error DENTRO DEL MODAL
+            setUpdateProfileError(err.message || 'Error desconocido al guardar el perfil.');
+            // NO CERRAR el modal en caso de error
+        } finally {
+            setIsUpdatingProfile(false); // Termina estado de guardado (para modal perfil)
+        }
+    };
 
   // --- Editar USUARIO Proveedor ---
   const handleEditUserClick = async (idProveedor: number) => {
@@ -271,104 +347,155 @@ const handleCloseEditUserModal = () => {
       }
   };
 
+    // --- Handler Cambiar Estatus de Revisión (CORREGIDO) ---
+    const handleChangeRevisionStatus = async (idProveedor: number, nuevoEstatus: string) => {
+        console.log(`AdminPage: Changing revision status ID ${idProveedor} to ${nuevoEstatus}`);
+        setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: true }));
+        setError(null);
 
+        const estadoPrevio = proveedores.find(p => p.id_proveedor === idProveedor)?.estatus_revision;
+
+        // Optimistic UI Update (Opcional pero recomendado)
+        setProveedores(prevProvs => prevProvs.map(p =>
+            p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
+        ));
+         // Actualizar contador optimista
+         if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
+            setPendientesCount(prev => {
+                let currentPendientes = proveedores.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
+                // Ajuste basado en el cambio REAL que se acaba de hacer en la UI optimista
+                if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') currentPendientes--;
+                if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') currentPendientes++;
+                 // Re-evaluar sobre el estado ACTUALIZADO si no se usó optimista arriba
+                 // const currentPendientes = proveedores.map(p => p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p).filter(p=>p.estatus_revision === 'PENDIENTE_REVISION').length;
+                return Math.max(0, currentPendientes);
+            });
+         }
+
+
+        try {
+            // **LLAMAR A LA FUNCIÓN FETCH, NO AL SERVICIO**
+            await updateAdminRevisionStatus(idProveedor, nuevoEstatus); // Usa la función importada de fetchAltaProveedor.js
+
+            console.log(`AdminPage: Llamada fetch updateAdminRevisionStatus exitosa para ID ${idProveedor}`);
+            // Si la llamada fetch fue exitosa, la UI optimista ya está correcta.
+            // No es estrictamente necesario recargar toda la lista aquí.
+            // Podrías mostrar un toast de éxito.
+
+        } catch (err: any) {
+            console.error(`AdminPage: Error en fetch updateAdminRevisionStatus ID ${idProveedor}:`, err);
+            setError(`Error al actualizar estado: ${err.message}`);
+            // **Revertir Optimistic UI**
+            setProveedores(prevProvs => prevProvs.map(p =>
+                p.id_proveedor === idProveedor ? { ...p, estatus_revision: estadoPrevio ?? 'NO_SOLICITADO' } : p
+            ));
+             // Recalcular contador si la reversión afectó PENDIENTE
+             if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
+                 fetchProvidersList(); // Recargar para asegurar contador correcto tras error
+             }
+        } finally {
+            setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
+        }
+    };
+    // --- FIN Handler Estatus Revisión ---
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
                 <Menu />
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100">
-                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800">
-                    Administración de Proveedores
-                </h1>
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
+            <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
+                     Administración de Proveedores
+                     {pendientesCount > 0 && ( <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span> )}
+                 </h1>
 
-                {/* --- SECCIÓN DE FILTROS --- */}
+                {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
-                        <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
-                            Filtrar por RFC:
-                        </label>
-                        <input
-                            type="text"
-                            id="filtroRfc"
-                            name="filtroRfc"
-                            value={filtroRfc}
-                            onChange={(e) => setFiltroRfc(e.target.value)}
-                            placeholder="Escriba RFC a buscar..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
+                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
+                         <input type="text" id="filtroRfc" value={filtroRfc} onChange={(e) => setFiltroRfc(e.target.value)} placeholder="Buscar RFC..." className="w-full input-style" />
                     </div>
                     <div className="flex-1">
-                        <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">
-                            Filtrar por Correo:
-                        </label>
-                        <input
-                            type="email"
-                            id="filtroCorreo"
-                            name="filtroCorreo"
-                            value={filtroCorreo}
-                            onChange={(e) => setFiltroCorreo(e.target.value)}
-                            placeholder="Escriba correo a buscar..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
+                        <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Correo:</label>
+                        <input type="email" id="filtroCorreo" value={filtroCorreo} onChange={(e) => setFiltroCorreo(e.target.value)} placeholder="Buscar correo..." className="w-full input-style" />
                     </div>
                 </div>
-                {/* --- FIN SECCIÓN DE FILTROS --- */}
 
+                {/* Error General */}
+                {error && !loading && ( <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p> )}
 
-                {/* Mensaje de Error General */}
-                {error && (
-                    <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">
-                        Error: {error}
-                    </p>
-                )}
+                {/* Carga Inicial */}
+                {loading && ( <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p> )}
 
-                {/* Indicador de Carga Inicial */}
-                {loading && !error && (
-                    <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>
-                )}
-
-                {/* Tabla de Proveedores (AHORA USA DATOS FILTRADOS) */}
+                {/* Tabla */}
                 {!loading && !error && (
                     <TablaDocumentos
-                    proveedores={proveedoresFiltrados} // <-- Pasa la lista filtrada
-                    onViewDocuments={handleViewDocuments}     // <-- Prop para documentos
-                    onChangeStatus={handleChangeStatus}       // <-- Prop para estatus
-                    onEditProfile={handleEditProfileClick} // <--- ¡ASEGÚRATE QUE ESTA LÍNEA ESTÉ EXACTAMENTE ASÍ!
-                    onEditUser={handleEditUserClick}         // <-- Prop para usuario
-                    isLoadingStatusChange={isLoadingStatusChange}
+                        proveedores={proveedoresFiltrados}
+                        onViewDocuments={handleViewDocuments}
+                        onChangeStatus={handleChangeStatus} // Estatus general
+                        onChangeRevisionStatus={handleChangeRevisionStatus} // Estatus revisión
+                        isLoadingRevisionChange={isLoadingRevisionChange} // Carga revisión
+                        onEditProfile={handleEditProfileClick}
+                        onEditUser={handleEditUserClick}
+                        isLoadingStatusChange={loadingStatusChange} // Carga estatus general
+                        isFetchingEditData={isFetchingEditData}
                     />
                 )}
 
-                 {/* Mensaje si NO hay resultados DESPUÉS de filtrar (y no hay error/carga) */}
+                 {/* Mensajes "Sin resultados" */}
                 {!loading && !error && proveedoresFiltrados.length === 0 && (filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores que coincidan con los filtros aplicados.</p>
+                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
                 )}
-
-                 {/* Mensaje si NO hay proveedores en TOTAL (y no hay error/carga) */}
                 {!loading && !error && proveedores.length === 0 && !(filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores registrados.</p>
+                      <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
                 )}
-      {/* Renderizar Modal Editar PERFIL Proveedor */}
-      {isEditProfileModalOpen && editingProviderData && (
-          <ModalActualizarProveedor
-              datos={editingProviderData} // Pasa los datos cargados
-              onClose={handleCloseEditProfileModal}
-              onSubmit={handleSaveProfileUpdate} // Pasa el handler de guardado
-              isLoading={isUpdatingProfile} // Pasa el estado de carga de guardado
-              error={updateProfileError}
-          />
-      )}
 
-      {/* Renderizar Modal Editar USUARIO Proveedor */}
-         {isEditUserModalOpen && editingUserData && (
-          <ModalActualizarUsuarioProveedor
-              userData={editingUserData} // Pasa los datos del usuario con id_usuario
-              onClose={handleCloseEditUserModal}
-              onSubmit={handleSaveUserUpdate} // Llama a la función que usa fetch
-              isLoading={isUpdatingUser || isFetchingEditData} // Puede estar cargando datos o guardando
-              error={updateUserError} // Muestra el error específico del modal de usuario
-          />
-      )}
+                {/* --- MODALES --- */}
+                {/* Modal Editar PERFIL Proveedor */}
+                {/* Se renderiza si está abierto Y hay datos para editar */}
+                {isEditProfileModalOpen && editingProviderData && (
+                    <ModalActualizarProveedor
+                        // Props clave para el modal de perfil
+                        isOpen={isEditProfileModalOpen}
+                        onClose={handleCloseEditProfileModal}
+                        proveedorData={editingProviderData}
+                        onSubmit={handleSaveProfileUpdate} // <-- Cambiar nombre de la prop a 'onSubmit'
+                        isLoading={isUpdatingProfile} // Pasar el estado de carga correcto
+                        error={updateProfileError}    // Pasar el estado de error correcto
+                        
+                    />
+                )}
+
+                {/* Modal Editar USUARIO Proveedor */}
+                {isEditUserModalOpen && editingUserData && (
+                    <ModalActualizarUsuarioProveedor
+                        // Props clave para el modal de usuario
+                        isOpen={isEditUserModalOpen} // Controla visibilidad
+                        onClose={handleCloseEditUserModal} // Función para cerrar
+                        userData={editingUserData} // Datos del USUARIO para prellenar
+                        onSubmit={handleSaveUserUpdate} // Función a llamar al GUARDAR con éxito desde el modal
+                        // Pasar estados de carga/error específicos del modal de usuario
+                        // isLoading={isUpdatingUser}
+                        // error={updateUserError}
+                    />
+                )}
+
+                 {/* Estilos globales rápidos (mover a CSS/Tailwind config si es posible) */}
+                 <style jsx global>{`
+                    .input-style {
+                        display: block;
+                        width: 100%;
+                        padding: 0.5rem 0.75rem;
+                        border: 1px solid #d1d5db; /* gray-300 */
+                        border-radius: 0.375rem; /* rounded-md */
+                        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+                        outline: none;
+                    }
+                    .input-style:focus {
+                         border-color: #4f46e5; /* indigo-500 */
+                         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3); /* focus:ring-indigo-500 */
+                    }
+                 `}</style>
+
             </div>
             <Pie />
         </div>

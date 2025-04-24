@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Menu from '../menu_principal'; // Ajusta ruta
 import Pie from "../pie"; // Ajusta ruta
@@ -24,7 +24,10 @@ export default function CatalogoProveedoresPage() {
     // --- Estados existentes ---
     const [proveedores, setProveedores] = useState<ProveedorCatalogo[]>([]);
     const [partidasFiltro, setPartidasFiltro] = useState<CatalogoPartidaFiltro[]>([]);
-    const [filtroSeleccionado, setFiltroSeleccionado] = useState<string>('');
+    const [filtroPartidaSeleccionada, setFiltroPartidaSeleccionada] = useState<string>(''); // Para el <select> de partida
+    const [filtroRfc, setFiltroRfc] = useState<string>(''); // <-- NUEVO
+    const [filtroGiro, setFiltroGiro] = useState<string>(''); // <-- NUEVO
+    const [filtroNombre, setFiltroNombre] = useState<string>(''); // <-- NUEVO
     const [loadingProveedores, setLoadingProveedores] = useState<boolean>(true);
     const [loadingFiltros, setLoadingFiltros] = useState<boolean>(true);
     const [errorProveedores, setErrorProveedores] = useState<string | null>(null);
@@ -75,11 +78,48 @@ export default function CatalogoProveedoresPage() {
     }, [loadingFiltros, cargarProveedores]);
 
     // 4. Handler filtro (sin cambios)
-    const handleFiltroChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    // 4. Handler para el filtro de Partida (dispara recarga de API)
+    const handleFiltroPartidaChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const nuevoFiltro = event.target.value;
-        setFiltroSeleccionado(nuevoFiltro);
-        cargarProveedores(nuevoFiltro === '' ? null : nuevoFiltro);
+        setFiltroPartidaSeleccionada(nuevoFiltro);
+        // Limpiar otros filtros de texto cuando cambia la partida? (Opcional)
+        // setFiltroRfc('');
+        // setFiltroGiro('');
+        // setFiltroNombre('');
+        cargarProveedores(nuevoFiltro === '' ? null : nuevoFiltro); // Llama a la API
     };
+
+    // --- NUEVO: Lógica de Filtrado Frontend Combinada ---
+    const proveedoresFiltrados = useMemo(() => {
+        // Empezar con la lista obtenida de la API (ya filtrada por partida si aplica)
+        let itemsFiltrados = [...proveedores];
+
+        // Aplicar filtro RFC (frontend)
+        if (filtroRfc) {
+            const rfcLower = filtroRfc.toLowerCase().trim();
+            itemsFiltrados = itemsFiltrados.filter(p =>
+                p.rfc.toLowerCase().includes(rfcLower)
+            );
+        }
+
+        // Aplicar filtro Giro Comercial (frontend)
+        if (filtroGiro) {
+            const giroLower = filtroGiro.toLowerCase().trim();
+            itemsFiltrados = itemsFiltrados.filter(p =>
+                (p.giro_comercial || '').toLowerCase().includes(giroLower) // Maneja null
+            );
+        }
+
+        // Aplicar filtro Nombre/Razón Social (frontend)
+        if (filtroNombre) {
+            const nombreLower = filtroNombre.toLowerCase().trim();
+            itemsFiltrados = itemsFiltrados.filter(p =>
+                p.nombre_o_razon_social.toLowerCase().includes(nombreLower)
+            );
+        }
+
+        return itemsFiltrados;
+    }, [proveedores, filtroRfc, filtroGiro, filtroNombre]); // Dependencias: lista de API y filtros de texto
 
     // --- NUEVOS HANDLERS PARA MODAL DE ARTÍCULOS ---
     const handleVerArticulosClick = (proveedor: ProveedorCatalogo) => {
@@ -107,26 +147,70 @@ export default function CatalogoProveedoresPage() {
                 </h1>
 
                 {/* Sección de Filtro (sin cambios) */}
-                <div className="mb-6 p-4 bg-white shadow rounded-lg">
-                    {/* ... select de filtro ... */}
-                     <label htmlFor="filtroPartida" className="block text-sm font-medium text-gray-700 mb-1">
-                        Filtrar por Partida / Giro:
-                    </label>
-                    <select
-                        id="filtroPartida" value={filtroSeleccionado} onChange={handleFiltroChange}
-                        disabled={loadingFiltros || loadingProveedores}
-                        className="block w-full md:w-1/2 lg:w-1/3 px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    >
-                        <option value="">-- Todas las Partidas --</option>
-                        {loadingFiltros && <option disabled>Cargando filtros...</option>}
-                        {errorFiltros && <option disabled>Error al cargar filtros</option>}
-                        {!loadingFiltros && !errorFiltros && partidasFiltro.map((partida) => (
-                            <option key={partida.codigo} value={partida.codigo}>
-                                {partida.codigo} - {partida.descripcion}
-                            </option>
-                        ))}
-                    </select>
-                    {errorFiltros && <p className="text-red-500 text-xs mt-1">{errorFiltros}</p>}
+                <div className="mb-6 p-4 bg-white shadow rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    {/* Filtro Partida */}
+                    <div>
+                        <label htmlFor="filtroPartida" className="block text-sm font-medium text-gray-700 mb-1">
+                            Partida / Giro:
+                        </label>
+                        <select
+                            id="filtroPartida" value={filtroPartidaSeleccionada} onChange={handleFiltroPartidaChange}
+                            disabled={loadingFiltros || loadingProveedores}
+                            className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        >
+                           <option value="">-- Todas --</option>
+                           {/* ... opciones de partidas ... */}
+                           {!loadingFiltros && !errorFiltros && partidasFiltro.map((partida) => (
+                                <option key={partida.codigo} value={partida.codigo}>
+                                    {partida.codigo} - {partida.descripcion}
+                                </option>
+                            ))}
+                        </select>
+                        {errorFiltros && <p className="text-xs text-red-500 mt-1">{errorFiltros}</p>}
+                    </div>
+
+                     {/* Filtro RFC */}
+                     <div>
+                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
+                            RFC:
+                        </label>
+                        <input
+                            type="text" id="filtroRfc" value={filtroRfc}
+                            onChange={(e) => setFiltroRfc(e.target.value)}
+                            placeholder="Buscar por RFC..."
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            disabled={loadingProveedores}
+                        />
+                    </div>
+
+                     {/* Filtro Nombre/Razón Social */}
+                     <div>
+                         <label htmlFor="filtroNombre" className="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre / Razón Social:
+                        </label>
+                        <input
+                            type="text" id="filtroNombre" value={filtroNombre}
+                            onChange={(e) => setFiltroNombre(e.target.value)}
+                            placeholder="Buscar por nombre..."
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            disabled={loadingProveedores}
+                        />
+                    </div>
+
+                    {/* Filtro Giro Comercial */}
+                    <div>
+                        <label htmlFor="filtroGiro" className="block text-sm font-medium text-gray-700 mb-1">
+                            Giro Comercial:
+                        </label>
+                        <input
+                            type="text" id="filtroGiro" value={filtroGiro}
+                            onChange={(e) => setFiltroGiro(e.target.value)}
+                            placeholder="Buscar por giro..."
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            disabled={loadingProveedores}
+                        />
+                    </div>
+
                 </div>
 
                 {/* Mensaje de Error General (sin cambios) */}
@@ -134,7 +218,7 @@ export default function CatalogoProveedoresPage() {
 
                 {/* Lista de Proveedores (AHORA PASA EL NUEVO HANDLER) */}
                 <ListaProveedoresCatalogo
-                    proveedores={proveedores}
+                    proveedores={proveedoresFiltrados}
                     isLoading={loadingProveedores}
                     onVerArticulos={handleVerArticulosClick} // <-- Pasa la función handler
                 />
@@ -146,6 +230,7 @@ export default function CatalogoProveedoresPage() {
                          onClose={handleCloseArticulosModal}
                          articulos={articulosParaModal}
                          nombreProveedor={proveedorModalNombre}
+                         partidasCatalogo={partidasFiltro} // Usa la misma lista cargada para el filtro principal
                      />
                  )}
                  {/* ---------------------------------------- */}
