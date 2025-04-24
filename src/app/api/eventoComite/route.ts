@@ -134,3 +134,5 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ message: "error al eliminar evento", error }, { status: 500 });
   }
 }
+
+

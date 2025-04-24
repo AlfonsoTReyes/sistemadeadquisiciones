@@ -103,6 +103,7 @@ const ModificarRol: React.FC<ModificarRolProps> = ({ rolId, onClose, onRolModifi
               <option value="PROVEEDORES">PROVEEDORES</option>
               <option value="ADQUISICIONES">ADQUISICIONES</option>
               <option value="FINANZAS">FINANZAS</option>
+              <option value="COMITE">COMITE</option>
             </select>
           </div>
           {(successMessage || error) && (

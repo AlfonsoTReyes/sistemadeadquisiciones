@@ -37,7 +37,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(solicitud);
       }
     }else{
-
       const solicitud = await getSolicitudesAll();
         if (!solicitud) {
           return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
