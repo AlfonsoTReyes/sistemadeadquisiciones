@@ -9,136 +9,161 @@ import Pie from '../../../app/pie'; // Ajusta ruta
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 // Importa el componente que SÓLO muestra y permite editar estatus
 import VistaDocumentosAdmin from './formularios/vistaDocumentos'; // <-- Ajusta ruta al componente correcto
-import { ProveedorData } from './interfaces'; // Ajusta ruta a tu interfaz
+import { ProveedorData, ProveedorHeaderData } from './interfaces'; // Ajusta ruta a tu interfaz
 
 // Importa las funciones fetch necesarias para ESTA vista de admin
 import {
     fetchProveedorDetallesPorIdAdmin, // Obtiene detalles del proveedor
-    fetchDocumentosPorProveedorAdmin  // Obtiene documentos (renombrada para claridad)
 } from './formularios/fetchAdminDocumentosProveedores'; // <-- Ajusta ruta/nombre de archivo fetch (donde definimos las fetch para admin)
 
 export default function DocumentosProveedorAdminPage() {
     const router = useRouter();
 
-    // Estados: ID leído de sesión, info del proveedor, lista de documentos, carga, error
+    // Estados: ID leído, info BÁSICA del proveedor, carga, error
     const [idProveedor, setIdProveedor] = useState<number | null>(null);
-    const [providerInfo, setProviderInfo] = useState<ProveedorData | null>(null);
-    // No necesitamos estado para 'documentos' aquí si VistaDocumentosAdmin los carga internamente,
-    // pero si VistaDocumentosAdmin los recibe como prop, mantenlo:
-    // const [documentos, setDocumentos] = useState<DocumentoData[]>([]);
-    const [loadingPage, setLoadingPage] = useState<boolean>(true); // Carga inicial del ID y detalles prov.
+    const [providerInfo, setProviderInfo] = useState<ProveedorHeaderData | null>(null); // Estado para info básica
+    const [idAdminLogueado, setIdAdminLogueado] = useState<number | null>(null);
+    const [loadingPage, setLoadingPage] = useState<boolean>(true);
     const [errorPage, setErrorPage] = useState<string | null>(null);
 
-    // 1. Efecto para leer el ID del proveedor seleccionado por el admin de sessionStorage
+    // 1. Efecto para leer IDs de sessionStorage
     useEffect(() => {
-        const storageKey = 'adminSelectedProveedorId'; // Clave que guardamos en la página anterior
-        const storedProviderId = sessionStorage.getItem(storageKey);
-        // console.log("Admin Docs Page - Retrieved Provider ID from session:", storedProviderId); // Debug
+        let providerIdFound: number | null = null;
+        let adminIdFound: number | null = null;
+        let errorFound: string | null = null;
 
-        if (storedProviderId) {
-            const providerIdNum = parseInt(storedProviderId, 10);
-            if (!isNaN(providerIdNum)) {
-                setIdProveedor(providerIdNum);
-                // No llamamos a fetch aquí, esperamos al siguiente efecto
+        if (typeof window !== "undefined") {
+            // Leer ID Proveedor (seleccionado por admin)
+            const storedProviderId = sessionStorage.getItem('adminSelectedProveedorId'); // Clave correcta para el proveedor seleccionado
+            if (storedProviderId) {
+                const parsedId = parseInt(storedProviderId, 10);
+                providerIdFound = !isNaN(parsedId) ? parsedId : null;
+                if (!providerIdFound) errorFound = "ID de proveedor inválido en sesión.";
             } else {
-                setErrorPage("ID de proveedor inválido encontrado en sesión (Admin).");
-                setLoadingPage(false);
+                errorFound = "No se ha seleccionado un proveedor.";
             }
-        } else {
-            setErrorPage("No se ha seleccionado un proveedor desde la página de administración.");
-            setLoadingPage(false);
-            // Opcional: redirigir si no hay ID
-            // router.replace('/administradorProveedores');
-        }
-    }, [router]); // Dependencia para posible redirección
 
-    // 2. Efecto para cargar los DETALLES del proveedor una vez que tenemos ID
-    //    (La carga de DOCUMENTOS la hará el componente VistaDocumentosAdmin internamente)
-    useEffect(() => {
-        if (idProveedor === null) {
-            // Si aún no hay ID o ya hubo error al leerlo, no hacemos nada.
-             if (!loadingPage && !errorPage) setErrorPage("Esperando ID de proveedor...");
-            return;
-        }
-
-        const loadProviderDetails = async (id: number) => {
-            setLoadingPage(true); // Podríamos usar un loading diferente, pero este sirve
-            setErrorPage(null);
-            setProviderInfo(null);
-            // console.log(`Admin Docs Page - Fetching provider details for ID: ${id}`); // Debug
-
-            try {
-                // Llama a la función fetch para obtener SOLO los detalles del proveedor
-                const provData = await fetchProveedorDetallesPorIdAdmin(id);
-
-                if (provData && provData.id_proveedor) {
-                    setProviderInfo(provData);
+            if (!errorFound) {
+                const storedAdminId = sessionStorage.getItem('userId'); // <-- Usar la clave del menú
+                if (storedAdminId) {
+                    const parsedAdminId = parseInt(storedAdminId, 10);
+                    adminIdFound = !isNaN(parsedAdminId) ? parsedAdminId : null;
+                    if (!adminIdFound) {
+                         errorFound = "ID de administrador inválido en sesión. Inicie sesión de nuevo.";
+                         providerIdFound = null; // Invalidar si admin falla
+                    }
                 } else {
-                    throw new Error(`No se encontró información para el proveedor con ID ${id}.`);
+                    // Si no existe 'userId', el admin no está logueado correctamente
+                    errorFound = "No se encontró ID de administrador en sesión. Inicie sesión de nuevo.";
+                    providerIdFound = null; // Invalidar
                 }
-            } catch (err: any) {
-                console.error("Error fetching provider details for admin docs page:", err);
-                setErrorPage(err.message || 'Error al cargar la información del proveedor.');
-                setProviderInfo(null);
-            } finally {
-                 // La carga principal termina después de obtener los detalles del proveedor.
-                 // La carga de documentos la manejará el componente hijo.
-                setLoadingPage(false);
             }
-        };
 
-        loadProviderDetails(idProveedor);
+        } else { errorFound = "Entorno no válido."; }
 
-    }, [idProveedor]); // Dependencia: se ejecuta cuando idProveedor cambia
+        // Actualizar estados
+        if (errorFound) {
+            setErrorPage(errorFound);
+            setIdProveedor(null);
+            setIdAdminLogueado(null);
+        } else {
+            setIdProveedor(providerIdFound);
+            setIdAdminLogueado(adminIdFound); // Guardar ID admin leído
+            setErrorPage(null);
+        }
+        setLoadingPage(false);
 
+    }, [router]); // Quitar 'router' si no se usa para redirección aquí
 
-    // Función para volver a la lista de administración
+    // 2. Efecto para cargar los DETALLES BÁSICOS del proveedor una vez que tenemos ID
+    useEffect(() => {
+        // Ejecutar solo si tenemos un idProveedor válido y no estamos ya cargando/con error
+        if (idProveedor !== null && !loadingPage && !errorPage && !providerInfo) {
+
+            const loadProviderDetails = async (id: number) => {
+                // Podríamos poner un loading específico para esto si quisiéramos
+                try {
+                    // Llama a fetch para obtener detalles básicos
+                    const provData = await fetchProveedorDetallesPorIdAdmin(id); // Asumiendo que esta función devuelve al menos id, rfc, tipo, nombre/razón
+
+                    if (provData && provData.id_proveedor) {
+                         // Guardar solo la info necesaria para la cabecera
+                         setProviderInfo({
+                             id_proveedor: provData.id_proveedor,
+                             rfc: provData.rfc,
+                             tipo_proveedor: provData.tipo_proveedor,
+                             nombre_o_razon_social: provData.nombre_o_razon_social // Asegúrate que fetch lo devuelva
+                         });
+                    } else {
+                        // Si fetch devuelve null o datos incompletos
+                        throw new Error(`No se encontró información básica para el proveedor con ID ${id}.`);
+                    }
+                } catch (err: any) {
+                    console.error("Error fetching provider details for admin docs page:", err);
+                    setErrorPage(err.message || 'Error al cargar la información del proveedor.');
+                    setProviderInfo(null); // Limpiar por si acaso
+                } finally {
+                    // No modificamos loadingPage aquí, se controla en el efecto anterior
+                }
+            };
+
+            loadProviderDetails(idProveedor);
+        }
+    }, [idProveedor, loadingPage, errorPage, providerInfo]); // Dependencias correctas
+
+    // Función para volver
     const handleGoBack = () => {
-        // Opcional: limpiar el ID de sesión al volver
-        sessionStorage.removeItem('adminSelectedProveedorId');
-        router.push('/adminProveedores/altaProveedor'); // Ir a la página de la lista
+        sessionStorage.removeItem('adminSelectedProveedorId'); // Limpiar al salir
+        router.push('/adminProveedores/altaProveedor');
     };
 
     // --- Renderizado ---
     return (
         <div>
             <Menu />
-            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop : '50px' }}>
-                {/* Indicador de Carga INICIAL (ID y Detalles del Proveedor) */}
-                {loadingPage && <p className="text-center text-lg text-blue-600 py-4">Cargando información del proveedor...</p>}
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100" style={{ marginTop: '60px' }}> {/* Ajusta margen si es necesario */}
 
-                {/* Mensaje de Error de Carga INICIAL */}
-                {errorPage && (
-                    <p className="text-center text-red-600 bg-red-100 p-4 rounded border border-red-400 my-4">
-                        Error: {errorPage}
-                    </p>
-                )}
-
-                {!loadingPage && !errorPage && idProveedor && (
-                    <div className="min-h-screen p-4 md:p-8 bg-gray-100">
-                        <h1 className="text-2xl md:text-3xl text-center font-bold mb-2 text-gray-800">
-                            Revisión de Documentos
-                        </h1>
-
-                        {/* Muestra info del proveedor si ya se cargó */}
-                        {providerInfo ? (
-                            <p className="text-center text-lg text-gray-600 mb-6">
-                                Proveedor: <span className="font-semibold">{providerInfo.rfc}</span> ({providerInfo.tipo_proveedor?.charAt(0).toUpperCase() + providerInfo.tipo_proveedor?.slice(1)})
-                            </p>
-                        ) : (
-                            <p className="text-center text-gray-500 mb-6">Cargando detalles del proveedor...</p>
-                        )}
-                        <button
+                {/* Botón Volver */}
+                <button
                     onClick={handleGoBack}
-                    className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200 shadow"
+                    className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-200 shadow text-sm"
                 >
-                    ← Volver a Lista de Proveedores
+                    ← Volver a Lista
                 </button>
-                        {/* Componente que carga y muestra la tabla de documentos */}
-                        {/* Le pasamos el idProveedor para que cargue sus propios datos */}
-                        <VistaDocumentosAdmin idProveedor={idProveedor} />
-                    </div>
-                )}
+
+                <h1 className="text-2xl md:text-3xl text-center font-bold mb-2 text-gray-800">
+                    Revisión de Documentos y Comentarios
+                </h1>
+
+                {/* Mostrar Info Básica del Proveedor o Loading/Error */}
+                <div className="text-center mb-6 border-b pb-4">
+                    {loadingPage ? (
+                        <p className="text-gray-500 italic">Cargando información...</p>
+                    ) : errorPage ? (
+                        <p className="text-red-600 font-semibold">Error: {errorPage}</p>
+                    ) : providerInfo ? (
+                        <p className="text-lg text-gray-700">
+                            Proveedor: <span className="font-semibold text-gray-900">{providerInfo.nombre_o_razon_social || providerInfo.rfc}</span> (RFC: {providerInfo.rfc})
+                        </p>
+                    ) : (
+                         <p className="text-gray-500 italic">No se pudo cargar la información del proveedor.</p>
+                    )}
+                </div>
+
+
+                {/* Renderizar el componente principal de documentos/comentarios */}
+                {/* Solo si tenemos ID y no hubo error inicial VistaDocumentosAdmin */}
+                
+                {!loadingPage && !errorPage && typeof idProveedor === 'number' && typeof idAdminLogueado === 'number' ? (
+                <VistaDocumentosAdmin
+                    idProveedor={idProveedor}
+                    idUsuarioAdminLogueado={idAdminLogueado}
+                />
+                ) : !loadingPage && !errorPage ? (
+                     <p className="text-center text-red-500 mt-10">
+                         {errorPage || "No se pudo cargar la información necesaria."} {/* Mostrar error específico si existe */}
+                    </p>
+                ) : null /* No mostrar nada mientras carga */}
 
             </div>
             <Pie />

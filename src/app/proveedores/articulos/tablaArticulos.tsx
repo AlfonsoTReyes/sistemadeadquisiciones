@@ -64,7 +64,7 @@ const TablaArticulos: React.FC<TablaArticulosProps> = ({
                              <td className="px-6 py-4 text-xs text-gray-600" title={articulo.partida_descripcion || 'Sin descripción de partida'}>
                                 {articulo.codigo_partida || 'N/A'} {/* Muestra el código */}
                                 {/* Opcional: Muestra también la descripción si la tienes */}
-                                {/* <br /> <span className="italic">{articulo.partida_descripcion}</span> */}
+                                <br></br><span className="italic">{articulo.partida_descripcion}</span>
                             </td>
                              {/* ---------------------------------- */}
                             <td className="px-6 py-4 font-medium text-gray-900 whitespace-pre-wrap max-w-sm">

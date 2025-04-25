@@ -222,10 +222,20 @@ const TablaSolicitudes: React.FC<{
                                 {["en revisión", "aprobada"].includes(solicitud.estatus.toLowerCase()) && (
                                   <>
                                     {permisos.includes('adjudicar_comite_solicitud_adq') && (
+
                                         <Link
                                             className="text-pink-500 hover:underline"
                                             href="../../orden_dia"
                                             onClick={() => handleDetalleClick(solicitud.id_solicitud)}
+
+                                        <button
+                                            onClick={() =>
+                                                openAdjudicarModal(
+                                                solicitud.id_solicitud
+                                                )
+                                            }
+                                            className="text-purple-800 hover:underline"
+
                                             >
                                                 Ordenes de día
                                         </Link>

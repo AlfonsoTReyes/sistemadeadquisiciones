@@ -350,3 +350,64 @@ export const getUsuarioProveedorByProveedorId = async (idProveedor) => {
     throw errorToThrow;
   }
 };
+
+/**
+ * Actualiza el estatus de REVISIÓN de un proveedor específico (llamada por el Admin).
+ * @param {number} idProveedor - El ID del proveedor cuyo estado de revisión se actualizará.
+ * @param {string} nuevoEstatusRevision - El nuevo estado ('EN_REVISION', 'APROBADO', 'RECHAZADO', etc.).
+ * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API (podría ser solo un mensaje de éxito o los datos actualizados).
+ * @throws {Error} - Si la validación falla o la llamada fetch/API falla.
+ */
+export const updateAdminRevisionStatus = async (idProveedor, nuevoEstatusRevision) => {
+  console.log(`FETCH: updateAdminRevisionStatus for ID ${idProveedor} to status ${nuevoEstatusRevision}`);
+  const apiUrl = ADMIN_PROVEEDORES_API_URL; // El mismo endpoint maneja esto vía PUT/PATCH
+
+  // Validaciones básicas
+  if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
+      throw new Error("Fetch Error: ID de proveedor inválido.");
+  }
+  if (typeof nuevoEstatusRevision !== 'string' || nuevoEstatusRevision.trim() === '') {
+      throw new Error("Fetch Error: El nuevo estatus de revisión es requerido.");
+  }
+  // Opcional: Validar que nuevoEstatusRevision sea uno de los valores permitidos
+  const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+  if (!validStatuses.includes(nuevoEstatusRevision)) {
+      console.warn(`Fetch Warning: Estatus de revisión "${nuevoEstatusRevision}" no es uno de los valores estándar.`);
+      // Podrías lanzar un error aquí si quieres ser estricto:
+      // throw new Error(`Fetch Error: Estatus de revisión "${nuevoEstatusRevision}" inválido.`);
+  }
+
+
+  try {
+      // Usaremos PUT aquí, asumiendo que la API Route en /api/adminProveedores
+      // diferenciará esta solicitud por la presencia de 'estatus_revision'
+      // Alternativamente, si creaste un endpoint PATCH específico o una subruta, ajusta el 'method' y 'apiUrl'.
+      const response = await fetch(apiUrl, {
+          method: 'PUT', // O 'PATCH' si configuraste así la API Route
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              id_proveedor: idProveedor,
+              estatus_revision: nuevoEstatusRevision // Enviar el nuevo estado
+          }),
+      });
+
+      // Manejo de respuesta (similar a otras funciones PUT)
+      const data = await response.json().catch(() => null); // Intenta parsear siempre
+
+      if (!response.ok) {
+           console.error(`FETCH Error PUT ${apiUrl} (Revision Status): Status ${response.status}. ID: ${idProveedor}. New Status: ${nuevoEstatusRevision}. Response:`, data);
+           throw new Error(data?.message || `Error ${response.status}: No se pudo actualizar el estado de revisión.`);
+       }
+       if (!data && response.status !== 204) { // 204 es éxito sin contenido
+           throw new Error("Respuesta inválida del servidor al actualizar estado de revisión.");
+       }
+
+      console.log(`FETCH: updateAdminRevisionStatus successful for ID ${idProveedor}`);
+      return data ?? { message: "Estado de revisión actualizado." }; // Devuelve respuesta o mensaje genérico
+
+  } catch (err) {
+      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception updateAdminRevisionStatus ID ${idProveedor}:`, errorToThrow);
+      throw errorToThrow; // Re-lanzar para el componente
+  }
+};

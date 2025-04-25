@@ -130,7 +130,8 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-md w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
 
-        <h2 className="text-xl font-bold mb-4">Convocar comité / orden de día</h2>
+        <h2 className="text-xl font-bold mb-4">Convocar comité</h2>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Fechas */}
@@ -171,6 +172,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
           </div>
 
           <div className="md:col-span-2">
+
             <label className="font-semibold block mb-1">No. de oficio</label>
             <input
               type="text"
@@ -179,6 +181,49 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
               onChange={(e) => setNoOficio(e.target.value)}
               placeholder="Ej. DAQ/001/2025"
             />
+
+            <label className="font-semibold block mb-1">Puntos a tratar</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                placeholder="Escribe un asunto"
+                className="w-full border p-2 rounded"
+                value={asunto}
+                onChange={(e) => setAsunto(e.target.value)}
+              />
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  if (asunto.trim()) {
+                    setInvitados((prev) => [...prev, asunto.trim()]);
+                    setAsunto("");
+                  }
+                }}
+              >
+                Agregar
+              </button>
+            </div>
+
+            {invitados.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                {invitados.map((a, idx) => (
+                  <div key={idx} className="bg-gray-100 p-2 rounded flex justify-between items-center">
+                    <span className="text-sm">{a}</span>
+                    <button
+                      type="button"
+                      className="text-red-500 text-xs"
+                      onClick={() =>
+                        setInvitados((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
 
 
@@ -284,6 +329,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
 
           <div>
             <label className="font-semibold block mb-1">Asunto</label>
+
             <div className="flex gap-2 mb-4">
             <select
               className="w-full border rounded p-2"
@@ -310,6 +356,26 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
                 Cerrar
               </button>
             </div>
+
+            <input
+              type="text"
+              className="w-full border rounded p-2 mb-3"
+              value={asunto}
+              onChange={(e) => setAsunto(e.target.value)}
+            />
+            <button
+              className="bg-blue-600 text-white w-full p-2 rounded mb-2"
+              onClick={handleConvocar}
+            >
+              Enviar a comité
+            </button>
+            <button
+              onClick={onClose}
+              className="bg-red-500 text-white w-full p-2 rounded"
+            >
+              Cerrar
+            </button>
+
           </div>
 
         </div>

@@ -418,8 +418,6 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
            <p className="text-gray-500 italic">Aún no hay documentos subidos.</p>
         ) : (
          <div className="overflow-x-auto border rounded shadow-sm">
-            {/* ... (código de la tabla que muestra 'documentos' - igual que antes) ... */}
-            {/* Asegúrate que el botón de eliminar aquí llame a cargarDocumentos también */}
             <table className="min-w-full bg-white">
             <thead className="bg-gray-100">
               <tr>
