@@ -2,7 +2,7 @@
 
 import { ContratoDetallado } from '@/types/contrato';
 // Podrías necesitar una librería para convertir números a letras
-// import numeroALetras from 'numero-a-letras'; // Ejemplo, instala si la usas
+import numeroALetras from 'numero-a-letras';
 
 interface TemplateData {
     // Tags de ejemplo (¡DEBEN COINCIDIR CON TU PLANTILLA!)
