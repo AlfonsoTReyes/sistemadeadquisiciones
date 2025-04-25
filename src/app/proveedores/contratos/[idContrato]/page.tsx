@@ -5,88 +5,26 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchContractDetails } from '@/fetch/contratosFetch'; // Ajusta ruta
 import { ContratoDetallado } from '@/types/contrato'; // Ajusta ruta
-// Necesitamos buscar el perfil del proveedor también aquí
-import { fetchProveedorByUserId } from '@/fetch/contratosFetch'; // Ajusta ruta
+import { fetchProveedorByUserId } from '@/fetch/contratosFetch'; // Ajusta ruta // TODO: Asegúrate que esté en el fetch correcto
 import { ProveedorDetallado } from '@/types/proveedor'; // Ajusta ruta
 
-// --- Componente Vista Detalles (sin cambios necesarios) ---
-// import ContractDetailView from '@/components/contratos/ContractDetailView';
-interface ContractDetailViewProps { contrato: ContratoDetallado; }
-const ContractDetailView: React.FC<ContractDetailViewProps> = ({ contrato }) => {
-    const formatDate = (dateString: string | null) => {
-        if (!dateString) return 'N/A';
-        // Asegura que la fecha se interprete correctamente (ej: UTC si viene sin timezone)
-        return new Date(dateString + 'T00:00:00Z').toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
-    };
+// *** USA LA VERSIÓN IMPORTADA DEL COMPONENTE ***
+import ContractDetailView from '@/componentes/contratos/ContractDetailView'; // <-- ASEGÚRATE QUE ESTA RUTA SEA CORRECTA
 
-     // Función auxiliar para formatear moneda
-    const formatCurrency = (amount: string | null, currency: string | null = 'MXN') => {
-        if (amount === null || amount === undefined) return 'N/A';
-        const numberAmount = parseFloat(amount);
-        if (isNaN(numberAmount)) return 'Valor inválido';
-        return numberAmount.toLocaleString('es-MX', { style: 'currency', currency: currency ?? 'MXN' });
-    };
-
-    return (
-        <div className="space-y-4 p-4 border rounded shadow-sm bg-white">
-            {/* Datos Generales del Contrato */}
-            <h2 className="text-lg font-semibold border-b pb-2">Detalles del Contrato</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-                <p><strong>Número Contrato:</strong> {contrato.numero_contrato ?? 'N/A'}</p>
-                <p><strong>ID Contrato:</strong> {contrato.id_contrato}</p>
-                {/* Puedes ocultar IDs internos si no son relevantes para el proveedor */}
-                {/* <p><strong>ID Solicitud:</strong> {contrato.id_solicitud ?? 'N/A'}</p> */}
-                {/* <p><strong>ID Dictamen:</strong> {contrato.id_dictamen ?? 'N/A'}</p> */}
-                <p><strong>ID Concurso:</strong> {contrato.id_concurso ?? 'N/A'}</p>
-            </div>
-            <p className="mt-2"><strong>Objeto del Contrato:</strong></p>
-            <p className="text-sm text-gray-700 bg-gray-50 p-2 border rounded">{contrato.objeto_contrato}</p>
-
-             {/* Fechas y Monto */}
-            <h3 className="text-md font-semibold pt-3 border-t mt-4">Vigencia y Monto</h3>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
-                <p><strong>Fecha Firma:</strong> {formatDate(contrato.fecha_firma)}</p>
-                <p><strong>Fecha Inicio:</strong> {formatDate(contrato.fecha_inicio)}</p>
-                <p><strong>Fecha Fin:</strong> {formatDate(contrato.fecha_fin)}</p>
-                <p className="md:col-span-2"><strong>Monto Total:</strong> {formatCurrency(contrato.monto_total, contrato.moneda)} ({contrato.moneda ?? 'MXN'})</p>
-             </div>
-
-             {/* Condiciones y Garantías */}
-             {contrato.condiciones_pago && (
-                <>
-                    <h3 className="text-md font-semibold pt-3 border-t mt-4">Condiciones de Pago</h3>
-                    <p className="text-sm text-gray-700 bg-gray-50 p-2 border rounded">{contrato.condiciones_pago}</p>
-                </>
-            )}
-             {contrato.garantias && (
-                <>
-                    <h3 className="text-md font-semibold pt-3 border-t mt-4">Garantías</h3>
-                    <p className="text-sm text-gray-700 bg-gray-50 p-2 border rounded">{contrato.garantias}</p>
-                </>
-            )}
-
-
-            {/* Datos del Proveedor (Opcional mostrarlo aquí, ya que es el mismo usuario) */}
-            {/* <h2 className="text-lg font-semibold pt-3 border-t mt-6">Mis Datos Registrados</h2> */}
-            {/* ... (Podrías mostrar un resumen de sus propios datos si quieres) ... */}
-
-        </div>
-    );
-};
-// --- Fin Vista Detalles ---
 
 
 // --- Componente Principal de la Página de Detalle (Proveedor) ---
 const ProveedorContratoDetailPage: React.FC = () => {
     const params = useParams();
     const [contrato, setContrato] = useState<ContratoDetallado | null>(null);
-    const [isLoading, setIsLoading] = useState(true); // Carga general
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [idContratoUrl, setIdContratoUrl] = useState<number | null>(null);
-    const [proveedorUserId, setProveedorUserId] = useState<number | null>(null); // ID del USUARIO logueado
-    const [proveedorIdVerificado, setProveedorIdVerificado] = useState<number | null>(null); // ID del PROVEEDOR asociado (verificado)
-    const [accesoPermitido, setAccesoPermitido] = useState(false); // Control final
+    const [proveedorUserId, setProveedorUserId] = useState<number | null>(null);
+    const [proveedorIdVerificado, setProveedorIdVerificado] = useState<number | null>(null);
+    const [accesoPermitido, setAccesoPermitido] = useState(false);
 
+    // ... (useEffect 1, 2, 3, 4 sin cambios) ...
     // 1. Extraer ID del contrato de la URL
     useEffect(() => {
         const idStr = params.idContrato as string;
@@ -198,16 +136,17 @@ const ProveedorContratoDetailPage: React.FC = () => {
         loadAndVerifyDetails();
     }, [idContratoUrl, proveedorIdVerificado, error]); // Depende de ambos IDs y del estado de error
 
+
     return (
         <div className="p-4 md:p-6">
             <div className="flex justify-between items-center mb-4 pb-3 border-b">
                  <h1 className="text-xl font-semibold">Detalle de Mi Contrato {idContratoUrl ? `(ID: ${idContratoUrl})` : ''}</h1>
-                 <Link href="/proveedores/contratos" className="text-sm text-blue-600 hover:underline">
+                 <Link href="/proveedores/contratos" className="text-sm text-blue-600 hover:underline"> {/* <-- Asegúrate que esta ruta sea correcta */}
                     ← Volver a Mis Contratos
                 </Link>
             </div>
 
-            {/* Mensajes de Carga y Error */}
+            {/* Mensajes de Carga y Error (sin cambios) */}
             {isLoading && (
                 <div className="text-center p-4">
                     <p>Cargando detalles...</p>
@@ -219,10 +158,13 @@ const ProveedorContratoDetailPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Vista de Detalles (Solo si no está cargando, no hay error Y el acceso fue permitido) */}
+            {/* Vista de Detalles - AHORA USA EL COMPONENTE IMPORTADO */}
             {!isLoading && !error && contrato && accesoPermitido && (
-                <ContractDetailView contrato={contrato} />
+                // Pasar la ruta base para proveedores si quieres enlaces correctos dentro
+                <ContractDetailView contrato={contrato} linkBasePath="/proveedores" />
             )}
+
+             {/* Mensaje de acceso denegado (sin cambios) */}
 
              {/* Mensaje específico si se cargó el contrato pero el acceso fue denegado */}
              {!isLoading && !error && contrato && !accesoPermitido && (

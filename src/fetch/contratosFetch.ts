@@ -8,6 +8,7 @@ import {
     ContratoEnLista,
     ContratoDetallado,
 } from "@/types/contrato"; // Ajusta la ruta
+import { ContratoInputData } from '@/types/contratoTemplateData'; // <-- NUEVO TIPO IMPORTADO (Ajusta ruta)
 const PROVEEDORES_API_URL = "/api/proveedores"; // O '/api/usuariosProveedores' si tienes una ruta específica
 const CONTRATOS_API_URL = "/api/contratos"; // Ruta base para la API de contratos
 /**
@@ -349,74 +350,51 @@ export const createContractRequest = async (
  */
 export const updateContractRequest = async (
     idContrato: number,
-    contratoData: ContratoUpdateData
+    contratoData: ContratoUpdateData & { template_data?: object }
 ): Promise<ContratoDetallado> => {
     const logPrefix = `FETCH updateContractRequest (ID: ${idContrato}):`;
     const apiUrl = `${CONTRATOS_API_URL}/${idContrato}`;
 
-    // Validaciones
-    if (typeof idContrato !== "number" || isNaN(idContrato)) {
-        const errorMsg = `${logPrefix} Error: ID de contrato inválido.`;
-        console.error(errorMsg);
-        throw new Error("ID de contrato inválido.");
-    }
-    if (!contratoData || Object.keys(contratoData).length === 0) {
-        const errorMsg = `${logPrefix} Error: No se proporcionaron datos para actualizar.`;
-        console.error(errorMsg);
-        throw new Error("No se proporcionaron datos para actualizar.");
-    }
-    if (
-        contratoData.monto_total !== undefined &&
-        isNaN(parseFloat(contratoData.monto_total))
-    ) {
-        throw new Error("Si se incluye monto_total, debe ser un número válido.");
+    if (typeof idContrato !== 'number' || isNaN(idContrato)) {
+        throw new Error('ID de contrato inválido.');
     }
 
-    console.log(`${logPrefix} Calling PUT ${apiUrl}`);
-    console.log(`${logPrefix} Payload:`, JSON.stringify(contratoData, null, 2));
+    // *** Validación AJUSTADA ***
+    // Verifica si el objeto existe y tiene AL MENOS una propiedad (puede ser template_data)
+    if (!contratoData || Object.keys(contratoData).length === 0) {
+        const errorMsg = `${logPrefix} Error: No se proporcionaron datos válidos para actualizar. Objeto recibido:`;
+        console.error(errorMsg, contratoData);
+        throw new Error("No se proporcionaron datos válidos para actualizar.");
+    }
+    // *** FIN Validación AJUSTADA ***
+
+
+    // Opcional: Añadir un log para ver exactamente qué se envía
+    console.log(`${logPrefix} Datos que se enviarán a la API:`, JSON.stringify(contratoData, null, 2));
+
 
     try {
         const response = await fetch(apiUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(contratoData),
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(contratoData), // Envía el objeto dataToUpdate
         });
 
         const data = await response.json().catch(() => null);
 
         if (!response.ok) {
-            console.error(
-                `${logPrefix} Error PUT ${apiUrl}: Status ${response.status}. Response:`,
-                data
-            );
-            if (response.status === 404) {
-                throw new Error(
-                    data?.message ||
-                    `Contrato con ID ${idContrato} no encontrado para actualizar.`
-                );
-            }
-            throw new Error(
-                data?.message ||
-                `Error ${response.status}: No se pudo actualizar el contrato.`
-            );
+             // ... (manejo de error existente) ...
+            console.error(`${logPrefix} Error PUT ${apiUrl}: Status ${response.status}. Response:`, data);
+            if (response.status === 404) { throw new Error(data?.message || `Contrato ID ${idContrato} no encontrado.`); }
+            throw new Error(data?.message || `Error ${response.status}: No se pudo actualizar.`);
         }
-        if (!data || typeof data !== "object" || data === null) {
-            console.error(
-                `${logPrefix} Error PUT ${apiUrl}: Respuesta inválida del servidor tras actualización. Response:`,
-                data
-            );
-            throw new Error(
-                "Respuesta inesperada del servidor al actualizar el contrato."
-            );
-        }
+        if (!data || typeof data !== 'object' || data === null) { /* ... error respuesta inválida ... */ }
 
         console.log(`${logPrefix} Success.`);
-        return data as ContratoDetallado; // Devuelve el objeto contrato actualizado
+        return data as ContratoDetallado;
+
     } catch (error) {
-        const errorToThrow =
-            error instanceof Error
-                ? error
-                : new Error(String(error || "Error desconocido en fetch"));
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
         console.error(`${logPrefix} Exception:`, errorToThrow.message);
         throw errorToThrow;
     }
@@ -508,7 +486,62 @@ export const generateContractWord = async (
         throw errorToThrow;
     }
 };
+// *** NUEVA FUNCIÓN PARA GUARDAR DESDE DATOS DE PLANTILLA ***
+/**
+ * Envía los datos estructurados del formulario (basado en plantilla) para crear un nuevo contrato.
+ * Llama a POST /api/contratos (se necesitará lógica en la API para manejar este formato).
+ * @param {ContratoInputData} data - Objeto con los datos ingresados por el admin.
+ * @returns {Promise<{ id_contrato: number }>} - Una promesa que resuelve con el ID del nuevo contrato.
+ * @throws {Error} Si la API devuelve un error.
+ */
+export const createContractFromTemplateData = async (data: ContratoInputData): Promise<{ id_contrato: number }> => {
+    const logPrefix = "FETCH createContractFromTemplateData:";
+    const apiUrl = CONTRATOS_API_URL; // Usamos el mismo endpoint POST
 
+    console.log(`${logPrefix} Calling POST ${apiUrl}`);
+    console.log(`${logPrefix} Payload:`, JSON.stringify(data, null, 2));
+
+    // Validación básica en cliente (la API tendrá validación más robusta)
+    if (!data || !data.idProveedor || !data.objetoPrincipal || !data.montoTotal) {
+        const errorMsg = `${logPrefix} Error: Datos básicos incompletos (Proveedor, Objeto, Monto).`;
+        console.error(errorMsg, data);
+        throw new Error("Faltan datos básicos para crear el contrato.");
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                 // Podrías añadir un header para indicar que es un payload basado en plantilla si la API necesita diferenciar
+                 // 'X-Payload-Type': 'template-based'
+            },
+            body: JSON.stringify(data), // Envía el nuevo objeto estructurado
+        });
+
+        const responseData = await response.json().catch(() => null); // Intentar parsear siempre
+
+        if (!response.ok) {
+            console.error(`${logPrefix} Error POST ${apiUrl}: Status ${response.status}. Response:`, responseData);
+            // Usa el mensaje de la API si está disponible
+            throw new Error(responseData?.message || `Error ${response.status}: No se pudo crear el contrato.`);
+        }
+
+        // Asume que la API devuelve { id_contrato: number } en caso de éxito (status 201)
+        if (!responseData || typeof responseData.id_contrato !== 'number') {
+            console.error(`${logPrefix} Error POST ${apiUrl}: Respuesta inválida tras creación exitosa. Response:`, responseData);
+            throw new Error("Respuesta inesperada del servidor tras crear el contrato.");
+        }
+
+        console.log(`${logPrefix} Success. New contract ID: ${responseData.id_contrato}`);
+        return responseData; // Devuelve { id_contrato: number }
+
+    } catch (error) {
+        const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido en fetch'));
+        console.error(`${logPrefix} Exception:`, errorToThrow.message);
+        throw errorToThrow; // Re-lanzar para el componente
+    }
+};
 /**
  * (Opcional) Elimina un contrato específico.
  * ¡ADVERTENCIA! Esta operación es destructiva y no tiene verificación de rol.

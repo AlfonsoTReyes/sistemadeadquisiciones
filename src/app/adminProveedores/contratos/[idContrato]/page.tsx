@@ -52,22 +52,24 @@ const AdminContratoDetailPage: React.FC = () => {
     }, [contratoId]);
 
     // *** Función para manejar el guardado del formulario ***
-    const handleSaveEdit = async (updatedData: ContratoUpdateData) => {
-        if (!contratoId) return; // Seguridad extra
+    const handleSaveEdit = async (idDelContrato: number, datosParaActualizar: ContratoUpdateData & { template_data?: object }) => {
+        // Ya no necesitas leer contratoId del estado aquí, viene como argumento
+        // if (!contratoId) return;
 
         setIsUpdating(true);
-        setUpdateError(null); // Limpiar error previo
-        console.log("Guardando datos:", updatedData);
+        setUpdateError(null);
+        // *** Loguea ambos argumentos ***
+        console.log(`Guardando datos para contrato ID: ${idDelContrato}`, datosParaActualizar);
 
         try {
-            const updatedContrato = await updateContractRequest(contratoId, updatedData);
-            setContrato(updatedContrato); // Actualiza el estado con los datos frescos de la API
-            setIsEditing(false); // Salir del modo edición
-            alert("Contrato actualizado exitosamente!"); // O usar un toast
+            // *** LLAMAR CON LOS DOS ARGUMENTOS RECIBIDOS ***
+            const updatedContrato = await updateContractRequest(idDelContrato, datosParaActualizar);
+            setContrato(updatedContrato);
+            setIsEditing(false);
+            alert("Contrato actualizado exitosamente!");
         } catch (err) {
             console.error("Error al guardar contrato:", err);
             setUpdateError(`Error al guardar: ${(err as Error).message}`);
-            // No salir del modo edición para que el usuario corrija
         } finally {
             setIsUpdating(false);
         }

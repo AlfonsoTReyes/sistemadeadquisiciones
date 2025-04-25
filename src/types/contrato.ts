@@ -4,29 +4,27 @@
 // Asume que tienes una interfaz ProveedorDetallado definida en algún lugar
 // como se discutió en el servicio de proveedores
 import { ProveedorDetallado } from '../services/proveedoresservice'; // Ajusta la ruta si es necesario
-
+import { ContratoInputData, SuficienciaInput, AreaRequirenteInput } from './contratoTemplateData'; // Ajusta ruta
 /**
  * Interfaz base que representa la estructura directa de la tabla 'contratos'.
  * Usada como base para otras interfaces.
  */
 interface ContratoBase {
-    readonly id_contrato: number; // Generalmente no se modifica directamente
+    readonly id_contrato: number;
     numero_contrato: string | null;
-    id_solicitud: number | null;
-    id_dictamen: number | null;
-    id_proveedor: number; // Es NOT NULL en la tabla
-    id_concurso: number | null;
-    objeto_contrato: string; // Es NOT NULL en la tabla
-    monto_total: string; // Usar string para NUMERIC para evitar problemas de precisión
+    id_solicitud: number | null; // ID se mantiene, el display vendrá de template_data
+    id_dictamen: number | null;  // ID se mantiene
+    id_proveedor: number;
+    id_concurso: number | null;   // ID se mantiene
+    objeto_contrato: string;     // Este podría ser el "objetoPrincipal"
+    monto_total: string;         // Monto principal/máximo
     moneda: string | null;
-    fecha_firma: string | null; // Formato YYYY-MM-DD
-    fecha_inicio: string | null; // Formato YYYY-MM-DD
-    fecha_fin: string | null; // Formato YYYY-MM-DD
-    condiciones_pago: string | null;
-    garantias: string | null;
-    // Podrías añadir campos de auditoría si los tuvieras (created_at, updated_at)
+    fecha_firma: string | null;  // Fecha de firma del *documento final* (distinta a la de elaboración)
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    condiciones_pago: string | null; // Podrían estar en template_data también
+    garantias: string | null;        // Podrían estar en template_data también
 }
-
 /**
  * Datos necesarios para CREAR un nuevo contrato.
  * Excluye 'id_contrato' (generado por DB).
@@ -54,7 +52,7 @@ export interface ContratoCreateData {
  * solo uno o varios campos. 'id_contrato' no se incluye aquí,
  * se usa para identificar qué contrato actualizar.
  */
-export type ContratoUpdateData = Partial<Omit<ContratoBase, 'id_contrato'>>;
+export type ContratoUpdateData = Partial<Omit<ContratoBase, 'id_contrato'>>; // Update sobre campos core
 // Alternativamente, definir explícitamente todos como opcionales:
 /*
 export interface ContratoUpdateData {
@@ -79,33 +77,32 @@ export interface ContratoUpdateData {
  * Interfaz para representar un contrato en una lista (vista resumida).
  * Incluye campos clave del contrato y el nombre/razón social del proveedor.
  */
+// Interfaz para la lista (ContratoEnLista) probablemente no necesita cambios drásticos,
+// a menos que quieras mostrar el 'tipoContrato' o algún dato clave del template_data.
 export interface ContratoEnLista {
     id_contrato: number;
     numero_contrato: string | null;
-    objeto_contrato: string; // Podría ser un resumen o completo
-    monto_total: string; // tipo string para numeric
+    objeto_contrato: string;
+    monto_total: string;
     moneda: string | null;
-    fecha_firma: string | null; // Formato YYYY-MM-DD
-    fecha_inicio: string | null; // Formato YYYY-MM-DD
-    fecha_fin: string | null; // Formato YYYY-MM-DD
+    fecha_firma: string | null;
     id_proveedor: number;
-    nombre_proveedor_o_razon_social: string | null; // Obtenido del JOIN
-    // Puedes añadir otros campos si son útiles en la lista (e.g., estatus si existiera)
+    nombre_proveedor_o_razon_social: string | null;
+    // Opcional: añadir tipo
+    tipo_contrato?: string | null;
 }
-
 /**
  * Interfaz para representar los detalles COMPLETOS de un contrato.
  * Incluye todos los campos de ContratoBase y la información detallada del proveedor.
  */
 export interface ContratoDetallado extends ContratoBase {
-    proveedor: ProveedorDetallado; // Objeto anidado con detalles del proveedor (físico/moral)
-    // Campos descriptivos obtenidos de los JOINs (ajusta nombres según tu DB)
-    numero_solicitud?: string | null; // Ejemplo
-    resultado_dictamen?: string | null; // Ejemplo
-    numero_concurso?: string | null;
-    nombre_concurso?: string | null;
+    proveedor: ProveedorDetallado;
+    // El campo JSONB parseado. Usamos Partial porque no todos los campos
+    // de ContratoInputData aplican siempre (ej. Adquisición vs Servicio)
+    // y algunos podrían ser opcionales.
+    template_data?: Partial<ContratoInputData> & { tipoContrato: 'servicio' | 'adquisicion' }; // Asegura tipoContrato
 
-    // Campos de display combinados o fallbacks (opcional, definidos en el servicio)
+    // Mantenemos los campos _display si el servicio los sigue generando (opcional)
     solicitud_display?: string | null;
     dictamen_display?: string | null;
     concurso_display?: string | null;
