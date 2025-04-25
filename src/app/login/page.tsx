@@ -5,11 +5,15 @@ import Pie from '../pie';
 import useLoginService from "./login";
 import logoSJR from "../../public/logo_sanjuan.png";
 import fondo from "../../public/images/fondoNaranja2.jpg";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const LoginPage = () => {
   const {
-    email, setEmail, password, setPassword,
-    handleLogin, 
+    email, setEmail,
+    password, setPassword,
+    handleLogin,
+    isLoadingLogin // ← NUEVO
   } = useLoginService();
 
   return (
@@ -46,10 +50,16 @@ const LoginPage = () => {
                 />
               </div>
 
-              <button type="submit" 
-                className="w-full text-white p-2 rounded-lg transition"
-                style={{ backgroundColor: "#faa21b" }}>
-                Iniciar sesión
+              <button
+                type="submit"
+                disabled={isLoadingLogin}
+                className="w-full text-white p-2 rounded-lg transition flex items-center justify-center"
+                style={{ backgroundColor: "#faa21b" }}
+              >
+                {isLoadingLogin && (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                )}
+                {isLoadingLogin ? "Iniciando..." : "Iniciar sesión"}
               </button>
             </form>
 
@@ -68,7 +78,6 @@ const LoginPage = () => {
           </div>
         </div>
       </main>
-
       <br />
       <Pie />
     </div>

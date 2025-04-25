@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getUsers } from '../../../peticiones_api/fetchUsuarios';
-import { fetchEventos } from '../../../peticiones_api/peticionEventos';
-import { fetchOrdenesDia, createOrdenDia } from '../../../peticiones_api/peticionOrdenDia';
+import { getUsers } from '../../peticiones_api/fetchUsuarios';
+import { fetchEventos } from '../../peticiones_api/peticionEventos';
+import { fetchOrdenesDia, createOrdenDia } from '../../peticiones_api/peticionOrdenDia';
 
 interface ModalAdjudicarProps {
   idSolicitud: number;
@@ -53,7 +53,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
   const [usuariosSeleccionados, setUsuariosSeleccionados] = useState<Usuario[]>([]);
   const [adjudicaciones, setAdjudicaciones] = useState<Adjudicacion[]>([]);
   const [noOficio, setNoOficio] = useState("DAQ/"); 
-  const [invitados, setInvitados] = useState<string[]>([]);
+  const [invitados, setInvitados] = useState<Usuario[]>([]);
   const [asunto, setAsunto] = useState("");
   const [puntoTemporal, setPuntoTemporal] = useState("");
   const [asunto_general, setAsuntoGeneral] = useState("");
@@ -61,7 +61,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
   const [fechaSeleccionada, setFechaSeleccionada] = useState("");
   const [fechasDisponibles, setFechasDisponibles] = useState<EventoComite[]>([]);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoComite | null>(null);
-  
+  const [horaSeleccionada, setHoraSeleccionada] = useState("");
 
   useEffect(() => {
     const fetchDatos = async () => {
@@ -86,20 +86,29 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
 
 
   const handleConvocar = async () => {
-    if (!fechaSeleccionada || !asunto) {
-      alert("selecciona una fecha y escribe un asunto.");
+    if (!fechaSeleccionada || !horaSeleccionada || !asunto_general) {
+      alert("Selecciona fecha, hora y asunto.");
       return;
     }
+    
+    const fechaEvento = fechasDisponibles.find(f => f.id_evento.toString() === fechaSeleccionada);
+    const fechaConHora = horaSeleccionada
+      ? `${new Date(fechaEvento?.fecha_inicio || "").toISOString().split("T")[0]}T${horaSeleccionada}`
+      : fechaEvento?.fecha_inicio;
+    
 
     const formData = {
       id_solicitud: idSolicitud,
       asunto_general,
       no_oficio: noOficio,
-      hora: fechaSeleccionada, 
+      hora: fechaConHora, 
       puntos_tratar: puntosATratar,
       participantes_base: usuariosSeleccionados.map(u => u.id_usuario), 
-      usuarios_invitados: invitados, 
+      usuarios_invitados: invitados.map(u => u.id_usuario),
+      id_evento: parseInt(fechaSeleccionada),
     };
+
+    console.log(formData);
 
     try {
       await createOrdenDia(formData);
@@ -130,8 +139,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-md w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
 
-        <h2 className="text-xl font-bold mb-4">Convocar comité</h2>
-
+        <h2 className="text-xl font-bold mb-4">Convocar comité / orden de día</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Fechas */}
@@ -167,12 +175,14 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
             <input
               type="time"
               className="w-full border p-2 rounded"
-              onChange={(e) => setFechaSeleccionada(prev => `${prev.split("T")[0]}T${e.target.value}`)}
+              value={horaSeleccionada}
+              onChange={(e) => setHoraSeleccionada(e.target.value)}
             />
+
+
           </div>
 
           <div className="md:col-span-2">
-
             <label className="font-semibold block mb-1">No. de oficio</label>
             <input
               type="text"
@@ -181,49 +191,6 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
               onChange={(e) => setNoOficio(e.target.value)}
               placeholder="Ej. DAQ/001/2025"
             />
-
-            <label className="font-semibold block mb-1">Puntos a tratar</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                placeholder="Escribe un asunto"
-                className="w-full border p-2 rounded"
-                value={asunto}
-                onChange={(e) => setAsunto(e.target.value)}
-              />
-              <button
-                type="button"
-                className="bg-blue-600 text-white px-4 py-2 rounded"
-                onClick={() => {
-                  if (asunto.trim()) {
-                    setInvitados((prev) => [...prev, asunto.trim()]);
-                    setAsunto("");
-                  }
-                }}
-              >
-                Agregar
-              </button>
-            </div>
-
-            {invitados.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {invitados.map((a, idx) => (
-                  <div key={idx} className="bg-gray-100 p-2 rounded flex justify-between items-center">
-                    <span className="text-sm">{a}</span>
-                    <button
-                      type="button"
-                      className="text-red-500 text-xs"
-                      onClick={() =>
-                        setInvitados((prev) => prev.filter((_, i) => i !== idx))
-                      }
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
           </div>
 
 
@@ -272,16 +239,18 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
 
           </div>
 
-
-          <div className="mb-4">
-            <label className="font-semibold block mb-1">Seleccionar usuario</label>
+          {/* SELECCIÓN DE USUARIOS DE CAJÓN */}
+          <div className="md:col-span-2">
+            <label className="font-semibold block mb-1">Usuarios de base</label>
             <select
               className="w-full border rounded p-2"
               onChange={(e) => {
                 const seleccionado = usuarios.find((u) => u.id_usuario.toString() === e.target.value);
-                setUsuarioSeleccionado(seleccionado || null);
+                if (seleccionado && !usuariosSeleccionados.some(u => u.id_usuario === seleccionado.id_usuario)) {
+                  setUsuariosSeleccionados(prev => [...prev, seleccionado]);
+                }
               }}
-              value={usuarioSeleccionado?.id_usuario || ""}
+              defaultValue=""
             >
               <option value="">Selecciona un usuario</option>
               {usuarios.map((u) => (
@@ -291,45 +260,68 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
               ))}
             </select>
 
-            {usuarioSeleccionado && (
-              <div className="mt-2 bg-gray-100 p-3 rounded text-sm">
-                <p><strong>Rol:</strong> {usuarioSeleccionado.rol}</p>
-                <p><strong>Nombre:</strong> {usuarioSeleccionado.nombre_s}</p>
-                <p><strong>Email:</strong> {usuarioSeleccionado.email}</p>
-                <p><strong>Estatus:</strong> {usuarioSeleccionado.estatus}</p>
-                <button
-                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded"
-                  onClick={agregarUsuarioSeleccionado}
-                >
-                  Agregar a invitados
-                </button>
-              </div>
-            )}
-          </div>
-
-          {usuariosSeleccionados.length > 0 && (
-            <div className="mt-4">
-              <p className="font-semibold mb-2">Usuarios seleccionados:</p>
-              <ul className="list-disc list-inside text-sm space-y-1">
+            {usuariosSeleccionados.length > 0 && (
+              <ul className="list-disc list-inside mt-2 text-sm space-y-1">
                 {usuariosSeleccionados.map((u) => (
                   <li key={u.id_usuario} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                    <span>{u.nombre_s} - {u.email}</span>
+                    <span>{u.nombre_u} - {u.nombre_s} - {u.email}</span>
                     <button
                       className="text-red-500 text-xs underline"
-                      onClick={() => eliminarUsuario(u.id_usuario)}
+                      onClick={() => setUsuariosSeleccionados(prev => prev.filter(p => p.id_usuario !== u.id_usuario))}
                     >
                       Quitar
                     </button>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* SELECCIÓN DE USUARIOS INVITADOS */}
+          <div className="md:col-span-2">
+            <label className="font-semibold block mb-1">Usuarios invitados</label>
+            <select
+              className="w-full border rounded p-2"
+              onChange={(e) => {
+                const seleccionado = usuarios.find((u) => u.id_usuario.toString() === e.target.value);
+                if (seleccionado && !invitados.some(u => u.id_usuario === seleccionado.id_usuario)) {
+                  setInvitados(prev => [...prev, seleccionado]);
+                }
+              }}
+              defaultValue=""
+            >
+              <option value="">Selecciona un invitado</option>
+              {usuarios.map((u) => (
+                <option key={u.id_usuario} value={u.id_usuario}>
+                  {`${u.nombre_u.toUpperCase()} - ${u.nombre_s} - ${u.puesto}`}
+                </option>
+              ))}
+            </select>
+
+            {invitados.length > 0 && (
+              <ul className="list-disc list-inside mt-2 text-sm space-y-1">
+                {invitados.map((u) => (
+                  <li key={u.id_usuario} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <span>{u.nombre_u} - {u.nombre_s} - {u.email}</span>
+                    <button
+                      className="text-red-500 text-xs underline"
+                      onClick={() => setInvitados(prev => prev.filter(i => i.id_usuario !== u.id_usuario))}
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+
+
+
 
 
           <div>
             <label className="font-semibold block mb-1">Asunto</label>
-
             <div className="flex gap-2 mb-4">
             <select
               className="w-full border rounded p-2"
@@ -356,26 +348,6 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
                 Cerrar
               </button>
             </div>
-
-            <input
-              type="text"
-              className="w-full border rounded p-2 mb-3"
-              value={asunto}
-              onChange={(e) => setAsunto(e.target.value)}
-            />
-            <button
-              className="bg-blue-600 text-white w-full p-2 rounded mb-2"
-              onClick={handleConvocar}
-            >
-              Enviar a comité
-            </button>
-            <button
-              onClick={onClose}
-              className="bg-red-500 text-white w-full p-2 rounded"
-            >
-              Cerrar
-            </button>
-
           </div>
 
         </div>

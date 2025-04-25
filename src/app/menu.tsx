@@ -399,10 +399,32 @@ export default function Menu() {
                   className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
                   <div className="flex items-center">
-                    <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> Comite
+                    <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> COMITE
                   </div>
                   <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
                 </button>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/usuarios_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Mis comites
+                </Link>
+              </li>
+            )}
+            
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/usuarios_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Dictamenes comite
+                </Link>
               </li>
             )}
 

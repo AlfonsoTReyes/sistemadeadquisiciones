@@ -65,3 +65,4 @@ public/documentos_adicionales/*
 public/otros anexos/*
 !public/otro/.gitkeep
 /public/
+/templates/
