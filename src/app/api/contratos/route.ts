@@ -1,118 +1,178 @@
-// src/app/api/contratos/route.ts
+// /src/app/api/contratos/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import {
     getContracts,
-    createContract,
+    createContract, // Mantenemos la función original
+    createContractWithTemplateData // Importamos la nueva función
 } from '@/services/contratosService'; // Servicio de contratos
 import { ContratoCreateData } from '@/types/contrato';
+// Importamos el nuevo tipo de input para la verificación
+import { ContratoInputData } from '@/types/contratoTemplateData'; // Ajusta ruta
 
-// *** IMPORTANTE: Importa la función necesaria del servicio de proveedores ***
-import { getProveedorByUserId, getProveedoresForSelect  } from '@/services/proveedoresservice'; // Ajusta la ruta si es necesario
+// Importa la función necesaria del servicio de proveedores para GET
+import { getProveedorByUserId } from '@/services/proveedoresservice';
 
-// --- GET: Obtener lista de contratos ---
-// Ahora puede filtrar por 'idProveedor' (directo, ¿admin?) O por 'userId' (proveedor logueado)
+// --- GET (SIN CAMBIOS - Mantenemos la lógica existente) ---
 export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
-    const idProveedorParam = searchParams.get('idProveedor'); // Para llamadas directas o admin
-    const userIdParam = searchParams.get('userId'); // <-- NUEVO: Para buscar por usuario logueado
-
+    const idProveedorParam = searchParams.get('idProveedor');
+    const userIdParam = searchParams.get('userId');
     console.log(`API Route GET /api/contratos called. idProveedorParam: ${idProveedorParam}, userIdParam: ${userIdParam}`);
-
     try {
         const filters: Parameters<typeof getContracts>[0] = {};
         let idProveedorFiltrar: number | null = null;
-
-        // --- Lógica de Filtrado ---
         if (userIdParam) {
-            // Prioridad 1: Filtrar por ID de Usuario (buscar perfil y obtener id_proveedor)
             const userId = parseInt(userIdParam, 10);
-            if (isNaN(userId)) {
-                return NextResponse.json({ message: 'Parámetro "userId" debe ser un número válido.' }, { status: 400 });
-            }
-            console.log(`API GET /contratos: Buscando perfil para User ID: ${userId}`);
+            if (isNaN(userId)) return NextResponse.json({ message: 'Parámetro "userId" inválido.' }, { status: 400 });
+            console.log(`API GET /contratos: Buscando perfil User ID: ${userId}`);
             try {
-                const perfilProveedor = await getProveedorByUserId(userId); // Llama al servicio de proveedores
-                if (perfilProveedor && perfilProveedor.id_proveedor != null) {
+                const perfilProveedor = await getProveedorByUserId(userId);
+                if (perfilProveedor?.id_proveedor != null) {
                     idProveedorFiltrar = perfilProveedor.id_proveedor;
-                    console.log(`API GET /contratos: Perfil encontrado. Filtrando por Proveedor ID: ${idProveedorFiltrar}`);
+                    console.log(`API GET /contratos: Filtrando por Proveedor ID: ${idProveedorFiltrar}`);
                 } else {
-                    // Usuario existe pero no tiene perfil de proveedor, o el ID es null?
-                    console.log(`API GET /contratos: No se encontró perfil de proveedor (o ID nulo) para User ID: ${userId}. Se devolverá lista vacía.`);
-                    // Si no hay proveedor asociado, no tendrá contratos. Devolver vacío.
+                    console.log(`API GET /contratos: No se encontró perfil para User ID: ${userId}. Lista vacía.`);
                     return NextResponse.json([]);
                 }
             } catch (profileError: any) {
-                 // Error al buscar el perfil
-                console.error(`API GET /contratos: Error buscando perfil para User ID ${userId}:`, profileError);
-                 // Podríamos devolver un error 500 o también una lista vacía
-                 // Devolver error 500 puede ser más informativo si algo falla internamente
-                 return NextResponse.json({ message: `Error interno al buscar perfil del proveedor: ${profileError.message}` }, { status: 500 });
+                console.error(`API GET /contratos: Error buscando perfil User ID ${userId}:`, profileError);
+                return NextResponse.json({ message: `Error interno buscar perfil: ${profileError.message}` }, { status: 500 });
             }
-
         } else if (idProveedorParam) {
-            // Prioridad 2: Filtrar directamente por ID Proveedor (llamada admin/directa)
             const idProveedor = parseInt(idProveedorParam, 10);
-            if (isNaN(idProveedor)) {
-                return NextResponse.json({ message: 'Parámetro "idProveedor" debe ser un número válido.' }, { status: 400 });
-            }
+            if (isNaN(idProveedor)) return NextResponse.json({ message: 'Parámetro "idProveedor" inválido.' }, { status: 400 });
             idProveedorFiltrar = idProveedor;
-            console.log(`API GET /contratos: Filtrando directamente por Proveedor ID ${idProveedorFiltrar} (confiando en cliente).`);
+            console.log(`API GET /contratos: Filtrando por Proveedor ID ${idProveedorFiltrar}.`);
         } else {
-            // Sin filtro: Obtener todos (simula admin, ¡inseguro!)
-            console.log("API GET /contratos: Obteniendo todos los contratos (sin filtro). ¡ACCESO INSEGURO SI NO SE CONTROLA EN FRONTEND!");
+            console.log("API GET /contratos: Obteniendo todos.");
         }
-
-        // --- Aplicar filtro (si se determinó un ID) y llamar al servicio de contratos ---
-        if (idProveedorFiltrar !== null) {
-            filters.id_proveedor = idProveedorFiltrar;
-        }
-
+        if (idProveedorFiltrar !== null) filters.id_proveedor = idProveedorFiltrar;
         const contratos = await getContracts(filters);
         return NextResponse.json(contratos);
-
     } catch (error: any) {
-        // Captura errores de getContracts o errores no manejados antes
-        console.error("API Route GET /api/contratos Error General:", error);
-        return NextResponse.json({ message: error.message || 'Error al obtener la lista de contratos.' }, { status: 500 });
+        console.error("API Route GET /api/contratos Error:", error);
+        return NextResponse.json({ message: error.message || 'Error obtener lista.' }, { status: 500 });
     }
 }
 
-// --- POST: Crear un nuevo contrato ---
-// Este manejador NO necesita cambios, ya que recibe el id_proveedor directamente en el body.
-// La responsabilidad de saber qué id_proveedor enviar recae en el frontend
-// (que previamente habrá llamado a fetchProveedorByUserId).
+// --- POST (ADAPTADO PARA MANEJAR AMBOS FORMATOS) ---
 export async function POST(req: NextRequest) {
-    console.log("API Route POST /api/contratos called (SIN VERIFICACIÓN DE ROL)");
+    console.log("API Route POST /api/contratos called");
+    let body: any;
     try {
-        let body: ContratoCreateData;
+        body = await req.json();
+        console.log("API Route POST: Received raw data:", JSON.stringify(body, null, 2));
+    } catch (jsonError) {
+        return NextResponse.json({ message: 'Error en el formato JSON.' }, { status: 400 });
+    }
+
+    // *** Intenta identificar si es el nuevo formato (ContratoInputData) ***
+    const isTemplateFormat = body &&
+        typeof body === 'object' &&
+        body.tipoContrato && // Campo clave discriminador
+        body.idProveedor &&
+        body.objetoPrincipal && // Usamos un campo renombrado como señal
+        body.montoTotal !== undefined &&
+        body.suficiencia && typeof body.suficiencia === 'object' && // Check de objetos anidados
+        body.areaRequirente && typeof body.areaRequirente === 'object';
+
+
+    if (isTemplateFormat) {
+        // --- PROCESAR CON LA NUEVA LÓGICA (ContratoInputData) ---
+        console.log("API Route POST: Detected Template-based format.");
+        const inputData = body as ContratoInputData;
+
+        // Validación adicional específica de ContratoInputData si es necesaria aquí
+
         try {
-            body = await req.json();
-        } catch (jsonError) {
-            return NextResponse.json({ message: 'Error en el formato JSON.' }, { status: 400 });
+            // Separar datos Core de Template Data
+            const coreData: Partial<ContratoCreateData> & { id_proveedor: number; objeto_contrato: string; monto_total: string } = { // Asegura tipos requeridos
+                id_proveedor: inputData.idProveedor,
+                objeto_contrato: inputData.objetoPrincipal,
+                monto_total: String(inputData.montoTotal), // Convertir a string
+                numero_contrato: inputData.numeroProcedimiento,
+                id_solicitud: inputData.idSolicitud,
+                id_dictamen: inputData.idDictamen,
+                id_concurso: inputData.idConcurso,
+                moneda: inputData.moneda,
+                fecha_firma: inputData.fechaFirma,
+                fecha_inicio: inputData.fechaInicio,
+                fecha_fin: inputData.fechaFin,
+                condiciones_pago: inputData.condicionesPago,
+                garantias: inputData.garantiasTexto,
+            };
+
+            // Datos restantes para JSONB
+            const templateSpecificData = { ...inputData };
+            // Eliminar claves mapeadas a coreData (opcional pero reduce redundancia)
+            delete (templateSpecificData as any).idProveedor;
+            delete (templateSpecificData as any).objetoPrincipal;
+            delete (templateSpecificData as any).montoTotal;
+            delete (templateSpecificData as any).numeroProcedimiento;
+            delete (templateSpecificData as any).idSolicitud;
+            delete (templateSpecificData as any).idDictamen;
+            delete (templateSpecificData as any).idConcurso;
+            delete (templateSpecificData as any).moneda;
+            delete (templateSpecificData as any).fechaFirma;
+            delete (templateSpecificData as any).fechaInicio;
+            delete (templateSpecificData as any).fechaFin;
+            delete (templateSpecificData as any).condicionesPago;
+            delete (templateSpecificData as any).garantiasTexto;
+
+            // Validar campos requeridos antes de llamar al servicio
+            if (!coreData.id_proveedor || !coreData.objeto_contrato || !coreData.monto_total) {
+                return NextResponse.json({ message: 'Faltan campos básicos requeridos (Proveedor, Objeto, Monto).' }, { status: 400 });
+            }
+            // Podrías añadir más validaciones aquí para suficiencia, areaRequirente, etc.
+
+            // Llamar al NUEVO servicio
+            const nuevoContrato = await createContractWithTemplateData(coreData, templateSpecificData);
+
+            console.log("API Route POST: Contrato (template based) creado con ID:", nuevoContrato.id_contrato);
+            return NextResponse.json(nuevoContrato, { status: 201 });
+
+        } catch (error: any) {
+            console.error("API Route POST /api/contratos Error processing template data:", error);
+            let status = 500;
+            let message = error.message || 'Error inesperado al crear el contrato (template).';
+            if (message.includes("requerido") || message.includes("inválido")) status = 400;
+            else if (error.code === '23503') { status = 400; message = `Error de referencia.`; }
+            else if (error.code === '23505') { status = 409; message = `Conflicto: Valor único duplicado.`; }
+            return NextResponse.json({ message }, { status });
         }
 
-        console.log("API Route POST: Received data:", JSON.stringify(body, null, 2));
+    } else {
+        // --- PROCESAR CON LA LÓGICA ORIGINAL (ContratoCreateData) ---
+        console.log("API Route POST: Detected legacy format (ContratoCreateData).");
+        const legacyData = body as ContratoCreateData; // Castear al tipo original
 
-        if (!body.id_proveedor || !body.objeto_contrato || !body.monto_total) {
-            return NextResponse.json({ message: 'Faltan campos requeridos: id_proveedor, objeto_contrato, monto_total.' }, { status: 400 });
+        // Validación original
+        if (!legacyData.id_proveedor || !legacyData.objeto_contrato || !legacyData.monto_total) {
+            return NextResponse.json({ message: 'Faltan campos requeridos (legacy): id_proveedor, objeto_contrato, monto_total.' }, { status: 400 });
         }
-        if (isNaN(parseFloat(body.monto_total))) {
-             return NextResponse.json({ message: 'El campo monto_total debe ser un número válido.' }, { status: 400 });
+        if (isNaN(parseFloat(legacyData.monto_total))) {
+            return NextResponse.json({ message: 'El campo monto_total (legacy) debe ser un número válido.' }, { status: 400 });
         }
 
-        const nuevoContrato = await createContract(body);
+        try {
+            // Llamar al servicio ORIGINAL
+            const nuevoContrato = await createContract(legacyData);
 
-        console.log("API Route POST: Contrato creado con ID:", nuevoContrato.id_contrato);
-        return NextResponse.json(nuevoContrato, { status: 201 });
+            console.log("API Route POST: Contrato (legacy) creado con ID:", nuevoContrato.id_contrato);
+            return NextResponse.json(nuevoContrato, { status: 201 });
 
-    } catch (error: any) {
-        console.error("API Route POST /api/contratos Error:", error);
-        let status = 500;
-        let message = error.message || 'Error inesperado al crear el contrato.';
-        if (message.includes("requerido") || message.includes("inválido")) status = 400;
-        else if (error.code === '23503') { status = 400; message = `Error de referencia: Verifique que el proveedor y otros IDs existan.`; }
-        else if (error.code === '23505') { status = 409; message = `Conflicto: Ya existe un registro con uno de los valores únicos (ej: número de contrato).`; }
-        else if (error instanceof SyntaxError) { status = 400; message = 'Error: Formato JSON inválido.'; }
-        return NextResponse.json({ message }, { status });
+        } catch (error: any) {
+            console.error("API Route POST /api/contratos Error processing legacy data:", error);
+            let status = 500;
+            let message = error.message || 'Error inesperado al crear el contrato (legacy).';
+            if (message.includes("requerido") || message.includes("inválido")) status = 400;
+            else if (error.code === '23503') { status = 400; message = `Error de referencia (legacy).`; }
+            else if (error.code === '23505') { status = 409; message = `Conflicto valor único (legacy).`; }
+            return NextResponse.json({ message }, { status });
+        }
     }
 }
+
+// --- PUT, DELETE (sin cambios necesarios aquí, ya operan sobre un contrato existente por ID) ---
+// export async function PUT(req: NextRequest, { params }: RouteContext) { ... }
+// export async function DELETE(req: NextRequest, { params }: RouteContext) { ... }

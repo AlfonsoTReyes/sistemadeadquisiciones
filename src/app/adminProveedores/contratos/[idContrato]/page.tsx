@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 // Importa la función de ACTUALIZACIÓN también
-import { fetchContractDetails, updateContractRequest } from '@/fetch/contratosFetch'; // Ajusta ruta
+import { fetchContractDetails, updateContractRequest, generateContractWord } from '@/fetch/contratosFetch'; // Ajusta ruta
 import { ContratoDetallado, ContratoUpdateData } from '@/types/contrato'; // Ajusta ruta
 
 // Importa los componentes
@@ -23,7 +23,9 @@ const AdminContratoDetailPage: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false); // Controla si está en modo edición
     const [isUpdating, setIsUpdating] = useState(false); // Controla si se está guardando
     const [updateError, setUpdateError] = useState<string | null>(null); // Errores específicos del guardado
-
+    // *** Nuevo estado para generación ***
+    const [isGenerating, setIsGenerating] = useState<null | 'servicio' | 'adquisicion'>(null); // Para indicar cuál se está generando
+    const [generationError, setGenerationError] = useState<string | null>(null);
     // Efecto para obtener ID de la URL (sin cambios)
     useEffect(() => {
         const idStr = params.idContrato as string;
@@ -50,22 +52,24 @@ const AdminContratoDetailPage: React.FC = () => {
     }, [contratoId]);
 
     // *** Función para manejar el guardado del formulario ***
-    const handleSaveEdit = async (updatedData: ContratoUpdateData) => {
-        if (!contratoId) return; // Seguridad extra
+    const handleSaveEdit = async (idDelContrato: number, datosParaActualizar: ContratoUpdateData & { template_data?: object }) => {
+        // Ya no necesitas leer contratoId del estado aquí, viene como argumento
+        // if (!contratoId) return;
 
         setIsUpdating(true);
-        setUpdateError(null); // Limpiar error previo
-        console.log("Guardando datos:", updatedData);
+        setUpdateError(null);
+        // *** Loguea ambos argumentos ***
+        console.log(`Guardando datos para contrato ID: ${idDelContrato}`, datosParaActualizar);
 
         try {
-            const updatedContrato = await updateContractRequest(contratoId, updatedData);
-            setContrato(updatedContrato); // Actualiza el estado con los datos frescos de la API
-            setIsEditing(false); // Salir del modo edición
-            alert("Contrato actualizado exitosamente!"); // O usar un toast
+            // *** LLAMAR CON LOS DOS ARGUMENTOS RECIBIDOS ***
+            const updatedContrato = await updateContractRequest(idDelContrato, datosParaActualizar);
+            setContrato(updatedContrato);
+            setIsEditing(false);
+            alert("Contrato actualizado exitosamente!");
         } catch (err) {
             console.error("Error al guardar contrato:", err);
             setUpdateError(`Error al guardar: ${(err as Error).message}`);
-            // No salir del modo edición para que el usuario corrija
         } finally {
             setIsUpdating(false);
         }
@@ -76,23 +80,41 @@ const AdminContratoDetailPage: React.FC = () => {
         setIsEditing(false);
         setUpdateError(null); // Limpiar error al cancelar
     };
+    // *** NUEVA FUNCIÓN PARA GENERAR WORD ***
+    const handleGenerateWord = async (templateType: 'servicio' | 'adquisicion') => {
+        if (!contratoId || isGenerating) return;
 
+        setIsGenerating(templateType); // Marcar cuál se está generando
+        setGenerationError(null);
+        console.log(`Solicitando generación de Word para contrato ${contratoId}, plantilla: ${templateType}`);
+
+        try {
+            // Llama a la función fetch (asegúrate que exista en contratosFetch.ts)
+            await generateContractWord(contratoId, templateType);
+            // El download lo maneja el fetch, aquí solo limpiamos el estado
+        } catch (err) {
+            console.error(`Error generando Word (${templateType}):`, err);
+            setGenerationError(`Error al generar documento ${templateType}: ${(err as Error).message}`);
+        } finally {
+            setIsGenerating(null); // Terminar estado de generación
+        }
+    };
     return (
         <div className="p-4 md:p-6">
             <div className="flex justify-between items-center mb-4 pb-3 border-b">
                 <h1 className="text-xl font-semibold">
                     {isEditing ? 'Editar' : 'Detalle de'} Contrato {contratoId ? `(ID: ${contratoId})` : ''} (Admin)
                 </h1>
-                 {/* Mostrar Link Volver solo si no está editando */}
-                 {!isEditing && (
-                     <Link href="/adminProveedores/contratos" className="text-sm text-blue-600 hover:underline">
-                         ← Volver a la lista
+                {/* Mostrar Link Volver solo si no está editando */}
+                {!isEditing && (
+                    <Link href="/adminProveedores/contratos" className="text-sm text-blue-600 hover:underline">
+                        ← Volver a la lista
                     </Link>
-                 )}
+                )}
             </div>
 
             {/* Mensajes de Carga y Error Global */}
-            {isLoading && ( <div className="text-center p-4"><p>Cargando...</p></div> )}
+            {isLoading && (<div className="text-center p-4"><p>Cargando...</p></div>)}
             {error && !isLoading && (
                 <div className="p-3 mb-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert">
                     <p className="font-bold">{error}</p>
@@ -100,10 +122,10 @@ const AdminContratoDetailPage: React.FC = () => {
             )}
 
             {/* Renderizado Condicional: Vista o Formulario */}
+            {/* Renderizado Condicional: Vista o Formulario */}
             {!isLoading && !error && contrato && (
                 <>
                     {isEditing ? (
-                        // *** Renderiza el Formulario de Edición ***
                         <ContractEditForm
                             initialData={contrato}
                             onSubmit={handleSaveEdit}
@@ -112,27 +134,47 @@ const AdminContratoDetailPage: React.FC = () => {
                             error={updateError}
                         />
                     ) : (
-                        // *** Renderiza la Vista de Detalles ***
                         <>
-                            <ContractDetailView contrato={contrato} />
-                            <div className="mt-6 flex justify-end space-x-3">
-                                {/* Botón para ENTRAR en modo edición */}
+                            <ContractDetailView contrato={contrato} linkBasePath="/admin" />
+                            <div className="mt-6 flex flex-wrap justify-end items-center gap-3">
+                                {/* Mensaje de error de generación */}
+                                {generationError && <p className="text-sm text-red-600 mr-auto">{generationError}</p>}
+
+                                {/* --- BOTONES DE GENERACIÓN --- */}
+                                <button
+                                    onClick={() => handleGenerateWord('servicio')}
+                                    disabled={isGenerating !== null}
+                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                                >
+                                    {isGenerating === 'servicio' ? 'Generando...' : 'Generar Contrato Servicio (.docx)'}
+                                </button>
+                                <button
+                                    onClick={() => handleGenerateWord('adquisicion')}
+                                    disabled={isGenerating !== null}
+                                    className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:bg-gray-400"
+                                >
+                                    {isGenerating === 'adquisicion' ? 'Generando...' : 'Generar Contrato Adquisición (.docx)'}
+                                </button>
+                                {/* --- FIN BOTONES GENERACIÓN --- */}
+
+                                {/* Botón Editar (existente) */}
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                                    disabled={isGenerating !== null}
+                                    className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-gray-400"
                                 >
-                                    Editar Contrato
+                                    Editar Datos
                                 </button>
-                                {/* <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Eliminar Contrato</button> */}
+                                {/* <button disabled={isGenerating !== null} className="...">Eliminar</button> */}
                             </div>
                         </>
                     )}
                 </>
             )}
             {/* Mostrar si no hay contrato y no está cargando (ej. 404 inicial) */}
-             {!isLoading && !error && !contrato && (
-                 <p className="text-center text-gray-500 italic">No se encontraron datos para el contrato solicitado.</p>
-             )}
+            {!isLoading && !error && !contrato && (
+                <p className="text-center text-gray-500 italic">No se encontraron datos para el contrato solicitado.</p>
+            )}
 
         </div>
     );
