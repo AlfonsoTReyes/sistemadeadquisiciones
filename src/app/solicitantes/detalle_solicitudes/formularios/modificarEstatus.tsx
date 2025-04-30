@@ -79,6 +79,13 @@ const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
             <option value="En revisión">En revisión</option>
             <option value="Aprobada">Aprobada</option>
             <option value="Cancelada">Cancelada</option>
+            <option value="En comite">En comite</option>
+            <option value="En concurso">En concurso</option>
+            <option value="En fallo">En fallo</option>
+            <option value="En contrato">En contrato</option>
+            <option value="En orden de compra">En orden de compra</option>
+
+
           </select>
         </div>
 

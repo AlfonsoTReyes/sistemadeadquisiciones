@@ -15,6 +15,18 @@ export const fetchSolicitudes = async (userSecre, userSistema) => {
   }
 };
 
+export const fetchSolicitudesParaSelect = async (tipo) => {
+  try {
+    const res = await fetch(`${API_URL}?tipo=${tipo}`);
+    if (!res.ok) throw new Error("Error al obtener solicitudes para convocar");
+    return await res.json();
+  } catch (error) {
+    console.error("Error al obtener solicitudes:", error);
+    return [];
+  }
+};
+
+
 
 /** Crea un nuevo usuario en la API */
 export const createSolicitud = async (solicitudData) => {
