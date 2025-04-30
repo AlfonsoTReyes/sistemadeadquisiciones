@@ -29,24 +29,32 @@ const SolicitudPage = () => {
 
   const fetchData = async () => {
     if (!idSolicitud) return;
-
+  
     setLoading(true);
     try {
       const data = await fetchOrdenesDia(idSolicitud);
-      setOrdenes(data);
-      // Verificar si existe una orden activa (no cancelada ni terminada)
-      const existeActiva = data.some(
-        (orden: any) =>
-          orden.estatus !== "cancelada" && orden.estatus !== "terminada"
-      );
-      setHayOrdenActiva(existeActiva);
-    } catch (err) {
-      console.error("Error al obtener las órdenes del día:", err);
-      setError("No se pudo cargar la información.");
+  
+      if (data.length === 0) {
+        setError("No hay órdenes del día registradas."); // ⬅️ Mensaje especial
+        setOrdenes([]); // Limpias ordenes
+        setHayOrdenActiva(false);
+      } else {
+        setOrdenes(data);
+  
+        const existeActiva = data.some(
+          (orden: any) => orden.estatus !== "Cancelada" && orden.estatus !== "Terminada"
+        );
+        setHayOrdenActiva(existeActiva);
+      }
+    } catch (err: any) {
+      console.error("Error al obtener las órdenes del día:", err.message || err);
+      setError("Error al obtener las órdenes del día."); // ⬅️ Solo error real
     } finally {
       setLoading(false);
     }
   };
+  
+  
 
   useEffect(() => {
     fetchData();
