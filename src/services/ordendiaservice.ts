@@ -159,7 +159,8 @@ export const obtenerOrdenDiaPorId = async (id_solicitud: number) => {
       od.created_at,
       od.updated_at,
       od.id_evento,
-      ec.fecha_inicio
+      ec.fecha_inicio,
+      od.estatus
     FROM 
       ordenes_dia od
     JOIN 
@@ -331,6 +332,25 @@ export const actualizarOrdenDia = async (
     return result.rows[0];
   } catch (error) {
     console.error("Error al actualizar orden del día:", error);
+    throw error;
+  }
+};
+
+
+export const actualizarEstatusOrdenDia = async (
+  id_orden_dia: number,
+  estatus: string
+) => {
+  try {
+    const result = await sql`
+      UPDATE ordenes_dia SET
+        estatus = ${estatus}
+      WHERE id_orden_dia = ${id_orden_dia}
+      RETURNING *;
+    `;
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error al actualizar estatus de la orden del día:", error);
     throw error;
   }
 };
