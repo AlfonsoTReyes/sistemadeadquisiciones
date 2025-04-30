@@ -8,6 +8,7 @@ import ModalEditarOrden from "./formularios/adjudicarGeneralEditat";
 import AdjudicarPuntosEditar from "./formularios/adjudicarPuntosEditat";
 import generarPDF from "../PDF/ordendia";
 import generarPDFActa from "../PDF/dictamenordendia";
+import generarPDFCancelacion from "../PDF/cancelacionOrden"; 
 
 import ModalActaSesion from "./formularios/ModalActaSesion"; 
 
@@ -44,7 +45,7 @@ interface OrdenDia {
   usuarios_invitados: Participante[];
   created_at: string;
   fecha_inicio: string;
-  estatus: "activa" | "cancelada" | "terminada";
+  estatus: string;
   acta?: ActaSesion | null;
 }
 
@@ -72,9 +73,56 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
     }
   }, []);
 
-  if (!ordenes || ordenes.length === 0) {
-    return <p className="text-center text-gray-500">No hay órdenes del día registradas.</p>;
-  }
+  const handleGenerarPDF = async (orden: OrdenDia) => {
+    if (orden.estatus === "Cancelado") {
+      console.log("Estatus entro en cancelado:", orden.estatus);
+      // Llama a la función de cancelación
+      try {
+        // Formatear fecha original (de la orden)
+        const fechaOriginal = new Date(orden.fecha_inicio);
+        const fechaOriginalTexto = fechaOriginal.toLocaleDateString("es-MX", {
+          weekday: 'long', // 'martes'
+          day: 'numeric',  // '28'
+          month: 'long',   // 'octubre'
+          year: 'numeric' // '2025'
+        });
+        // Puedes ajustar las opciones de toLocaleDateString o crear una función helper si necesitas el formato exacto.
+
+        // Formatear fecha actual (para el encabezado del documento de cancelación)
+        const fechaActual = new Date();
+        const fechaActualTexto = fechaActual.toLocaleDateString("es-MX", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }); // e.g., "25 de septiembre de 2024"
+
+        console.log("Generando PDF de Cancelación para:", orden.id_orden_dia);
+        console.log("Fecha Original:", fechaOriginalTexto);
+        console.log("No Oficio:", orden.no_oficio);
+        console.log("Estatus:", orden.estatus);
+
+        console.log("Fecha Actual:", fechaActualTexto);
+
+        // Llama a la función de cancelación con los datos necesarios
+        await generarPDFCancelacion(
+          orden.id_orden_dia
+        );
+      } catch (error) {
+        console.error("Error al generar PDF de cancelación:", error);
+        alert("Error al generar el PDF de cancelación.");
+      }
+    } else {
+      // Llama a la función original para órdenes activas o terminadas
+      console.log("Generando PDF normal para:", orden.id_orden_dia);
+      try {
+         // Asumimos que generarPDF podría ser async también
+        await generarPDF(orden.id_orden_dia);
+      } catch (error) {
+        console.error("Error al generar PDF normal:", error);
+        alert("Error al generar el PDF.");
+      }
+    }
+  };
 
   return (
     <>
@@ -92,6 +140,11 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
               <p><strong>Hora:</strong> {orden.hora}</p>
               <p><strong>Fecha:</strong> {new Date(orden.fecha_inicio).toLocaleDateString()}</p>
               <p><strong>Creación:</strong> {new Date(orden.created_at).toLocaleString()}</p>
+              <p><strong>Estatus:</strong> {" "}
+                <span className={`font-semibold px-2 py-1 rounded ${orden.estatus === "Cancelado" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                  {orden.estatus}
+                </span>
+              </p>
   
               {orden.puntos_tratar?.length > 0 ? (
                 <div className="mt-2">
@@ -125,7 +178,7 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
                   Ver solicitud
                 </button>
   
-                {orden.estatus === "cancelada" && (
+               
                   <button
                     onClick={() => {
                       setIdOrdenSeleccionada(orden.id_orden_dia);
@@ -135,46 +188,51 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
                   >
                     Cambiar estatus
                   </button>
-                )}
+                
   
-                <button
-                  onClick={() => generarPDF(orden.id_orden_dia)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                >
-                  Generar PDF
-                </button>
-  
-                {!orden.acta && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setIdOrdenSeleccionada(orden.id_orden_dia);
-                        setMostrarModalPuntos(true);
-                      }}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                    >
-                      Editar puntos y participantes
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIdOrdenSeleccionada(orden.id_orden_dia);
-                        setMostrarModalEditar(true);
-                      }}
-                      className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIdOrdenSeleccionada(orden.id_orden_dia);
-                        setMostrarModalActa(true);
-                      }}
-                      className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
-                    >
-                      Crear acta de sesión
-                    </button>
-                  </>
-                )}
+                  <button
+                  // Llama a la nueva función handleGenerarPDF pasando la orden completa
+                    onClick={() => handleGenerarPDF(orden)}
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                  >
+                    Generar PDF {orden.estatus === 'cancelada' ? '(Cancelación)' : ''}
+                  </button>
+
+                  {!orden.acta && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIdOrdenSeleccionada(orden.id_orden_dia);
+                          setMostrarModalPuntos(true);
+                        }}
+                        disabled={orden.estatus === "Cancelado"}
+                        className={`px-4 py-2 rounded text-white ${orden.estatus === "Cancelado" ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}
+                      >
+                        Editar puntos y participantes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIdOrdenSeleccionada(orden.id_orden_dia);
+                          setMostrarModalEditar(true);
+                        }}
+                        disabled={orden.estatus === "Cancelado"}
+                        className={`px-4 py-2 rounded text-white ${orden.estatus === "Cancelado" ? "bg-gray-400 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600"}`}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIdOrdenSeleccionada(orden.id_orden_dia);
+                          setMostrarModalActa(true);
+                        }}
+                        disabled={orden.estatus === "Cancelado"}
+                        className={`px-4 py-2 rounded text-white ${orden.estatus === "Cancelado" ? "bg-gray-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700"}`}
+                      >
+                        Crear acta de sesión
+                      </button>
+                    </>
+                  )}
+
               </div>
             </div>
           );

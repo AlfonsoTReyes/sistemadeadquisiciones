@@ -32,9 +32,6 @@ const ModalSolicitarCorreccion = ({
           comentario,
         }),
       });
-      
-
-      if (!res.ok) throw new Error("Error al solicitar corrección");
 
       alert("✏️ Corrección solicitada con éxito.");
       setComentario("");
