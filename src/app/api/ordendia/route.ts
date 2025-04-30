@@ -4,7 +4,7 @@ import {
   obtenerOrdenDiaPorId, obtenerOrdenDiaParticipantesPorId, obtenerOrdenDiaParticipantesConfirmacionPorId,
   crearOrdenDia, obtenerOrdenDiaParticipantesAll,
   actualizarOrdenDia, eliminarParticipantesOrdenDia, actualizarPuntosOrdenDia, 
-  eliminarOrdenDia, obtenerOrdenDiaPorIdUno
+  eliminarOrdenDia, obtenerOrdenDiaPorIdUno, actualizarEstatusOrdenDia
 } from "../../../services/ordendiaservice";
 import {
     createConfirmacion, 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     if (solicitud) {
       const ordenes = await obtenerOrdenDiaPorId(parseInt(solicitud));
     
-      if (!ordenes || ordenes.length === 0) {
+      if (!ordenes) {
         return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
       }
     
@@ -147,51 +147,73 @@ export async function POST(req: NextRequest) {
 // PUT: actualizar orden del día
 export async function PUT(req: NextRequest) {
   try {
+    const body = await req.json();
     const {
-      id_orden_dia, asunto_general, no_oficio,id_evento,
-      hora, puntos_tratar, participantes_base, usuarios_invitados, tipo_formulario } = await req.json();
+      id_orden_dia,
+      estatus,
+      asunto_general,
+      no_oficio,
+      id_evento,
+      hora,
+      puntos_tratar,
+      participantes_base,
+      usuarios_invitados,
+      tipo_formulario,
+    } = body;
 
     if (!id_orden_dia) {
       return NextResponse.json({ message: "id requerido para actualizar" }, { status: 400 });
     }
 
-    if(tipo_formulario == 1){
-        const actualizado = await actualizarOrdenDia(id_orden_dia, {
-          id_evento,
-          hora: hora.split("T")[1] + ":00",
-          no_oficio,
-          asunto_general
-        });
-    
-        if (!actualizado) {
-          return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
-        }
-        return NextResponse.json(actualizado);
-    }else{
+    // 👉 Si viene estatus y NO viene tipo_formulario, significa que solo quieres actualizar estatus
+    if (estatus && !tipo_formulario) {
+      const actualizado = await actualizarEstatusOrdenDia(id_orden_dia, estatus);
+
+      if (!actualizado) {
+        return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, message: "Estatus actualizado correctamente" });
+    }
+
+    // 👉 Si viene tipo_formulario 1 (actualizar info general)
+    if (tipo_formulario == 1) {
+      const actualizado = await actualizarOrdenDia(id_orden_dia, {
+        id_evento,
+        hora: hora.split("T")[1] + ":00",
+        no_oficio,
+        asunto_general,
+      });
+
+      if (!actualizado) {
+        return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
+      }
+      return NextResponse.json(actualizado);
+    } 
+    // 👉 Si tipo_formulario NO es 1 (actualizar puntos y participantes)
+    else {
       const eliminar = await eliminarParticipantesOrdenDia(id_orden_dia);
 
       const actualizado = await actualizarPuntosOrdenDia(id_orden_dia, {
-        puntos_tratar
+        puntos_tratar,
       });
 
       for (const id_usuario of participantes_base) {
         await createConfirmacion({
           id_orden_dia,
           id_usuario,
-          tipo_usuario: 'base'
+          tipo_usuario: "base",
         });
       }
-  
-      // 🟢 Registrar usuarios invitados
+
       for (const id_usuario of usuarios_invitados) {
         await createConfirmacion({
           id_orden_dia,
           id_usuario,
-          tipo_usuario: 'invitado'
+          tipo_usuario: "invitado",
         });
       }
-  
-  
+
       if (!actualizado && !eliminar) {
         return NextResponse.json({ message: "orden del día no encontrada" }, { status: 404 });
       }
@@ -203,6 +225,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ message: "error al actualizar orden del día", error }, { status: 500 });
   }
 }
+
 
 // DELETE: eliminar orden del día
 export async function DELETE(req: NextRequest) {

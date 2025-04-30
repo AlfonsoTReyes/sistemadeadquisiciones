@@ -4,12 +4,26 @@ const API_ORDEN_DIA = "/api/ordendia";
 export const fetchOrdenesDia = async (solicitud) => {
   try {
     const res = await fetch(`${API_ORDEN_DIA}?solicitud=${solicitud}`);
-    if (!res.ok) throw new Error("Error al obtener órdenes del día");
-    return await res.json();
+    if (!res.ok) {
+      const errorData = await res.text(); // Puedes ajustar si tu API manda JSON o texto
+      throw new Error(`Error al obtener órdenes del día: ${errorData}`);
+    }
+
+    const data = await res.json();
+    // Si el servidor responde bien pero no hay órdenes:
+    if (!data || data.length === 0) {
+      return []; // ⬅️ OJO: simplemente regreso arreglo vacío, no lanzo error
+    }
+
+    return data;
   } catch (err) {
-    throw new Error(err.message || "Error desconocido");
+    console.error("fetchOrdenesDia error:", err);
+    throw err; // Error real
   }
 };
+
+
+
 
 export const fetchOrdenesUsuario = async (usuario, sistema) => {
   try {

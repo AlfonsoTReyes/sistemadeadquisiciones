@@ -317,3 +317,25 @@ export const firmarAsistente = async (id_acta: number, id_usuario: number) => {
     throw error;
   }
 };
+
+
+export const solicitarCorreccionActa = async (
+  id_acta: number,
+  id_usuario: number,
+  comentario: string
+) => {
+  try {
+    console.log(id_acta, id_usuario, comentario);
+    const result = await sql`
+      UPDATE asistentes_acta
+      SET correccion = ${comentario}
+      WHERE id_acta = ${id_acta} AND id_usuario = ${id_usuario}
+      RETURNING *;
+    `;
+    
+    return result.rows[0]; // puedes devolver el registro actualizado
+  } catch (error) {
+    console.error("❌ Error al solicitar corrección del acta:", error);
+    throw error;
+  }
+};

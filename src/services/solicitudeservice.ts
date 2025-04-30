@@ -57,6 +57,19 @@ export const getSolicitudById = async (id: number) => {
 };
 
 
+export const getSolicitudByConcursos = async () => {
+  try {
+    const result = await sql`
+      SELECT * FROM solicitud_adquisicion WHERE estatus = 'En concurso';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitud:", error);
+    throw error;
+  }
+};
+
+
 export const getSolicitudByIdPDF = async (id: number) => {
   try {
     const result = await sql`

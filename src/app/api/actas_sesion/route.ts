@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { guardarActaSesion, guardarAsistentesActa, firmarAsistente,
-  obtenerActaPorActa, obtenerAsistentesPorOrdenDia
+  obtenerActaPorActa, obtenerAsistentesPorOrdenDia, solicitarCorreccionActa
  } from "../../../services/actaservice";
 
 

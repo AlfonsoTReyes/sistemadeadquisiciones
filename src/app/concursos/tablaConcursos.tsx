@@ -1,81 +1,58 @@
 "use client";
 import { useState, useMemo } from "react";
-import ModificarSolicitud from "./formularios/modificar";
-import Link from "next/link";
-import ModalConfirmacion from "../detalle_solicitudes/formularios/modificarEstatus";
-import ModalFirmaEnvio from "./formularios/firmar";
+import { useRouter } from "next/navigation";
+import ModificarConcurso from "./formularios/modificar";
+import ModalBasesPage from "../bases/ModalBase";
 
-interface Solicitud {
+interface Concurso {
+  id_concurso: number;
   id_solicitud: number;
-  nomina_solicitante: string;
-  secretaria: string;
-  motivo: string;
-  fecha_solicitud: string;
-  estatus: string;
-  id_adjudicacion: number;
-  folio: string;
-  fecha_aprobacion: string | null;
-  id_usuario: number;
-  monto: number;
-  tipo_adquisicion: string;
-  dependencia: string;
+  id_dictamen: number;
+  numero_concurso: string;
+  nombre_concurso: string;
+  tipo_concurso: string;
+  estatus_concurso: string;
+  fecha_creacion: string;
+  fecha_fin: string;
 }
 
-const TablaSolicitudes: React.FC<{
-  solicitudes: Solicitud[];
-  onSolicitudAdded: () => Promise<void>;
-}> = ({ solicitudes, onSolicitudAdded }) => {
-  const [solicitudAEditar, setSolicitudAEditar] = useState<number | null>(null);
-  const [solicitudAAprobar, setSolicitudAAprobar] = useState<number | null>(null);
-  const [tipoOrigenModal, setTipoOrigenModal] = useState<string>("");
-  const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
-  const [solicitudAFirmar, setSolicitudAFirmar] = useState<number | null>(null);
-  const [filtroSecretaria, setFiltroSecretaria] = useState<string>("todas");
+const TablaConcursos: React.FC<{
+  concursos: Concurso[];
+  onConcursoUpdated: () => Promise<void>;
+}> = ({ concursos, onConcursoUpdated }) => {
   const [filtroEstatus, setFiltroEstatus] = useState<string>("todos");
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
-
-  const secretarias = useMemo(() => {
-    const uniques = new Set(solicitudes.map((s) => s.secretaria));
-    return Array.from(uniques);
-  }, [solicitudes]);
+  const [isBasesModalOpen, setIsBasesModalOpen] = useState(false);
+  const [idConcursoEditar, setIdConcursoEditar] = useState<number | null>(null);
+  const [concursoSeleccionado, setConcursoSeleccionado] = useState<{ idConcurso: number; idSolicitud: number } | null>(null);
+  const [idConcursoSeleccionado, setIdConcursoSeleccionado] = useState<number | null>(null);
+  const [idSolicitudSeleccionada, setIdSolicitudSeleccionada] = useState<number | null>(null);
+  const router = useRouter();
 
   const estatusUnicos = useMemo(() => {
-    const uniques = new Set(solicitudes.map((s) => s.estatus.toLowerCase()));
+    const uniques = new Set(concursos.map((c) => c.estatus_concurso.toLowerCase()));
     return Array.from(uniques);
-  }, [solicitudes]);
+  }, [concursos]);
 
-  const solicitudesFiltradas = solicitudes.filter((s) => {
-    const cumpleSecretaria = filtroSecretaria === "todas" || s.secretaria === filtroSecretaria;
-    const cumpleEstatus = filtroEstatus === "todos" || s.estatus.toLowerCase() === filtroEstatus;
-
-    const fechaReferencia = new Date(s.fecha_solicitud);
-    const desdeOk = !fechaDesde || new Date(fechaDesde) <= fechaReferencia;
-    const hastaOk = !fechaHasta || new Date(fechaHasta) >= fechaReferencia;
-
-    return cumpleSecretaria && cumpleEstatus && desdeOk && hastaOk;
+  const concursosFiltrados = concursos.filter((c) => {
+    const cumpleEstatus = filtroEstatus === "todos" || c.estatus_concurso.toLowerCase() === filtroEstatus;
+    const fechaRef = new Date(c.fecha_creacion);
+    const desdeOk = !fechaDesde || new Date(fechaDesde) <= fechaRef;
+    const hastaOk = !fechaHasta || new Date(fechaHasta) >= fechaRef;
+    return cumpleEstatus && desdeOk && hastaOk;
   });
+
+  const abrirBases = (idConcurso: number, idSolicitud: number) => {
+    setIdConcursoSeleccionado(idConcurso);
+    setIdSolicitudSeleccionada(idSolicitud);
+    setIsBasesModalOpen(true);
+  };
 
   return (
     <div className="overflow-x-auto">
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <div>
-          <label className="font-semibold mr-2">Secretaría:</label>
-          <select
-            value={filtroSecretaria}
-            onChange={(e) => setFiltroSecretaria(e.target.value)}
-            className="border rounded p-2"
-          >
-            <option value="todas">Todas</option>
-            {secretarias.map((sec) => (
-              <option key={sec} value={sec}>
-                {sec}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <div className="flex flex-wrap gap-4 mb-4">
         <div>
           <label className="font-semibold mr-2">Estatus:</label>
           <select
@@ -104,109 +81,92 @@ const TablaSolicitudes: React.FC<{
 
       {/* Tabla */}
       <table className="min-w-full border table-auto">
-        <thead className="bg-yellow-600 text-white">
+        <thead className="bg-blue-700 text-white">
           <tr>
-            <th className="border px-4 py-2">Folio</th>
-            <th className="border px-4 py-2">Solicitante</th>
-            <th className="border px-4 py-2">Secretaría</th>
-            <th className="border px-4 py-2">Motivo</th>
-            <th className="border px-4 py-2">Fecha</th>
-            <th className="border px-4 py-2">Monto</th>
+            <th className="border px-4 py-2">Identificador</th>
+            <th className="border px-4 py-2">Nombre</th>
+            <th className="border px-4 py-2">Tipo</th>
+            <th className="border px-4 py-2">Solicitud</th>
             <th className="border px-4 py-2">Estatus</th>
+            <th className="border px-4 py-2">Fecha Creación</th>
+            <th className="border px-4 py-2">Fecha Fin</th>
             <th className="border px-4 py-2">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {solicitudesFiltradas.map((s) => (
-            <tr key={s.id_solicitud}>
-              <td className="border px-4 py-2">{s.folio}</td>
-              <td className="border px-4 py-2">{s.nomina_solicitante}</td>
-              <td className="border px-4 py-2">{s.secretaria}</td>
-              <td className="border px-4 py-2">{s.motivo}</td>
+          {concursosFiltrados.map((c) => (
+            <tr key={c.id_concurso}>
+              <td className="border px-4 py-2">{c.numero_concurso}</td>
+              <td className="border px-4 py-2">{c.nombre_concurso}</td>
+              <td className="border px-4 py-2">{c.tipo_concurso}</td>
+              <td className="border px-4 py-2">{c.id_solicitud}</td>
+              <td className="border px-4 py-2">{c.estatus_concurso}</td>
               <td className="border px-4 py-2">
-                {new Date(
-                  ["cancelada", "terminada"].includes(s.estatus.toLowerCase())
-                    ? s.fecha_aprobacion || s.fecha_solicitud
-                    : s.fecha_solicitud
-                ).toLocaleString("es-MX")}
+                {c.fecha_creacion ? c.fecha_creacion.split("T")[0] : "-"}
               </td>
-              <td className="border px-4 py-2">${s.monto.toLocaleString()}</td>
-              <td className="border px-4 py-2 capitalize">{s.estatus}</td>
+              <td className="border px-4 py-2">
+                {c.fecha_fin ? c.fecha_fin.split("T")[0] : "-"}
+              </td>
               <td className="border px-4 py-2 space-y-1">
-                {!["en revisión", "aprobada"].includes(s.estatus.toLowerCase()) && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setSolicitudAFirmar(s.id_solicitud);
-                        setIsFirmaModalOpen(true);
-                      }}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Firmar y enviar
-                    </button>
-                    <br />
-                    <button
-                      onClick={() => setSolicitudAEditar(s.id_solicitud)}
-                      className="text-yellow-600 hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <br />
-                  </>
-                )}
                 <button
-                  onClick={() => {
-                    setSolicitudAAprobar(s.id_solicitud);
-                    setTipoOrigenModal("suficiencia");
-                    setIsFirmaModalOpen(false);
-                  }}
-                  className="text-red-700 hover:underline"
+                  className="text-blue-700"
+                  onClick={() => setIdConcursoEditar(c.id_concurso)}
                 >
-                  Cambiar estatus
+                  Editar
                 </button>
                 <br />
-                <Link
-                  className="text-orange-500 hover:underline"
-                  href="./detalle_solicitudes"
-                  onClick={() => sessionStorage.setItem("solicitudId", s.id_solicitud.toString())}
+                <button
+                 onClick={() => abrirBases(c.id_concurso, c.id_solicitud)}
+                  className="text-red-700"
                 >
-                  Detalle de solicitudes
-                </Link>
+                  Bases
+                </button>
+
                 <br />
-                {["en revisión", "aprobada"].includes(s.estatus.toLowerCase()) && (
-                  <Link
-                    className="text-gray-700 hover:underline"
-                    href="./detalle_solicitudes"
-                    onClick={() => sessionStorage.setItem("solicitudId", s.id_solicitud.toString())}
-                  >
-                    Detalle de comité
-                  </Link>
-                )}
+                <button
+                  className="text-yellow-700"
+                  onClick={() => {
+                    sessionStorage.setItem('id_concurso_actual', c.id_concurso.toString());
+                    router.push("/calendario_bases");
+                  }}
+                >
+                  Calendario de eventos
+                </button>
+
+                <br />
+                <button className="text-dark-700">Enviar invitación a oferentes</button>
+                <br />
+                <button className="text-green-700">Estatus</button>
+                <br />
+                <button className="text-green-700">Dictamen fallo</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Modales */}
-      {solicitudAEditar && (
-        <ModificarSolicitud idSolicitud={solicitudAEditar} onClose={() => setSolicitudAEditar(null)} onSolicitudUpdated={onSolicitudAdded} />
-      )}
-
-      {solicitudAAprobar && tipoOrigenModal && (
-        <ModalConfirmacion
-          idDoc={solicitudAAprobar}
-          tipoOrigen={tipoOrigenModal}
-          onClose={() => setSolicitudAAprobar(null)}
-          onUpdateSuccess={onSolicitudAdded}
+      {/* Modal de Modificar */}
+      {idConcursoEditar !== null && (
+        <ModificarConcurso
+          idConcurso={idConcursoEditar}
+          onClose={() => setIdConcursoEditar(null)}
+          onUpdated={onConcursoUpdated}
         />
       )}
 
-      {isFirmaModalOpen && solicitudAFirmar !== null && (
-        <ModalFirmaEnvio idSolicitud={solicitudAFirmar} onClose={() => setIsFirmaModalOpen(false)} onSuccess={onSolicitudAdded} />
-      )}
+      {/* Modal de Bases */}
+      {isBasesModalOpen && idConcursoSeleccionado && idSolicitudSeleccionada && (
+        <ModalBasesPage
+          idConcurso={idConcursoSeleccionado}
+          idSolicitud={idSolicitudSeleccionada}
+          onClose={() => setIsBasesModalOpen(false)}
+          onBasesUpdated={onConcursoUpdated}
+        />
+
+        )}
+
     </div>
   );
 };
 
-export default TablaSolicitudes;
+export default TablaConcursos;

@@ -490,7 +490,7 @@ export default function Menu() {
             {permissions.includes('menu_ver_concursos') && (
               <li className="mb-1">
                 <Link
-                  href="/requisicion"
+                  href="/concursos"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
                   <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Concursos

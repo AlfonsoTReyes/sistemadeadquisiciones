@@ -1,7 +1,9 @@
 // 08 de diciembre de 2024
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSolicitudes, getSolicitudesAll, getSolicitudByIdPDF, getSolicitudById, createSolicitud, updateSolicitud } from "../../../services/solicitudeservice";
+import { getSolicitudes, getSolicitudesAll, getSolicitudByIdPDF, getSolicitudById, createSolicitud, updateSolicitud,
+  getSolicitudByConcursos
+ } from "../../../services/solicitudeservice";
 
 // obtener todas las solicitudes o una en específico
 export async function GET(req: NextRequest) {
@@ -11,6 +13,16 @@ export async function GET(req: NextRequest) {
     const id_s = searchParams.get("id");
     const secretaria = searchParams.get("secretaria");
     const sistema = searchParams.get("sistema");
+    const tipo = searchParams.get("tipo");
+
+
+    if (tipo) {
+      const solicitud = await getSolicitudByConcursos();
+      if (!solicitud) {
+        return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+      }
+      return NextResponse.json(solicitud);
+    }
 
     if (id) {
       const solicitud = await getSolicitudById(parseInt(id));
