@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
-
 import ModalParticipantes from "../orden_dia/modalparticipantes";
 import ModalDetalleSolicitud from "../orden_dia/modalsolicitudes";
 import ModalComentarioOrden from "./formularios/comentariosOrden";

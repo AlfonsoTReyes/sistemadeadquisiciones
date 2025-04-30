@@ -1,7 +1,8 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import ModificarConcurso from "./formularios/modificar"; // 👈 importa el formulario
+import ModificarConcurso from "./formularios/modificar";
+import ModalBasesPage from "../bases/ModalBase";
 
 interface Concurso {
   id_concurso: number;
@@ -22,7 +23,11 @@ const TablaConcursos: React.FC<{
   const [filtroEstatus, setFiltroEstatus] = useState<string>("todos");
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
-  const [idConcursoEditar, setIdConcursoEditar] = useState<number | null>(null); // 👈 estado para abrir ventana modificar
+  const [isBasesModalOpen, setIsBasesModalOpen] = useState(false);
+  const [idConcursoEditar, setIdConcursoEditar] = useState<number | null>(null);
+  const [concursoSeleccionado, setConcursoSeleccionado] = useState<{ idConcurso: number; idSolicitud: number } | null>(null);
+  const [idConcursoSeleccionado, setIdConcursoSeleccionado] = useState<number | null>(null);
+  const [idSolicitudSeleccionada, setIdSolicitudSeleccionada] = useState<number | null>(null);
   const router = useRouter();
 
   const estatusUnicos = useMemo(() => {
@@ -37,6 +42,12 @@ const TablaConcursos: React.FC<{
     const hastaOk = !fechaHasta || new Date(fechaHasta) >= fechaRef;
     return cumpleEstatus && desdeOk && hastaOk;
   });
+
+  const abrirBases = (idConcurso: number, idSolicitud: number) => {
+    setIdConcursoSeleccionado(idConcurso);
+    setIdSolicitudSeleccionada(idSolicitud);
+    setIsBasesModalOpen(true);
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -104,7 +115,13 @@ const TablaConcursos: React.FC<{
                   Editar
                 </button>
                 <br />
-                <button className="text-red-700">Bases</button>
+                <button
+                 onClick={() => abrirBases(c.id_concurso, c.id_solicitud)}
+                  className="text-red-700"
+                >
+                  Bases
+                </button>
+
                 <br />
                 <button
                   className="text-yellow-700"
@@ -120,6 +137,8 @@ const TablaConcursos: React.FC<{
                 <button className="text-dark-700">Enviar invitación a oferentes</button>
                 <br />
                 <button className="text-green-700">Estatus</button>
+                <br />
+                <button className="text-green-700">Dictamen fallo</button>
               </td>
             </tr>
           ))}
@@ -134,6 +153,18 @@ const TablaConcursos: React.FC<{
           onUpdated={onConcursoUpdated}
         />
       )}
+
+      {/* Modal de Bases */}
+      {isBasesModalOpen && idConcursoSeleccionado && idSolicitudSeleccionada && (
+        <ModalBasesPage
+          idConcurso={idConcursoSeleccionado}
+          idSolicitud={idSolicitudSeleccionada}
+          onClose={() => setIsBasesModalOpen(false)}
+          onBasesUpdated={onConcursoUpdated}
+        />
+
+        )}
+
     </div>
   );
 };
