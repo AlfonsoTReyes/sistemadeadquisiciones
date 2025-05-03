@@ -7,7 +7,8 @@ import { ContratoEnLista } from '@/types/contrato'; // Ajusta la ruta
 // Importa la función fetch correcta y el tipo necesario
 import { fetchProveedorByUserId } from '@/fetch/contratosFetch'; // <-- Usa la función que busca por User ID (Ajusta ruta)
 import { ProveedorDetallado } from '@/types/proveedor'; // <-- AJUSTA RUTA si es necesario
-
+import DynamicMenu from "../../menu_proveedor";
+import PieP from "../../pie";
 
 // --- Componente Tabla (reutilizado o importado) ---
 interface ContractListTableProps {
@@ -18,11 +19,11 @@ interface ContractListTableProps {
 }
 const ContractListTable: React.FC<ContractListTableProps> = ({ contratos, basePath, isLoading, error }) => {
     // ... (código de la tabla como en respuestas anteriores, oculta columna proveedor) ...
-     if (isLoading) {
+    if (isLoading) {
         return <div className="text-center p-5"><p className="text-gray-500">Cargando contratos...</p></div>;
     }
     if (error) {
-         return <div className="p-3 my-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert"><p className="font-bold">Error:</p><p>{error}</p></div>;
+        return <div className="p-3 my-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert"><p className="font-bold">Error:</p><p>{error}</p></div>;
     }
     if (!contratos || contratos.length === 0) {
         return <p className="text-gray-500 italic text-center p-5">No tienes contratos registrados actualmente.</p>;
@@ -38,10 +39,10 @@ const ContractListTable: React.FC<ContractListTableProps> = ({ contratos, basePa
         // Asegura que la fecha se interprete correctamente (ej: UTC si viene sin timezone)
         return new Date(dateString + 'T00:00:00Z').toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
     };
-     return (
+    return (
         <div className="overflow-x-auto border rounded shadow-sm">
             <table className="min-w-full bg-white">
-                 <thead className="bg-gray-100">
+                <thead className="bg-gray-100">
                     <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Núm. Contrato</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objeto</th>
@@ -50,16 +51,16 @@ const ContractListTable: React.FC<ContractListTableProps> = ({ contratos, basePa
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
-                 <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200">
                     {contratos.map((contrato) => (
                         <tr key={contrato.id_contrato} className="hover:bg-gray-50">
-                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">{contrato.numero_contrato ?? '-'}</td>
-                             <td className="px-4 py-2 text-sm text-gray-700 max-w-xs truncate" title={contrato.objeto_contrato}>{contrato.objeto_contrato}</td>
-                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(contrato.monto_total, contrato.moneda)}</td>
-                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{formatDate(contrato.fecha_firma)}</td>
-                             <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">{contrato.numero_contrato ?? '-'}</td>
+                            <td className="px-4 py-2 text-sm text-gray-700 max-w-xs truncate" title={contrato.objeto_contrato}>{contrato.objeto_contrato}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(contrato.monto_total, contrato.moneda)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{formatDate(contrato.fecha_firma)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                                 <Link href={`${basePath}/${contrato.id_contrato}`} className="text-blue-600 hover:text-blue-800 hover:underline">Ver Detalles</Link>
-                             </td>
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -102,17 +103,17 @@ const ProveedorContratosListPage: React.FC = () => {
     // 2. Obtener ID del Proveedor USANDO el ID de usuario
     useEffect(() => {
         if (proveedorUserId === null) {
-             // Si no hay ID de usuario (o hubo error al leerlo), no continuar
-             if (error) setIsLoading(false); // Asegurarse que no quede cargando si hubo error antes
-             return;
+            // Si no hay ID de usuario (o hubo error al leerlo), no continuar
+            if (error) setIsLoading(false); // Asegurarse que no quede cargando si hubo error antes
+            return;
         }
 
         const loadProveedorId = async () => {
             // Asegurarse que sigue cargando si llegamos aquí sin error previo
-             if (!error) setIsLoading(true);
-             setError(null); // Limpiar por si acaso
-             console.log(`ContractsPage: Attempting to fetch provider profile for user ID: ${proveedorUserId}`);
-             try {
+            if (!error) setIsLoading(true);
+            setError(null); // Limpiar por si acaso
+            console.log(`ContractsPage: Attempting to fetch provider profile for user ID: ${proveedorUserId}`);
+            try {
                 // Llama a la función fetch que usa el parámetro correcto (?id_usuario_proveedor=...)
                 const profile = await fetchProveedorByUserId(proveedorUserId);
                 if (profile && profile.id_proveedor != null) {
@@ -127,7 +128,7 @@ const ProveedorContratosListPage: React.FC = () => {
                 setError(`Error al obtener información del proveedor: ${(err as Error).message}`);
                 setIsLoading(false);
             }
-             // No ponemos setIsLoading(false) aquí, dejamos que el siguiente efecto lo haga al cargar contratos
+            // No ponemos setIsLoading(false) aquí, dejamos que el siguiente efecto lo haga al cargar contratos
         };
 
         loadProveedorId();
@@ -142,10 +143,10 @@ const ProveedorContratosListPage: React.FC = () => {
         }
 
         const loadContracts = async () => {
-             if (!error) setIsLoading(true); // Asegurar estado de carga
-             setError(null);
-             console.log(`ContractsPage: Fetching contracts for provider ID: ${proveedorId}`);
-             try {
+            if (!error) setIsLoading(true); // Asegurar estado de carga
+            setError(null);
+            console.log(`ContractsPage: Fetching contracts for provider ID: ${proveedorId}`);
+            try {
                 // Pasar el ID del proveedor obtenido a la función fetch
                 const data = await fetchContracts(proveedorId as number);
                 setContratos(data);
@@ -163,36 +164,38 @@ const ProveedorContratosListPage: React.FC = () => {
     }, [proveedorId, error]); // Depende del ID del PROVEEDOR y del estado de error
 
     return (
-        <div className="p-4 md:p-6">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b">
-                <h1 className="text-xl font-semibold">Mis Contratos</h1>
-            </div>
+        // Contenedor general de la página
+        <div className="flex flex-col min-h-screen">
+            <DynamicMenu />
 
-            {/* Mensajes de Carga y Error */}
-            {/* Muestra carga mientras CUALQUIERA de las fases esté activa */}
-            {isLoading && (
-                <div className="text-center p-4">
-                    <p>Cargando información...</p>
+            <main className="flex-grow p-4 md:p-6 pt-20 md:pt-24">
+                <div className="flex justify-between items-center mb-4 pb-3 border-b">
+                    <h1 className="text-xl font-semibold">Mis Contratos</h1>
+                    {/* Podrías añadir un botón aquí si es necesario */}
                 </div>
-            )}
-            {/* Muestra error SOLO si no está cargando */}
-            {error && !isLoading && (
-                <div className="p-3 mb-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert">
-                    <p className="font-bold">{error}</p>
-                </div>
-            )}
 
-            {/* Tabla de Contratos (solo si no hay error y no está cargando) */}
-            {/* No necesitamos verificar proveedorId aquí porque si es null, o isLoading es true o error no es null */}
-            {!isLoading && !error && (
-                 <ContractListTable
-                     contratos={contratos}
-                     basePath="/proveedores/contratos" // Ruta base para proveedores
-                    // isLoading={isLoading} // Podrías pasar estos también a la tabla
-                    // error={error}
-                 />
-            )}
-        </div>
+                {isLoading && (
+                    <div className="text-center p-4">
+                        <p>Cargando información...</p>
+                    </div>
+                )}
+                {error && !isLoading && (
+                    <div className="p-3 mb-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert">
+                        <p className="font-bold">{error}</p>
+                    </div>
+                )}
+
+                {/* Tabla de Contratos */}
+                {!isLoading && !error && (
+                    <ContractListTable
+                        contratos={contratos}
+                        basePath="/proveedores/contratos"
+                    />
+                )}
+            </main> {/* Fin del contenedor principal del contenido */}
+
+            <PieP /> {/* <--- PIE DE PÁGINA INSERTADO AQUÍ ABAJO */}
+        </div> // Fin del contenedor general
     );
 };
 

@@ -195,10 +195,10 @@ export default function Menu() {
           {permissions.includes('menu_ver_contratos_proveedores') && (
             <li className="mb-1">
               <Link
-                href="/requirente"
+                href="/adminProveedores/contratos"
                 className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
               >
-                <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos
+                <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos *
               </Link>
             </li>
           )}
@@ -341,10 +341,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_contratos') && (
               <li className="mb-1">
                 <Link
-                  href="/contratos"
+                  href="/adminProveedores/contratos"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos *
                 </Link>
               </li>
             )}
@@ -381,7 +381,26 @@ export default function Menu() {
                 </Link>
               </li>
             )}
-
+            {permissions.includes('menu_ver_solicitudes_suficiencias') && (
+              <li className="mb-1">
+                <Link
+                  href="/adminProveedores/adltaProveedor"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administrar Proveedores *
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_solicitudes_suficiencias') && (
+              <li className="mb-1">
+                <Link
+                  href="/catalogoProveedores"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Padron de Proveedores *
+                </Link>
+              </li>
+            )}
             {permissions.includes('menu_ver_recepcion_articulo') && (
               <li className="mb-1">
                 <Link
@@ -392,6 +411,7 @@ export default function Menu() {
                 </Link>
               </li>
             )}
+
             {permissions.includes('menu_ver_comite') && (
               <li className="mb-1">
                 <button
@@ -501,10 +521,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_contratos') && (
               <li className="mb-1">
                 <Link
-                  href="/requisicion"
+                  href="/adminProveedores/contratos"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos *
                 </Link>
               </li>
             )}
@@ -512,10 +532,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_proveedores_participantes') && (
               <li className="mb-1">
                 <Link
-                  href="/requisicion"
+                  href="/adminProveedores/adltaProveedor"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Proveedores
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Proveedores *
                 </Link>
               </li>
             )}
@@ -646,10 +666,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_contratos_secretarias') && (
               <li className="mb-1">
                 <Link
-                  href="/requirente"
+                  href="/adminProveedores/contratos"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos *
                 </Link>
               </li>
             )}

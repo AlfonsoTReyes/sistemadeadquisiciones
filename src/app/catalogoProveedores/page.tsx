@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Menu from '../menu_principal'; // Ajusta ruta
+import Menu from '../menu'; // Ajusta ruta
 import Pie from "../pie"; // Ajusta ruta
 import ListaProveedoresCatalogo from './formularios/ListaProveedoresCatalogo'; // Importa el componente de lista
 import ModalVerArticulos from './formularios/ModalVerArticulos'; // <-- Importa el nuevo modal

@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; 
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Menu from '../../menu_principal';
+import Menu from '../../menu';
 import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores';
 import PusherClient from 'pusher-js'; // Importar cliente Pusher
-import { ProveedorData, UsuarioProveedorData  } from './interface';
+import { ProveedorData, UsuarioProveedorData } from './interface';
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
 import ModalActualizarUsuarioProveedor from './formularios/modalActualizarUsuario';
 import {
@@ -45,7 +45,7 @@ export default function AdministradorProveedoresPage() {
     // --- Carga Inicial de la Lista de Proveedores ---
     const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
         console.log("AdminPage: Fetching/Refreshing providers list...");
-        if(showLoadingIndicator) setLoading(true);
+        if (showLoadingIndicator) setLoading(true);
         setError(null);
         try {
             const data = await fetchAllProveedores();
@@ -55,14 +55,14 @@ export default function AdministradorProveedoresPage() {
             setPendientesCount(count);
             console.log(`AdminPage: Lista cargada. Pendientes: ${count}`);
         } catch (err: any) { setError(err.message || "Error cargando proveedores."); setProveedores([]); setPendientesCount(0); }
-        finally { if(showLoadingIndicator) setLoading(false); }
+        finally { if (showLoadingIndicator) setLoading(false); }
     }, []);
 
-        // --- Carga Inicial ---
-        useEffect(() => {
-            setLoading(true);
-            cargarProveedores().finally(() => setLoading(false));
-        }, [cargarProveedores]);
+    // --- Carga Inicial ---
+    useEffect(() => {
+        setLoading(true);
+        cargarProveedores().finally(() => setLoading(false));
+    }, [cargarProveedores]);
     // --- NUEVO: useEffect para Pusher ---
     // --- useEffect para Pusher (Con alert()) ---
     useEffect(() => {
@@ -100,19 +100,19 @@ export default function AdministradorProveedoresPage() {
             channelRef.current.bind(eventName, handleEvent);
 
             return () => {
-                 if (pusherClientRef.current && channelRef.current) {
-                     console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
-                     channelRef.current.unbind(eventName, handleEvent);
-                     pusherClientRef.current.unsubscribe(channelName);
-                     // No desconectar aquí necesariamente, podría usarse en otro lado
-                     // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
-                 }
+                if (pusherClientRef.current && channelRef.current) {
+                    console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
+                    channelRef.current.unbind(eventName, handleEvent);
+                    pusherClientRef.current.unsubscribe(channelName);
+                    // No desconectar aquí necesariamente, podría usarse en otro lado
+                    // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
+                }
             };
         } catch (error) {
             console.error("AdminPage Pusher: Failed to initialize.", error);
             setError("No se pudieron inicializar las notificaciones.");
         }
-    // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
+        // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
     }, [cargarProveedores]);
     // --- 2. HANDLER PARA VER DOCUMENTOS ---
     const fetchProvidersList = useCallback(async () => {
@@ -127,11 +127,11 @@ export default function AdministradorProveedoresPage() {
             setPendientesCount(count);
         } catch (err: any) { /* ... */ }
     }, []);
-     const handleViewDocuments = (idProveedor: number) => {
+    const handleViewDocuments = (idProveedor: number) => {
         if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-             console.error("handleViewDocuments - ID inválido:", idProveedor);
-             alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
-             return;
+            console.error("handleViewDocuments - ID inválido:", idProveedor);
+            alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
+            return;
         }
         console.log("Admin Page - Preparing to view documents for Provider ID:", idProveedor);
 
@@ -146,9 +146,9 @@ export default function AdministradorProveedoresPage() {
     // --- 3. HANDLER PARA CAMBIAR ESTATUS ---
     const handleChangeStatus = async (idProveedor: number, currentStatus: boolean) => {
         if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-             console.error("handleChangeStatus - ID inválido:", idProveedor);
-             alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
-             return;
+            console.error("handleChangeStatus - ID inválido:", idProveedor);
+            alert("Error: No se pudo seleccionar el proveedor (ID inválido).");
+            return;
         }
 
         const newStatus = !currentStatus;
@@ -172,17 +172,17 @@ export default function AdministradorProveedoresPage() {
                 await fetchAllProveedores().then(data => {
                     setProveedores(data || []);
                 }).catch(err => {
-                     // Maneja error específico del refresh si ocurre
-                     console.error("Error refreshing provider list after status change:", err);
-                     setError((err as Error).message || 'Error al refrescar la lista después de actualizar.');
+                    // Maneja error específico del refresh si ocurre
+                    console.error("Error refreshing provider list after status change:", err);
+                    setError((err as Error).message || 'Error al refrescar la lista después de actualizar.');
                 });
 
 
             } catch (err) {
-                 const updateError = `Error al cambiar el estado del proveedor ${idProveedor}: ${(err as Error).message}`;
-                 console.error(updateError);
-                 setError(updateError); // Muestra error en la UI
-                 // Podrías usar un toast aquí
+                const updateError = `Error al cambiar el estado del proveedor ${idProveedor}: ${(err as Error).message}`;
+                console.error(updateError);
+                setError(updateError); // Muestra error en la UI
+                // Podrías usar un toast aquí
             } finally {
                 setLoadingStatusChange(prev => ({ ...prev, [idProveedor]: false })); // Finaliza carga para esta fila
             }
@@ -190,31 +190,31 @@ export default function AdministradorProveedoresPage() {
     };
     // --- FILTRAR ---
     const proveedoresFiltrados = useMemo(() => {
-      // Si no hay filtros, devuelve la lista completa
-      if (!filtroRfc && !filtroCorreo) {
-          return proveedores;
-      }
+        // Si no hay filtros, devuelve la lista completa
+        if (!filtroRfc && !filtroCorreo) {
+            return proveedores;
+        }
 
-      // Normaliza los filtros (minúsculas y sin espacios extra)
-      const rfcLower = filtroRfc.toLowerCase().trim();
-      const correoLower = filtroCorreo.toLowerCase().trim();
+        // Normaliza los filtros (minúsculas y sin espacios extra)
+        const rfcLower = filtroRfc.toLowerCase().trim();
+        const correoLower = filtroCorreo.toLowerCase().trim();
 
-      return proveedores.filter(proveedor => {
-          // Comprueba si el RFC coincide (si hay filtro RFC)
-          const rfcMatch = rfcLower
-              ? proveedor.rfc.toLowerCase().includes(rfcLower)
-              : true; // Si no hay filtro RFC, siempre coincide
+        return proveedores.filter(proveedor => {
+            // Comprueba si el RFC coincide (si hay filtro RFC)
+            const rfcMatch = rfcLower
+                ? proveedor.rfc.toLowerCase().includes(rfcLower)
+                : true; // Si no hay filtro RFC, siempre coincide
 
-          // Comprueba si el Correo coincide (si hay filtro Correo)
-          // Maneja el caso de correo null/undefined
-          const correoMatch = correoLower
-              ? (proveedor.correo || '').toLowerCase().includes(correoLower)
-              : true; // Si no hay filtro Correo, siempre coincide
+            // Comprueba si el Correo coincide (si hay filtro Correo)
+            // Maneja el caso de correo null/undefined
+            const correoMatch = correoLower
+                ? (proveedor.correo || '').toLowerCase().includes(correoLower)
+                : true; // Si no hay filtro Correo, siempre coincide
 
-          // El proveedor debe coincidir con AMBOS filtros activos
-          return rfcMatch && correoMatch;
-      });
-  }, [proveedores, filtroRfc, filtroCorreo]); // Dependencias del memo
+            // El proveedor debe coincidir con AMBOS filtros activos
+            return rfcMatch && correoMatch;
+        });
+    }, [proveedores, filtroRfc, filtroCorreo]); // Dependencias del memo
 
     // --- Handlers para Modal Editar PERFIL Proveedor ---
     const handleEditProfileClick = async (idProveedor: number) => {
@@ -253,11 +253,11 @@ export default function AdministradorProveedoresPage() {
     // y lo pasa a la función fetch 'updateProveedorProfile' que ya está preparada.
     const handleSaveProfileUpdate = async (payloadFromModal: any) => {
         // Validar payload básico recibido del modal
-         if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) {
-             console.error("AdminPage handleSaveProfileUpdate: Payload inválido desde el modal", payloadFromModal);
-             setUpdateProfileError("Error interno: Datos incompletos recibidos desde el formulario.");
-             return; // No continuar
-         }
+        if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) {
+            console.error("AdminPage handleSaveProfileUpdate: Payload inválido desde el modal", payloadFromModal);
+            setUpdateProfileError("Error interno: Datos incompletos recibidos desde el formulario.");
+            return; // No continuar
+        }
         setIsUpdatingProfile(true); // Inicia estado de guardado (para modal perfil)
         setUpdateProfileError(null); // Limpia error previo del modal
         try {
@@ -278,74 +278,74 @@ export default function AdministradorProveedoresPage() {
         }
     };
 
-  // --- Editar USUARIO Proveedor ---
-  const handleEditUserClick = async (idProveedor: number) => {
-    console.log("PAGE: Buscando usuario asociado al proveedor ID:", idProveedor);
-    setIsFetchingEditData(true);
-    setUpdateUserError(null);
-    setEditingUserData(null);
-    try {
-        // Llama a la función fetch para obtener los datos del USUARIO asociado por el ID del PROVEEDOR
-        const data = await getUsuarioProveedorByProveedorId(idProveedor);
-        console.log("PAGE: Datos del USUARIO recibidos para modal:", data); // Verifica qué llega aquí
-        if (data && typeof data.id_usuario === 'number') { // Verifica que obtuvo un usuario válido
-            // Guarda los datos que contienen 'id_usuario'
-            setEditingUserData(data as UsuarioProveedorData); // Forzar tipo si es necesario
-            setIsEditUserModalOpen(true); // Abre el modal de usuario
-        } else {
-            // Manejo si no se encuentra usuario o la respuesta es inesperada
-            console.warn("PAGE: No se encontró usuario asociado o respuesta inválida para proveedor ID:", idProveedor, data);
-            alert("Este proveedor no tiene un usuario asociado o no se pudieron cargar los datos.");
-            // setUpdateUserError("No se encontró un usuario asociado para este proveedor.");
+    // --- Editar USUARIO Proveedor ---
+    const handleEditUserClick = async (idProveedor: number) => {
+        console.log("PAGE: Buscando usuario asociado al proveedor ID:", idProveedor);
+        setIsFetchingEditData(true);
+        setUpdateUserError(null);
+        setEditingUserData(null);
+        try {
+            // Llama a la función fetch para obtener los datos del USUARIO asociado por el ID del PROVEEDOR
+            const data = await getUsuarioProveedorByProveedorId(idProveedor);
+            console.log("PAGE: Datos del USUARIO recibidos para modal:", data); // Verifica qué llega aquí
+            if (data && typeof data.id_usuario === 'number') { // Verifica que obtuvo un usuario válido
+                // Guarda los datos que contienen 'id_usuario'
+                setEditingUserData(data as UsuarioProveedorData); // Forzar tipo si es necesario
+                setIsEditUserModalOpen(true); // Abre el modal de usuario
+            } else {
+                // Manejo si no se encuentra usuario o la respuesta es inesperada
+                console.warn("PAGE: No se encontró usuario asociado o respuesta inválida para proveedor ID:", idProveedor, data);
+                alert("Este proveedor no tiene un usuario asociado o no se pudieron cargar los datos.");
+                // setUpdateUserError("No se encontró un usuario asociado para este proveedor.");
+            }
+        } catch (err: any) {
+            console.error("PAGE: Error al obtener datos del usuario para editar:", err);
+            setUpdateUserError(err.message || 'Error al cargar datos del usuario.');
+        } finally {
+            setIsFetchingEditData(false);
         }
-    } catch (err: any) {
-        console.error("PAGE: Error al obtener datos del usuario para editar:", err);
-        setUpdateUserError(err.message || 'Error al cargar datos del usuario.');
-    } finally {
-        setIsFetchingEditData(false);
-    }
-};
+    };
 
-const handleCloseEditUserModal = () => {
-    setIsEditUserModalOpen(false);
-    setEditingUserData(null);
-    setUpdateUserError(null);
-};
+    const handleCloseEditUserModal = () => {
+        setIsEditUserModalOpen(false);
+        setEditingUserData(null);
+        setUpdateUserError(null);
+    };
     // Esta función recibe el payload DEL MODAL, que YA debe contener 'id_usuario'
     const handleSaveUserUpdate = async (payloadFromModal: any) => {
-      console.log("PAGE: Recibido payload del modal de usuario:", JSON.stringify(payloadFromModal, null, 2));
+        console.log("PAGE: Recibido payload del modal de usuario:", JSON.stringify(payloadFromModal, null, 2));
 
-      // Validación: Asegurarse que el payload del modal tiene el id_usuario
-      if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') {
-          const errorMsg = "Error Interno (Page): El payload recibido del modal no contiene un 'id_usuario' numérico válido.";
-          console.error(errorMsg, payloadFromModal);
-          setUpdateUserError(errorMsg); // Mostrar error en el modal
-          return; // Detener si falta el ID
-      }
+        // Validación: Asegurarse que el payload del modal tiene el id_usuario
+        if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') {
+            const errorMsg = "Error Interno (Page): El payload recibido del modal no contiene un 'id_usuario' numérico válido.";
+            console.error(errorMsg, payloadFromModal);
+            setUpdateUserError(errorMsg); // Mostrar error en el modal
+            return; // Detener si falta el ID
+        }
 
-      setIsUpdatingUser(true);
-      setUpdateUserError(null); // Limpiar error previo
-      try {
-          // Llama a la función FETCH (updateUsuarioProveedor de fetchAltaProveedor.js)
-          // que se encarga de hacer el PUT a /api/adminProveedores
-          // Esta función ya tiene la validación interna y manejo de errores fetch
-          const updatedUser = await updateUsuarioProveedor(payloadFromModal);
+        setIsUpdatingUser(true);
+        setUpdateUserError(null); // Limpiar error previo
+        try {
+            // Llama a la función FETCH (updateUsuarioProveedor de fetchAltaProveedor.js)
+            // que se encarga de hacer el PUT a /api/adminProveedores
+            // Esta función ya tiene la validación interna y manejo de errores fetch
+            const updatedUser = await updateUsuarioProveedor(payloadFromModal);
 
-          console.log("PAGE: Usuario actualizado exitosamente via fetch. Respuesta:", updatedUser);
-          handleCloseEditUserModal();
-          alert("Usuario del proveedor actualizado exitosamente.");
-          // Opcional pero recomendado: Recargar la lista principal si la tabla muestra info del usuario (como nombre/correo)
-          await cargarProveedores();
+            console.log("PAGE: Usuario actualizado exitosamente via fetch. Respuesta:", updatedUser);
+            handleCloseEditUserModal();
+            alert("Usuario del proveedor actualizado exitosamente.");
+            // Opcional pero recomendado: Recargar la lista principal si la tabla muestra info del usuario (como nombre/correo)
+            await cargarProveedores();
 
-      } catch (err: any) {
-          // Captura errores lanzados por la función updateUsuarioProveedor (fetch)
-          console.error("PAGE: Error al guardar usuario (capturado desde fetch):", err);
-          // El mensaje de error ya debería venir formateado desde la función fetch o la API
-          setUpdateUserError(err.message || "Ocurrió un error desconocido al actualizar el usuario.");
-      } finally {
-          setIsUpdatingUser(false); // Termina el estado de carga
-      }
-  };
+        } catch (err: any) {
+            // Captura errores lanzados por la función updateUsuarioProveedor (fetch)
+            console.error("PAGE: Error al guardar usuario (capturado desde fetch):", err);
+            // El mensaje de error ya debería venir formateado desde la función fetch o la API
+            setUpdateUserError(err.message || "Ocurrió un error desconocido al actualizar el usuario.");
+        } finally {
+            setIsUpdatingUser(false); // Termina el estado de carga
+        }
+    };
 
     // --- Handler Cambiar Estatus de Revisión (CORREGIDO) ---
     const handleChangeRevisionStatus = async (idProveedor: number, nuevoEstatus: string) => {
@@ -359,18 +359,18 @@ const handleCloseEditUserModal = () => {
         setProveedores(prevProvs => prevProvs.map(p =>
             p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
         ));
-         // Actualizar contador optimista
-         if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
+        // Actualizar contador optimista
+        if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
             setPendientesCount(prev => {
                 let currentPendientes = proveedores.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
                 // Ajuste basado en el cambio REAL que se acaba de hacer en la UI optimista
                 if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') currentPendientes--;
                 if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') currentPendientes++;
-                 // Re-evaluar sobre el estado ACTUALIZADO si no se usó optimista arriba
-                 // const currentPendientes = proveedores.map(p => p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p).filter(p=>p.estatus_revision === 'PENDIENTE_REVISION').length;
+                // Re-evaluar sobre el estado ACTUALIZADO si no se usó optimista arriba
+                // const currentPendientes = proveedores.map(p => p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p).filter(p=>p.estatus_revision === 'PENDIENTE_REVISION').length;
                 return Math.max(0, currentPendientes);
             });
-         }
+        }
 
 
         try {
@@ -389,10 +389,10 @@ const handleCloseEditUserModal = () => {
             setProveedores(prevProvs => prevProvs.map(p =>
                 p.id_proveedor === idProveedor ? { ...p, estatus_revision: estadoPrevio ?? 'NO_SOLICITADO' } : p
             ));
-             // Recalcular contador si la reversión afectó PENDIENTE
-             if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
-                 fetchProvidersList(); // Recargar para asegurar contador correcto tras error
-             }
+            // Recalcular contador si la reversión afectó PENDIENTE
+            if (estadoPrevio === 'PENDIENTE_REVISION' || nuevoEstatus === 'PENDIENTE_REVISION') {
+                fetchProvidersList(); // Recargar para asegurar contador correcto tras error
+            }
         } finally {
             setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
         }
@@ -401,18 +401,18 @@ const handleCloseEditUserModal = () => {
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
         <div>
-                <Menu />
+            <Menu />
             <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
-            <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
-                     Administración de Proveedores
-                     {pendientesCount > 0 && ( <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span> )}
-                 </h1>
+                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
+                    Administración de Proveedores
+                    {pendientesCount > 0 && (<span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span>)}
+                </h1>
 
                 {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
-                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
-                         <input type="text" id="filtroRfc" value={filtroRfc} onChange={(e) => setFiltroRfc(e.target.value)} placeholder="Buscar RFC..." className="w-full input-style" />
+                        <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
+                        <input type="text" id="filtroRfc" value={filtroRfc} onChange={(e) => setFiltroRfc(e.target.value)} placeholder="Buscar RFC..." className="w-full input-style" />
                     </div>
                     <div className="flex-1">
                         <label htmlFor="filtroCorreo" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Correo:</label>
@@ -421,10 +421,10 @@ const handleCloseEditUserModal = () => {
                 </div>
 
                 {/* Error General */}
-                {error && !loading && ( <p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p> )}
+                {error && !loading && (<p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p>)}
 
                 {/* Carga Inicial */}
-                {loading && ( <p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p> )}
+                {loading && (<p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>)}
 
                 {/* Tabla */}
                 {!loading && !error && (
@@ -441,12 +441,12 @@ const handleCloseEditUserModal = () => {
                     />
                 )}
 
-                 {/* Mensajes "Sin resultados" */}
+                {/* Mensajes "Sin resultados" */}
                 {!loading && !error && proveedoresFiltrados.length === 0 && (filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
+                    <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
                 )}
                 {!loading && !error && proveedores.length === 0 && !(filtroRfc || filtroCorreo) && (
-                      <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
+                    <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
                 )}
 
                 {/* --- MODALES --- */}
@@ -461,7 +461,7 @@ const handleCloseEditUserModal = () => {
                         onSubmit={handleSaveProfileUpdate} // <-- Cambiar nombre de la prop a 'onSubmit'
                         isLoading={isUpdatingProfile} // Pasar el estado de carga correcto
                         error={updateProfileError}    // Pasar el estado de error correcto
-                        
+
                     />
                 )}
 
@@ -473,14 +473,14 @@ const handleCloseEditUserModal = () => {
                         onClose={handleCloseEditUserModal} // Función para cerrar
                         userData={editingUserData} // Datos del USUARIO para prellenar
                         onSubmit={handleSaveUserUpdate} // Función a llamar al GUARDAR con éxito desde el modal
-                        // Pasar estados de carga/error específicos del modal de usuario
-                        // isLoading={isUpdatingUser}
-                        // error={updateUserError}
+                    // Pasar estados de carga/error específicos del modal de usuario
+                    // isLoading={isUpdatingUser}
+                    // error={updateUserError}
                     />
                 )}
 
-                 {/* Estilos globales rápidos (mover a CSS/Tailwind config si es posible) */}
-                 <style jsx global>{`
+                {/* Estilos globales rápidos (mover a CSS/Tailwind config si es posible) */}
+                <style jsx global>{`
                     .input-style {
                         display: block;
                         width: 100%;
