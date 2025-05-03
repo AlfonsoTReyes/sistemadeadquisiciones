@@ -23,7 +23,7 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
     const [filtroPartidaModal, setFiltroPartidaModal] = useState(''); // '' significa todas
 
     const formatCurrency = (value: number): string => {
-         if (isNaN(value) || value === null || value === undefined) return 'N/A';
+        if (isNaN(value) || value === null || value === undefined) return 'N/A';
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
     };
 
@@ -72,8 +72,8 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
 
                 {/* --- Sección de Filtros del Modal --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded bg-gray-50">
-                     {/* Filtro por Descripción */}
-                     <div>
+                    {/* Filtro por Descripción */}
+                    <div>
                         <label htmlFor="filtroArticulosDescModal" className="block text-sm font-medium text-gray-700 mb-1">
                             Buscar por Descripción:
                         </label>
@@ -86,7 +86,7 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
                             className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         />
                     </div>
-                     {/* Filtro por Partida */}
+                    {/* Filtro por Partida */}
                     <div>
                         <label htmlFor="filtroArticulosPartidaModal" className="block text-sm font-medium text-gray-700 mb-1">
                             Filtrar por Partida:
@@ -95,7 +95,7 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
                             id="filtroArticulosPartidaModal"
                             value={filtroPartidaModal}
                             onChange={(e) => setFiltroPartidaModal(e.target.value)}
-                             // Podrías deshabilitarlo si no hay partidas o artículos
+                            // Podrías deshabilitarlo si no hay partidas o artículos
                             className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
                             <option value="">-- Todas las Partidas --</option>
@@ -106,10 +106,10 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
                                         {partida.codigo} - {partida.descripcion}
                                     </option>
                                 ))
-                             ) : (
+                            ) : (
                                 <option value="" disabled>Cargando partidas...</option>
-                             )}
-                             {/* Opcional: Podrías mostrar solo las partidas que realmente tienen los artículos de este proveedor */}
+                            )}
+                            {/* Opcional: Podrías mostrar solo las partidas que realmente tienen los artículos de este proveedor */}
                         </select>
                     </div>
                 </div>
@@ -150,7 +150,7 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
 
                 {/* Botón de Cerrar abajo */}
                 <div className="pt-4 flex justify-end border-t border-gray-200 mt-4">
-                     <button
+                    <button
                         type="button"
                         onClick={onClose}
                         className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 text-sm font-medium"

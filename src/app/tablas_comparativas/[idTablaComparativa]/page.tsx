@@ -1,44 +1,67 @@
 // src/app/admin/tablas-comparativas/[idTablaComparativa]/page.tsx
-'use client'; // Necesario para fetch de datos, estado y edición
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { TablaComparativaCompleta, ActualizarTablaInput } from '@/types/tablaComparativa'; // Ajusta ruta
-import { ProveedorDetallado } from '@/types/proveedor'; // Ajusta ruta
-import { ArticuloCatalogo } from '@/types/catalogoProveedores'; // Ajusta ruta
+import {
+    TablaComparativaCompleta,
+    ActualizarTablaInput,
+    AgregarProveedorInput,
+    AgregarItemInput,
+    AgregarObservacionInput,
+    AgregarFirmaInput,
+    AgregarComentarioInput,
+    EstadoTablaComparativa // Importar tipo Estado
+} from '@/types/tablaComparativa'; // Ajusta ruta
+// Usaremos solo Proveedor básico para el selector y ProveedorDetallado para el fetch
+import { Proveedor, ProveedorDetallado } from '@/types/proveedor';
+import { ArticuloCatalogo } from '@/types/catalogoProveedores';
 
 // Componentes
-import { TablaComparativaDisplay } from '@/componentes/tablas_comparativas/TablaComparativaDisplay';
-import { SelectorProveedores } from '@/componentes/tablas_comparativas/SelectorProveedores';
-import { SelectorProductosServicios } from '@/componentes/tablas_comparativas/SelectorProductosServicios';
-import { SeccionObservaciones } from '@/componentes/tablas_comparativas/SeccionObservaciones';
-import { SeccionFirmasComentarios } from '@/componentes/tablas_comparativas/SeccionFirmasComentarios';
-// Asume que tienes un componente de formulario para editar detalles de items si es necesario
-// import { FormularioItemComparativa } from '@/components/tablas_comparativas/FormularioItemComparativa';
+import { TablaComparativaDisplay } from '@/componentes/tablas_comparativas/TablaComparativaDisplay'; // Corregir ruta
+import { SelectorProveedores } from '@/componentes/tablas_comparativas/SelectorProveedores'; // Corregir ruta
+import { SelectorProductosServicios } from '@/componentes/tablas_comparativas/SelectorProductosServicios'; // Corregir ruta
+import { SeccionObservaciones } from '@/componentes/tablas_comparativas/SeccionObservaciones'; // Corregir ruta
+import { SeccionFirmasComentarios } from '@/componentes/tablas_comparativas/SeccionFirmasComentarios'; // Corregir ruta
 
-// Fetchers
+// Fetchers Principales
 import {
     fetchTablaComparativaDetalle,
     actualizarTablaComparativaFetch,
-    // NECESITARÁS MÁS FETCHERS Y API ROUTES PARA OPERACIONES ANIDADAS:
-    // agregarProveedorATablaFetch, eliminarProveedorDeTablaFetch,
-    // agregarItemAProveedorFetch, actualizarItemFetch, eliminarItemFetch,
-    // agregarObservacionFetch, actualizarObservacionFetch, eliminarObservacionFetch,
-    // agregarFirmaFetch, agregarComentarioFetch, etc.
+} from '@/fetch/tablasComparativasFetch';
+
+// Fetchers para Operaciones Anidadas (¡ASEGÚRATE QUE ESTOS EXISTAN Y FUNCIONEN!)
+import {
+    fetchProveedorDetalladoParaSnapshot, // ¡IMPLEMENTAR API ROUTE!
+    agregarProveedorATablaFetch,         // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    eliminarProveedorDeTablaFetch,       // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    agregarItemAProveedorFetch,          // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    eliminarItemFetch,                   // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    agregarObservacionFetch,             // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    eliminarObservacionFetch,            // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    agregarFirmaFetch,                   // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
+    agregarComentarioFetch,              // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
 } from '@/fetch/tablasComparativasFetch'; // Ajusta ruta
 
-// Placeholder para funciones fetch que faltan
-const agregarProveedorATablaFetch = async (data: any) => { console.warn("agregarProveedorATablaFetch no implementado", data); await new Promise(r => setTimeout(r, 500)); return { id: Math.random() * 1000, ...data }; };
-const eliminarProveedorDeTablaFetch = async (id: number) => { console.warn("eliminarProveedorDeTablaFetch no implementado", id); await new Promise(r => setTimeout(r, 500)); };
-const agregarItemAProveedorFetch = async (data: any) => { console.warn("agregarItemAProveedorFetch no implementado", data); await new Promise(r => setTimeout(r, 500)); return { id: Math.random() * 1000, ...data, subtotal_item: data.cantidad * data.precio_unitario }; };
-const eliminarItemFetch = async (id: number) => { console.warn("eliminarItemFetch no implementado", id); await new Promise(r => setTimeout(r, 500)); };
-const agregarObservacionFetch = async (data: any) => { console.warn("agregarObservacionFetch no implementado", data); await new Promise(r => setTimeout(r, 500)); return { id: Math.random() * 1000, ...data }; };
-const eliminarObservacionFetch = async (id: number) => { console.warn("eliminarObservacionFetch no implementado", id); await new Promise(r => setTimeout(r, 500)); };
-const agregarFirmaFetch = async (data: any) => { console.warn("agregarFirmaFetch no implementado", data); await new Promise(r => setTimeout(r, 500)); return { id: Math.random() * 1000, ...data, fecha_firma: new Date().toISOString() }; };
-const agregarComentarioFetch = async (data: any) => { console.warn("agregarComentarioFetch no implementado", data); await new Promise(r => setTimeout(r, 500)); return { id: Math.random() * 1000, ...data, fecha_comentario: new Date().toISOString() }; };
-// Y así sucesivamente para updates...
+// Helper para obtener ID de usuario
+const getUserIdFromSession = (): number | null => {
+    if (typeof window !== "undefined") {
+        const storedUserId = sessionStorage.getItem('userId');
+        if (storedUserId) {
+            const parsedId = parseInt(storedUserId, 10);
+            if (!isNaN(parsedId)) return parsedId;
+        }
+    }
+    console.error("No se pudo obtener un ID de usuario válido de sessionStorage.");
+    return null;
+};
 
+// Helper para construir domicilio
+const construirDomicilio = (p: ProveedorDetallado): string | null => {
+    const parts = [p.calle, p.numero, p.colonia, p.codigo_postal, p.municipio, p.estado].filter(Boolean); // Filtra nulos o vacíos
+    return parts.length > 0 ? parts.join(', ') : null;
+}
 
 export default function DetalleTablaComparativaPage() {
     const params = useParams();
@@ -48,30 +71,32 @@ export default function DetalleTablaComparativaPage() {
     const [tablaData, setTablaData] = useState<TablaComparativaCompleta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isEditingHeader, setIsEditingHeader] = useState(false); // Para editar nombre/desc/estado
-    const [isSubmitting, setIsSubmitting] = useState(false); // Para indicar carga en operaciones
+    const [isEditingHeader, setIsEditingHeader] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [idUsuarioActual, setIdUsuarioActual] = useState<number | null>(null);
 
-    // // TODO: Obtener el ID del usuario actual de la sesión/contexto
-    const idUsuarioActual = 8; // Placeholder
+    // Efecto para obtener ID de usuario
+    useEffect(() => {
+        const userId = getUserIdFromSession();
+        setIdUsuarioActual(userId);
+        if (!userId && !isLoading) { // Si ya terminó de cargar y no hay user ID
+            setError("Usuario no autenticado. No se pueden realizar acciones.");
+        }
+    }, [isLoading]); // Re-evaluar si cambia isLoading (después de la carga inicial)
 
+    // Cargar datos de la tabla
     const cargarTabla = useCallback(async () => {
         if (isNaN(idTablaComparativa)) {
-            setError("ID de tabla inválido.");
-            setIsLoading(false);
-            return;
+            setError("ID de tabla inválido."); setIsLoading(false); return;
         }
-        setIsLoading(true);
-        setError(null);
+        setIsLoading(true); setError(null);
         try {
             const data = await fetchTablaComparativaDetalle(idTablaComparativa);
             setTablaData(data);
         } catch (err: any) {
             console.error("Error al cargar detalle tabla:", err);
-            if (err.message.includes('404') || err.message.includes('no encontrada')) {
-                 setError(`Tabla comparativa con ID ${idTablaComparativa} no encontrada.`);
-            } else {
-                 setError(err.message || 'Ocurrió un error al cargar los datos.');
-            }
+            setError(err.message || 'Ocurrió un error al cargar los datos.');
+            setTablaData(null);
         } finally {
             setIsLoading(false);
         }
@@ -81,186 +106,226 @@ export default function DetalleTablaComparativaPage() {
         cargarTabla();
     }, [cargarTabla]);
 
-    // --- Handlers para Actualización de Cabecera ---
+    // --- Handler Guardar Cabecera ---
     const handleGuardarHeader = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!tablaData) return;
-        setIsSubmitting(true);
-        setError(null);
-
+        if (!tablaData || isSubmitting) return;
+        setIsSubmitting(true); setError(null);
         const formData = new FormData(event.currentTarget);
         const dataToUpdate: ActualizarTablaInput = {
             nombre: formData.get('nombre') as string,
             descripcion: formData.get('descripcion') as string || null,
-            estado: formData.get('estado') as any, // Cast a any temporalmente
+            estado: formData.get('estado') as EstadoTablaComparativa, // Usar el tipo
         };
-
         try {
-             // Validación básica
             if (!dataToUpdate.nombre?.trim()) throw new Error("El nombre no puede estar vacío.");
-
             await actualizarTablaComparativaFetch(idTablaComparativa, dataToUpdate);
-            // Actualizar estado local optimísticamente o recargar
+            // Optimista: Actualizar estado local
             setTablaData(prev => prev ? { ...prev, ...dataToUpdate } : null);
             setIsEditingHeader(false);
-            // Mostrar mensaje éxito
         } catch (err: any) {
             console.error("Error actualizando cabecera:", err);
             setError(err.message || "No se pudo actualizar la información.");
-             // Mostrar mensaje error
         } finally {
-             setIsSubmitting(false);
+            setIsSubmitting(false);
         }
     };
 
-     // --- Handlers para Operaciones Anidadas (Proveedores, Ítems, etc.) ---
-     // ESTAS FUNCIONES NECESITAN SUS PROPIOS API ROUTES Y FETCHERS!
-
-    const handleAddProveedor = async (proveedor: Proveedor) => {
-        if (!tablaData) return;
-        setIsSubmitting(true); // O un estado de carga específico
+    // --- Handler Agregar Proveedor ---
+    const handleAddProveedor = async (proveedorSeleccionado: Proveedor) => {
+        // Usamos el tipo Proveedor básico que devuelve el selector
+        if (!tablaData || isSubmitting) return;
+        setIsSubmitting(true); setError(null);
         try {
-            // Necesitas obtener TODOS los datos snapshot del proveedor ANTES de llamar al fetch
-            const proveedorSnapshotData = {
-                 id_tabla_comparativa: tablaData.id,
-                 id_proveedor: proveedor.id_proveedor,
-                 nombre_empresa_snapshot: proveedor.nombre_o_razon_social,
-                 rfc_snapshot: proveedor.rfc,
-                 // ... completar TODOS los campos _snapshot requeridos por la API/servicio
-                 giro_comercial_snapshot: proveedor.giro_comercial,
-                 atencion_de_snapshot: proveedor.atencion_de, // Asumiendo que existe en 'Proveedor'
-                 domicilio_snapshot: proveedor.domicilio,     // Asumiendo que existe en 'Proveedor'
-                 telefono_snapshot: proveedor.telefono_uno,
-                 correo_electronico_snapshot: proveedor.correo,
-                 pagina_web_snapshot: proveedor.pagina_web,
-                 condiciones_pago_snapshot: proveedor.condiciones_pago, // Asumiendo que existe
-                 tiempo_entrega_snapshot: proveedor.tiempo_entrega,   // Asumiendo que existe
+            // 1. Obtener detalles completos
+            console.log(`Obteniendo detalles completos para proveedor ID: ${proveedorSeleccionado.id_proveedor}`);
+            const proveedorCompleto = await fetchProveedorDetalladoParaSnapshot(proveedorSeleccionado.id_proveedor);
+            console.log("Detalles completos obtenidos:", proveedorCompleto);
+            if (!proveedorCompleto?.rfc) throw new Error("Datos detallados del proveedor no encontrados o incompletos.");
+
+            // 2. Construir snapshot (usando null para campos faltantes)
+            const proveedorSnapshotData: AgregarProveedorInput = {
+                id_tabla_comparativa: tablaData.id,
+                id_proveedor: proveedorCompleto.id_proveedor,
+                nombre_empresa_snapshot: proveedorCompleto.nombre_o_razon_social || 'Nombre Desconocido', // Fallback
+                rfc_snapshot: proveedorCompleto.rfc,
+                giro_comercial_snapshot: proveedorCompleto.giro_comercial || null,
+                atencion_de_snapshot: null, // <-- CAMPO FALTANTE
+                domicilio_snapshot: construirDomicilio(proveedorCompleto),
+                telefono_snapshot: proveedorCompleto.telefono_uno || null,
+                correo_electronico_snapshot: proveedorCompleto.correo || null,
+                pagina_web_snapshot: proveedorCompleto.pagina_web || null,
+                condiciones_pago_snapshot: null, // <-- CAMPO FALTANTE
+                tiempo_entrega_snapshot: null, // <-- CAMPO FALTANTE
             };
-             // const nuevoRegistroProveedor = await agregarProveedorATablaFetch(proveedorSnapshotData);
-             // Recargar la tabla completa para ver el nuevo proveedor
-             await cargarTabla();
+
+            // 3. Llamar al fetch para agregar
+            console.log("Enviando datos para agregar proveedor:", proveedorSnapshotData);
+            await agregarProveedorATablaFetch(tablaData.id, proveedorSnapshotData);
+
+            // 4. Recargar datos
+            await cargarTabla();
         } catch (err: any) {
-             console.error("Error agregando proveedor:", err);
-             setError(err.message || "No se pudo agregar el proveedor.");
+            console.error("Error agregando proveedor:", err);
+            setError(err.message || "No se pudo agregar el proveedor.");
         } finally {
-             setIsSubmitting(false);
+            setIsSubmitting(false);
         }
-     };
+    };
 
-     const handleRemoveProveedor = async (idTablaComparativaProveedor: number) => {
-         if (!confirm('¿Eliminar este proveedor y todos sus ítems/observaciones de la tabla?')) return;
-         setIsSubmitting(true);
-         try {
-            // await eliminarProveedorDeTablaFetch(idTablaComparativaProveedor);
-            await cargarTabla(); // Recargar
-         } catch (err: any) {
-             console.error("Error eliminando proveedor:", err);
-             setError(err.message || "No se pudo eliminar el proveedor.");
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
+    // --- Handler Eliminar Proveedor ---
+    const handleRemoveProveedor = async (idTablaComparativaProveedor: number) => {
+        if (!tablaData || isSubmitting || !confirm('¿Eliminar este proveedor y todos sus ítems/observaciones de la tabla?')) return;
+        setIsSubmitting(true); setError(null);
+        try {
+            await eliminarProveedorDeTablaFetch(tablaData.id, idTablaComparativaProveedor);
+            await cargarTabla();
+        } catch (err: any) {
+            console.error("Error eliminando proveedor:", err);
+            setError(err.message || "No se pudo eliminar el proveedor.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-     const handleAddItem = async (idTablaComparativaProveedor: number, itemOrigen: ArticuloCatalogo) => {
-         // // TODO: Podrías abrir un modal/form para pedir Cantidad y ajustar Precio/Características
-         const cantidad = parseFloat(prompt(`Cantidad para "${itemOrigen.descripcion}":`, '1') || '1');
-         if (isNaN(cantidad) || cantidad <= 0) return;
+    // --- Handler Agregar Item ---
+    const handleAddItem = async (idTablaComparativaProveedor: number, itemOrigen: ArticuloCatalogo) => {
+        if (!tablaData || isSubmitting) return;
+        const cantidadStr = prompt(`Cantidad para "${itemOrigen.descripcion}":`, '1');
+        if (cantidadStr === null) return;
+        const cantidad = parseFloat(cantidadStr);
+        if (isNaN(cantidad) || cantidad <= 0) { alert("Cantidad inválida."); return; }
 
-         setIsSubmitting(true);
-         try {
-             const data: any = { // Tipar correctamente con AgregarItemInput
-                 id_tabla_comparativa_proveedor: idTablaComparativaProveedor,
-                 id_articulo_origen: itemOrigen.id_articulo,
-                 codigo_partida_origen: itemOrigen.codigo_partida,
-                 descripcion_item: itemOrigen.descripcion,
-                 caracteristicas_tecnicas: null, // O pedir al usuario
-                 udm: itemOrigen.unidad_medida,
-                 cantidad: cantidad,
-                 precio_unitario: itemOrigen.precio_unitario, // O permitir ajuste
-             };
-             // await agregarItemAProveedorFetch(data);
-             await cargarTabla(); // Recargar
-         } catch (err: any) {
-             console.error("Error agregando item:", err);
-             setError(err.message || "No se pudo agregar el ítem.");
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
+        setIsSubmitting(true); setError(null);
+        try {
+            const data: AgregarItemInput = {
+                id_tabla_comparativa_proveedor: idTablaComparativaProveedor,
+                id_articulo_origen: itemOrigen.id_articulo,
+                codigo_partida_origen: itemOrigen.codigo_partida,
+                descripcion_item: itemOrigen.descripcion,
+                caracteristicas_tecnicas: null, // Permitir edición posterior
+                udm: itemOrigen.unidad_medida,
+                cantidad: cantidad,
+                precio_unitario: itemOrigen.precio_unitario, // Permitir edición posterior
+            };
+            await agregarItemAProveedorFetch(tablaData.id, idTablaComparativaProveedor, data);
+            await cargarTabla();
+        } catch (err: any) {
+            console.error("Error agregando item:", err);
+            setError(err.message || "No se pudo agregar el ítem.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-      const handleRemoveItem = async (idItem: number) => {
-         if (!confirm('¿Eliminar este ítem?')) return;
-         setIsSubmitting(true);
-         try {
-            // await eliminarItemFetch(idItem);
-            await cargarTabla(); // Recargar
-         } catch (err: any) {
-             console.error("Error eliminando item:", err);
-             setError(err.message || "No se pudo eliminar el ítem.");
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
+    // --- Handler Eliminar Item ---
+    const handleRemoveItem = async (idItem: number) => {
+        if (!tablaData || isSubmitting || !confirm('¿Eliminar este ítem?')) return;
+        setIsSubmitting(true); setError(null);
+        try {
+            await eliminarItemFetch(tablaData.id, idItem);
+            await cargarTabla();
+        } catch (err: any) {
+            console.error("Error eliminando item:", err);
+            setError(err.message || "No se pudo eliminar el ítem.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-     // ... Implementar handlers para Observaciones, Firmas, Comentarios usando los fetchers correspondientes ...
-     const handleAddObservacionCallback = async (data: any) => { // Tipar con AgregarObservacionInput
-        setIsSubmitting(true);
-         try {
-             // await agregarObservacionFetch(data);
-             await cargarTabla();
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
-     const handleDeleteObservacionCallback = async (id: number) => {
-         setIsSubmitting(true);
-         try {
-             // await eliminarObservacionFetch(id);
-             await cargarTabla();
-         } finally {
-             setIsSubmitting(false);
-         }
-     };
-     // ... y así para firmas y comentarios ...
+    // --- Handlers Callbacks (Observaciones, Firmas, Comentarios) ---
+    const handleAddObservacionCallback = async (data: AgregarObservacionInput) => {
+        if (!tablaData || isSubmitting) throw new Error("Operación no permitida ahora.");
+        setIsSubmitting(true); setError(null);
+        try {
+            await agregarObservacionFetch(tablaData.id, data);
+            await cargarTabla();
+        } catch (err: any) {
+            setError(err.message || "No se pudo agregar la observación."); throw err;
+        } finally { setIsSubmitting(false); }
+    };
 
+    const handleDeleteObservacionCallback = async (idObservacion: number) => {
+        if (!tablaData || isSubmitting) throw new Error("Operación no permitida ahora.");
+        setIsSubmitting(true); setError(null);
+        try {
+            await eliminarObservacionFetch(tablaData.id, idObservacion);
+            await cargarTabla();
+        } catch (err: any) {
+            setError(err.message || "No se pudo eliminar la observación."); throw err;
+        } finally { setIsSubmitting(false); }
+    };
+
+    const handleAddFirmaCallback = async (data: AgregarFirmaInput) => {
+        if (!tablaData || isSubmitting || !idUsuarioActual) throw new Error("Usuario no autenticado o acción no permitida.");
+        setIsSubmitting(true); setError(null);
+        data.id_usuario = idUsuarioActual; // Asegurar ID usuario
+        try {
+            await agregarFirmaFetch(tablaData.id, data);
+            await cargarTabla();
+        } catch (err: any) {
+            setError(err.message || "No se pudo agregar la firma."); throw err;
+        } finally { setIsSubmitting(false); }
+    };
+
+    const handleAddComentarioCallback = async (data: AgregarComentarioInput) => {
+        if (!tablaData || isSubmitting || !idUsuarioActual) throw new Error("Usuario no autenticado o acción no permitida.");
+        setIsSubmitting(true); setError(null);
+        data.id_usuario = idUsuarioActual; // Asegurar ID usuario
+        try {
+            await agregarComentarioFetch(tablaData.id, data);
+            await cargarTabla();
+        } catch (err: any) {
+            setError(err.message || "No se pudo agregar el comentario."); throw err;
+        } finally { setIsSubmitting(false); }
+    };
 
     // --- Renderizado ---
     if (isLoading) return <p className="container mx-auto p-4">Cargando datos de la tabla...</p>;
-    if (error) return <p className="container mx-auto p-4 text-red-500">Error: {error}</p>;
+    if (error && !tablaData) return <p className="container mx-auto p-4 text-red-500 bg-red-100 border border-red-400 rounded p-3">Error: {error}</p>;
     if (!tablaData) return <p className="container mx-auto p-4">No se encontró la tabla comparativa.</p>;
+    // Si no hay ID de usuario después de cargar, mostrar error persistente
+    if (!idUsuarioActual) return <p className="container mx-auto p-4 text-red-500 bg-red-100 border border-red-400 rounded p-3">Error: Usuario no identificado. No se pueden realizar acciones.</p>;
+
 
     const proveedorIdsActuales = tablaData.proveedores.map(p => p.id_proveedor);
 
     return (
         <div className="container mx-auto p-4 space-y-6">
-             {/* // TODO: Aplicar estilos */}
-             <div className="flex justify-between items-center">
-                 <Link href="/tablas_comparativas" className="text-blue-600 hover:underline">
+            {/* Cabecera y Botones */}
+            <div className="flex justify-between items-center">
+                <Link href="/tablas_comparativas" className="text-blue-600 hover:underline">
                     ← Volver a la lista
                 </Link>
                 <button
                     onClick={() => setIsEditingHeader(!isEditingHeader)}
-                    className="px-3 py-1 border rounded text-sm"
-                 >
+                    className="px-3 py-1 border rounded text-sm hover:bg-gray-100 disabled:opacity-50"
+                    disabled={isSubmitting}
+                >
                     {isEditingHeader ? 'Cancelar Edición' : 'Editar Info General'}
                 </button>
             </div>
 
-            {isSubmitting && <p className="text-blue-500">Procesando...</p>} {/* Indicador global simple */}
+            {/* Indicador Global y Errores */}
+            {isSubmitting && <div className="text-center p-2"><span className="italic text-blue-600">Procesando...</span></div>}
+            {error && !isSubmitting && <p className="text-red-500 bg-red-100 p-2 rounded text-sm mb-4">Error: {error}</p>}
 
-             {/* Formulario de Edición de Cabecera (condicional) */}
+            {/* Form Edición Header / Display Info */}
             {isEditingHeader ? (
-                 <form onSubmit={handleGuardarHeader} className="p-4 border rounded bg-gray-100 space-y-3">
-                     <h2 className="text-lg font-semibold">Editando Información General</h2>
-                     <div>
-                         <label htmlFor="nombre" className="block text-sm font-medium">Nombre</label>
-                         <input type="text" name="nombre" id="nombre" defaultValue={tablaData.nombre} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting} />
-                     </div>
-                     <div>
-                         <label htmlFor="descripcion" className="block text-sm font-medium">Descripción</label>
-                         <textarea name="descripcion" id="descripcion" defaultValue={tablaData.descripcion || ''} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting}></textarea>
-                     </div>
-                      <div>
+                <form onSubmit={handleGuardarHeader} className="p-4 border rounded bg-gray-100 space-y-3">
+                    <h2 className="text-lg font-semibold">Editando Información General</h2>
+                    {/* Nombre */}
+                    <div>
+                        <label htmlFor="nombre" className="block text-sm font-medium">Nombre</label>
+                        <input type="text" name="nombre" id="nombre" defaultValue={tablaData.nombre} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting} />
+                    </div>
+                    {/* Descripción */}
+                    <div>
+                        <label htmlFor="descripcion" className="block text-sm font-medium">Descripción</label>
+                        <textarea name="descripcion" id="descripcion" defaultValue={tablaData.descripcion || ''} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting}></textarea>
+                    </div>
+                    {/* Estado */}
+                    <div>
                         <label htmlFor="estado" className="block text-sm font-medium">Estado</label>
                         <select name="estado" id="estado" defaultValue={tablaData.estado} className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 rounded-md text-sm" disabled={isSubmitting}>
                             <option value="borrador">Borrador</option>
@@ -268,101 +333,115 @@ export default function DetalleTablaComparativaPage() {
                             <option value="aprobada">Aprobada</option>
                             <option value="rechazada">Rechazada</option>
                         </select>
-                     </div>
-                     <div className="flex space-x-2">
-                         <button type="submit" className="px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400" disabled={isSubmitting}>
-                             {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-                         </button>
-                         <button type="button" onClick={() => setIsEditingHeader(false)} className="px-4 py-1 bg-gray-300 text-sm rounded hover:bg-gray-400" disabled={isSubmitting}>
+                    </div>
+                    {/* Botones */}
+                    <div className="flex space-x-2">
+                        <button type="submit" className="px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400" disabled={isSubmitting}>
+                            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                        </button>
+                        <button type="button" onClick={() => setIsEditingHeader(false)} className="px-4 py-1 bg-gray-300 text-sm rounded hover:bg-gray-400" disabled={isSubmitting}>
                             Cancelar
                         </button>
-                     </div>
-                 </form>
+                    </div>
+                </form>
             ) : (
-                // Mostrar datos (solo si no se está editando header)
-                 <div className="border-b pb-2 mb-4">
+                <div className="border-b pb-2 mb-4">
                     <h1 className="text-2xl font-bold">{tablaData.nombre}</h1>
                     <p className="text-sm text-gray-600">{tablaData.descripcion || 'Sin descripción.'}</p>
                     <p className="text-sm">Estado: <span className="font-semibold">{tablaData.estado}</span></p>
-                 </div>
+                </div>
             )}
 
-
-            {/* Selector para añadir nuevos proveedores */}
+            {/* Sección Añadir Proveedor */}
             <div className="my-6 p-4 border rounded bg-gray-50">
-                 <h3 className="text-lg font-semibold mb-2">Añadir Proveedor a la Comparación</h3>
-                 <SelectorProveedores
-                     onSelectProveedor={handleAddProveedor}
-                     excludedIds={proveedorIdsActuales}
-                 />
+                <h3 className="text-lg font-semibold mb-2">Añadir Proveedor a la Comparación</h3>
+                <SelectorProveedores
+                    onSelectProveedor={handleAddProveedor}
+                    excludedIds={proveedorIdsActuales}
+                />
             </div>
 
-             {/* Display principal de la tabla comparativa */}
-             {/* // TODO: Pasar callbacks para editar/eliminar items si se implementa en TablaComparativaDisplay */}
+            {/* Display Tabla */}
             <TablaComparativaDisplay tabla={tablaData} />
 
-            {/* Secciones editables por proveedor (Items, Observaciones) */}
+            {/* Secciones Editables por Proveedor */}
             <div className="space-y-4 mt-6">
-                 {tablaData.proveedores.map(prov => (
-                    <div key={prov.id} className="p-4 border rounded shadow-sm">
-                        <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-lg font-semibold">{prov.nombre_empresa_snapshot}</h3>
-                             <button
+                {tablaData.proveedores.map(prov => (
+                    <div key={prov.id} className="p-4 border rounded shadow-sm bg-white">
+                        {/* Cabecera Proveedor */}
+                        <div className="flex justify-between items-center mb-3 pb-2 border-b">
+                            <h3 className="text-lg font-semibold text-gray-800">{prov.nombre_empresa_snapshot}</h3>
+                            <button
                                 onClick={() => handleRemoveProveedor(prov.id)}
-                                className="text-xs text-red-600 hover:text-red-800"
+                                className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
                                 disabled={isSubmitting}
+                                title="Eliminar este proveedor de la tabla"
                             >
-                                Eliminar Proveedor de Tabla
+                                Eliminar Proveedor
                             </button>
                         </div>
 
-                        {/* Selector de Items para este proveedor */}
-                        <SelectorProductosServicios
-                            idProveedor={prov.id_proveedor} // ID del proveedor maestro
-                            onSelectItem={(item) => handleAddItem(prov.id, item)} // prov.id es id_tabla_comparativa_proveedor
-                            excludedItemIds={prov.items.map(i => i.id_articulo_origen).filter(id => id !== null) as number[]}
-                        />
-
-                         {/* Lista de Items actuales (con opción de eliminar) */}
-                        <div className="mt-4">
-                             <h4 className="text-md font-medium mb-2">Ítems Cotizados</h4>
-                             {prov.items.length === 0 ? <p className="text-sm text-gray-500">Sin ítems.</p> : (
-                                 <ul className="text-sm space-y-1">
-                                     {prov.items.map(item => (
-                                        <li key={item.id} className="flex justify-between items-center border-b py-1">
-                                             <span>{item.descripcion_item} ({item.cantidad} {item.udm} @ ${item.precio_unitario.toFixed(2)})</span>
-                                             {/* // TODO: Botón para Editar Item */}
-                                             <button onClick={() => handleRemoveItem(item.id)} className="text-xs text-red-500 ml-2" disabled={isSubmitting}>Eliminar</button>
-                                         </li>
-                                    ))}
-                                 </ul>
-                             )}
+                        {/* Selector de Items */}
+                        <div className='mb-4'>
+                            <SelectorProductosServicios
+                                idProveedor={prov.id_proveedor}
+                                onSelectItem={(item) => handleAddItem(prov.id, item)}
+                                excludedItemIds={prov.items.map(i => i.id_articulo_origen).filter(id => id !== null) as number[]}
+                            />
                         </div>
 
-                        {/* Sección de Observaciones para este proveedor */}
-                         <SeccionObservaciones
+
+                        {/* Lista de Items Actuales */}
+                        <div className="mt-4 mb-4">
+                            <h4 className="text-md font-medium mb-2 text-gray-700">Ítems Cotizados</h4>
+                            {prov.items.length === 0 ? <p className="text-sm text-gray-500 italic">Sin ítems.</p> : (
+                                <ul className="text-sm space-y-1">
+                                    {prov.items.map(item => (
+                                        <li key={item.id} className="flex justify-between items-center border-b py-1 hover:bg-gray-50 px-1">
+                                            <div>
+                                                <span className='font-medium'>{item.descripcion_item}</span>
+                                                <span className='text-gray-600'> ({item.cantidad} {item.udm} @ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(item.precio_unitario)})</span>
+                                                {/* // TODO: Mostrar Características Técnicas si existen */}
+                                            </div>
+                                            <div>
+                                                {/* // TODO: Botón/Modal para Editar Item */}
+                                                <button
+                                                    onClick={() => handleRemoveItem(item.id)}
+                                                    className="text-xs text-red-500 hover:text-red-700 ml-2 disabled:opacity-50"
+                                                    disabled={isSubmitting}
+                                                    title="Eliminar este ítem"
+                                                >
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* Sección de Observaciones */}
+                        <SeccionObservaciones
                             observaciones={prov.observaciones}
                             idTablaComparativaProveedor={prov.id}
-                            isEditable={true} // Asumir editable
+                            isEditable={!!idUsuarioActual} // Editable si hay usuario
                             onAddObservacion={handleAddObservacionCallback}
                             onDeleteObservacion={handleDeleteObservacionCallback}
-                            // onUpdateObservacion={handleUpdateObservacionCallback} // TODO
                         />
                     </div>
                 ))}
             </div>
 
-             {/* Sección de Firmas y Comentarios (globales para la tabla) */}
-             <SeccionFirmasComentarios
-                 firmas={tablaData.firmas}
-                 comentarios={tablaData.comentarios}
-                 idTablaComparativa={tablaData.id}
-                 idUsuarioActual={idUsuarioActual} // Pasar ID real
-                 isEditable={true} // Asumir editable
-                 // onAddFirma={handleAddFirmaCallback} // TODO
-                 // onAddComentario={handleAddComentarioCallback} // TODO
-             />
-
+            {/* Sección Firmas y Comentarios */}
+            <SeccionFirmasComentarios
+                firmas={tablaData.firmas}
+                comentarios={tablaData.comentarios}
+                idTablaComparativa={tablaData.id}
+                idUsuarioActual={idUsuarioActual!} // Sabemos que no es null aquí
+                isEditable={!!idUsuarioActual}
+                onAddFirma={handleAddFirmaCallback}
+                onAddComentario={handleAddComentarioCallback}
+            />
         </div>
     );
 }
