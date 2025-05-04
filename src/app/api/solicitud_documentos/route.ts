@@ -4,7 +4,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import { guardarDocumentoAdicional, obtenerDocumentosPorSolicitud, obtenerDocumentoPorId, eliminarDocumentoAdicionalPorId } from "../../../services/documentosoliservice";
 import { unlink } from "fs/promises";
-
+import cloudinary from '../../../lib/cloudinary';
 
 // GET: obtener documentos por solicitud
 export async function GET(req: NextRequest) {
@@ -38,28 +38,21 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    const dataURI = `data:${file.type};base64,${base64}`;
 
-    // crea la carpeta public/tipo/id_solicitud
-    const folderPath = path.join(
-      process.cwd(),
-      "public",
-      tipo_documento,
-      id_solicitud
-    );
-    await mkdir(folderPath, { recursive: true });
+    const uploadResponse = await cloudinary.uploader.upload(dataURI, {
+      folder: `documentos_adicionales/${id_solicitud}`,
+      public_id: `${tipo_documento}_${Date.now()}`,
+      resource_type: file.type.startsWith("application/") ? "raw" : "auto",
+    });
 
-    const fileName = `${tipo_documento}_${uuidv4()}_${file.name}`;
-    const filePath = path.join(folderPath, fileName);
-
-    await writeFile(filePath, buffer);
-
-    const ruta_archivo = `${tipo_documento}/${id_solicitud}/${fileName}`;
-
+    
     const savedDoc = await guardarDocumentoAdicional({
       id_solicitud: parseInt(id_solicitud),
       tipo_documento,
-      nombre_original: file.name,
-      ruta_archivo,
+      nombre_original: uploadResponse.public_id,
+      ruta_archivo: uploadResponse.secure_url,
       id_usuario: parseInt(id_usuario),
       estatus: "pendiente"
     });
@@ -88,12 +81,24 @@ export async function DELETE(req: NextRequest) {
     }
 
     // eliminar archivo físico
-    const filePath = path.join(process.cwd(), "public", documento.ruta_archivo);
-    try {
-      await unlink(filePath);
-    } catch (fsError) {
-      console.warn("No se pudo eliminar el archivo físico:", fsError);
-      // no detenemos el proceso si el archivo ya no existe
+    if (documento.nombre_original && documento.tipo_archivo) {
+      let resourceType = "image";
+      if (documento.tipo_archivo.startsWith("video/")) {
+        resourceType = "video";
+      } else if (
+        documento.tipo_archivo.startsWith("application/") ||
+        documento.tipo_archivo.startsWith("text/")
+      ) {
+        resourceType = "raw";
+      }
+
+      try {
+        await cloudinary.uploader.destroy(documento.nombre_original, {
+          resource_type: resourceType,
+        });
+      } catch (cloudError) {
+        console.warn("⚠️ No se pudo eliminar de Cloudinary:", cloudError);
+      }
     }
 
     // eliminar de la base de datos
