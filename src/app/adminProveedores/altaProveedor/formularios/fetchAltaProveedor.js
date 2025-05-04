@@ -370,7 +370,7 @@ export const updateAdminRevisionStatus = async (idProveedor, nuevoEstatusRevisio
       throw new Error("Fetch Error: El nuevo estatus de revisión es requerido.");
   }
   // Opcional: Validar que nuevoEstatusRevision sea uno de los valores permitidos
-  const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+  const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO'];
   if (!validStatuses.includes(nuevoEstatusRevision)) {
       console.warn(`Fetch Warning: Estatus de revisión "${nuevoEstatusRevision}" no es uno de los valores estándar.`);
       // Podrías lanzar un error aquí si quieres ser estricto:

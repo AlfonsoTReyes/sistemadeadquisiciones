@@ -39,6 +39,8 @@ export default function AdministradorProveedoresPage() {
     const [isUpdatingUser, setIsUpdatingUser] = useState(false);
     const [updateUserError, setUpdateUserError] = useState<string | null>(null);
     const [pendientesCount, setPendientesCount] = useState(0);
+    const pusherClientRef = useRef<PusherClient | null>(null);
+    const channelRef = useRef<any>(null);
 
     // --- Carga Inicial de la Lista de Proveedores ---
     const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
@@ -54,15 +56,77 @@ export default function AdministradorProveedoresPage() {
             console.log(`AdminPage: Lista cargada. Pendientes: ${count}`);
         } catch (err: any) { setError(err.message || "Error cargando proveedores."); setProveedores([]); setPendientesCount(0); }
         finally { if (showLoadingIndicator) setLoading(false); }
-    }, []); // Dependencia vacía está bien si no usa nada externo que cambie
+    }, []);
 
     // --- Carga Inicial ---
     useEffect(() => {
         setLoading(true);
-        cargarProveedores(true); // Pasar true para mostrar carga inicial
-    }, [cargarProveedores]); // Depende de la función memoizada
+        cargarProveedores().finally(() => setLoading(false));
+    }, [cargarProveedores]);
+    // --- NUEVO: useEffect para Pusher ---
+    // --- useEffect para Pusher (Con alert()) ---
+    useEffect(() => {
+        if (pusherClientRef.current) return; // Evitar reinicializar
 
+        const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+        const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
+        if (!key || !cluster) { console.error("AdminPage Pusher: Claves no encontradas."); return; }
+
+        try {
+            console.log("AdminPage Pusher: Initializing...");
+            pusherClientRef.current = new PusherClient(key, { cluster });
+            const channelName = 'admin-notifications';
+            const eventName = 'cambio_estado_proveedor';
+
+            console.log(`AdminPage Pusher: Subscribing to ${channelName}...`);
+            channelRef.current = pusherClientRef.current.subscribe(channelName);
+
+            channelRef.current.bind('pusher:subscription_succeeded', () => { console.log(`AdminPage Pusher: Subscribed to ${channelName}`); });
+            channelRef.current.bind('pusher:subscription_error', (err: any) => { console.error(`AdminPage Pusher: Subscription error for ${channelName}:`, err); });
+
+            const handleEvent = (data: any) => {
+                console.log(`PUSHER RECEIVED (Admin): ${eventName}`, data);
+
+                // **CAMBIO: Usar alert()**
+                const displayMessage = data.mensaje || `Proveedor ${data.idProveedor}: Estado actualizado a ${data.nuevoEstatus}. Revise la lista.`;
+                alert(`Notificación Admin:\n${displayMessage}`); // <-- Usar alert
+
+                // Refrescar lista para actualizar contador y estado visual
+                cargarProveedores(); // Llamar sin indicador de carga global
+            };
+
+            console.log(`AdminPage Pusher: Binding to event ${eventName}`);
+            channelRef.current.bind(eventName, handleEvent);
+
+            return () => {
+                if (pusherClientRef.current && channelRef.current) {
+                    console.log(`AdminPage Pusher: Cleaning up ${channelName}`);
+                    channelRef.current.unbind(eventName, handleEvent);
+                    pusherClientRef.current.unsubscribe(channelName);
+                    // No desconectar aquí necesariamente, podría usarse en otro lado
+                    // pusherClientRef.current = null; // No limpiar ref aquí para evitar reinicialización
+                }
+            };
+        } catch (error) {
+            console.error("AdminPage Pusher: Failed to initialize.", error);
+            setError("No se pudieron inicializar las notificaciones.");
+        }
+        // Incluir fetchProvidersList si se usa directamente dentro del bind o su handler
+    }, [cargarProveedores]);
+    // --- 2. HANDLER PARA VER DOCUMENTOS ---
+    const fetchProvidersList = useCallback(async () => {
+        // ... (lógica como antes)
+        console.log("AdminPage: Fetching/Refreshing providers list...");
+        setError(null);
+        try {
+            const data = await fetchAllProveedores();
+            const validData = data || [];
+            setProveedores(validData);
+            const count = validData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
+            setPendientesCount(count);
+        } catch (err: any) { /* ... */ }
+    }, []);
     const handleViewDocuments = (idProveedor: number) => {
         if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
             console.error("handleViewDocuments - ID inválido:", idProveedor);
@@ -336,21 +400,15 @@ export default function AdministradorProveedoresPage() {
     // --- FIN Handler Estatus Revisión ---
     // --- RENDERIZADO DE LA PÁGINA ---
     return (
-        // Contenedor General Flexbox
-        <div className="flex flex-col min-h-screen">
-            <Menu /> {/* <-- MENÚ PRINCIPAL (ADMIN) ARRIBA */}
-
-            {/* Contenedor Principal del Contenido */}
-            {/* AJUSTA pt-XX según la altura real de tu menú */}
-            <main className="flex-grow p-4 md:p-8 pt-20 md:pt-24 bg-gray-100"> {/* <-- AJUSTES: <main>, flex-grow, pt-XX, bg */}
-
+        <div>
+            <Menu />
+            <div className="min-h-screen p-4 md:p-8 bg-gray-100 pt-20"> {/* Añadir padding-top */}
                 <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
                     Administración de Proveedores
-                    {/* Contador de pendientes (sin cambios) */}
                     {pendientesCount > 0 && (<span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span>)}
                 </h1>
 
-                {/* Filtros (sin cambios) */}
+                {/* Filtros */}
                 <div className="mb-6 p-4 bg-white shadow rounded-lg flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
@@ -362,28 +420,28 @@ export default function AdministradorProveedoresPage() {
                     </div>
                 </div>
 
-                {/* Error General (sin cambios) */}
+                {/* Error General */}
                 {error && !loading && (<p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p>)}
 
-                {/* Carga Inicial (sin cambios) */}
+                {/* Carga Inicial */}
                 {loading && (<p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>)}
 
-                {/* Tabla (sin cambios) */}
+                {/* Tabla */}
                 {!loading && !error && (
                     <TablaDocumentos
                         proveedores={proveedoresFiltrados}
                         onViewDocuments={handleViewDocuments}
-                        onChangeStatus={handleChangeStatus}
-                        onChangeRevisionStatus={handleChangeRevisionStatus}
-                        isLoadingRevisionChange={isLoadingRevisionChange}
+                        onChangeStatus={handleChangeStatus} // Estatus general
+                        onChangeRevisionStatus={handleChangeRevisionStatus} // Estatus revisión
+                        isLoadingRevisionChange={isLoadingRevisionChange} // Carga revisión
                         onEditProfile={handleEditProfileClick}
                         onEditUser={handleEditUserClick}
-                        isLoadingStatusChange={loadingStatusChange}
+                        isLoadingStatusChange={loadingStatusChange} // Carga estatus general
                         isFetchingEditData={isFetchingEditData}
                     />
                 )}
 
-                {/* Mensajes "Sin resultados" (sin cambios) */}
+                {/* Mensajes "Sin resultados" */}
                 {!loading && !error && proveedoresFiltrados.length === 0 && (filtroRfc || filtroCorreo) && (
                     <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
                 )}
@@ -391,37 +449,38 @@ export default function AdministradorProveedoresPage() {
                     <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
                 )}
 
+                {/* --- MODALES --- */}
+                {/* Modal Editar PERFIL Proveedor */}
+                {/* Se renderiza si está abierto Y hay datos para editar */}
+                {isEditProfileModalOpen && editingProviderData && (
+                    <ModalActualizarProveedor
+                        // Props clave para el modal de perfil
+                        isOpen={isEditProfileModalOpen}
+                        onClose={handleCloseEditProfileModal}
+                        proveedorData={editingProviderData}
+                        onSubmit={handleSaveProfileUpdate} // <-- Cambiar nombre de la prop a 'onSubmit'
+                        isLoading={isUpdatingProfile} // Pasar el estado de carga correcto
+                        error={updateProfileError}    // Pasar el estado de error correcto
 
-            </main> {/* <-- FIN Contenedor Principal (<main>) */}
+                    />
+                )}
 
-            <Pie /> {/* <-- PIE ABAJO */}
+                {/* Modal Editar USUARIO Proveedor */}
+                {isEditUserModalOpen && editingUserData && (
+                    <ModalActualizarUsuarioProveedor
+                        // Props clave para el modal de usuario
+                        isOpen={isEditUserModalOpen} // Controla visibilidad
+                        onClose={handleCloseEditUserModal} // Función para cerrar
+                        userData={editingUserData} // Datos del USUARIO para prellenar
+                        onSubmit={handleSaveUserUpdate} // Función a llamar al GUARDAR con éxito desde el modal
+                    // Pasar estados de carga/error específicos del modal de usuario
+                    // isLoading={isUpdatingUser}
+                    // error={updateUserError}
+                    />
+                )}
 
-            {/* --- MODALES (Renderizado fuera de <main> pero dentro del return) --- */}
-            {/* Modal Editar PERFIL Proveedor */}
-            {isEditProfileModalOpen && editingProviderData && (
-                <ModalActualizarProveedor
-                    isOpen={isEditProfileModalOpen}
-                    onClose={handleCloseEditProfileModal}
-                    proveedorData={editingProviderData}
-                    onSubmit={handleSaveProfileUpdate}
-                    isLoading={isUpdatingProfile}
-                    error={updateProfileError}
-                />
-            )}
-            {/* Modal Editar USUARIO Proveedor */}
-            {isEditUserModalOpen && editingUserData && (
-                <ModalActualizarUsuarioProveedor
-                    isOpen={isEditUserModalOpen}
-                    onClose={handleCloseEditUserModal}
-                    userData={editingUserData}
-                    onSubmit={handleSaveUserUpdate}
-                // isLoading={isUpdatingUser} // Descomentar si el modal necesita estas props
-                // error={updateUserError}    // Descomentar si el modal necesita estas props
-                />
-            )}
-
-            {/* Estilos globales rápidos (se mantienen) */}
-            <style jsx global>{`
+                {/* Estilos globales rápidos (mover a CSS/Tailwind config si es posible) */}
+                <style jsx global>{`
                     .input-style {
                         display: block;
                         width: 100%;
@@ -437,6 +496,8 @@ export default function AdministradorProveedoresPage() {
                     }
                  `}</style>
 
-        </div> // <-- FIN Contenedor General
+            </div>
+            <Pie />
+        </div>
     );
 };

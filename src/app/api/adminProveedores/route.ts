@@ -118,7 +118,7 @@ export async function PUT(req: NextRequest) {
             const nuevoEstatusRevision = data.estatus_revision;
 
             // Opcional: Validar que el nuevoEstatusRevision sea uno de los permitidos
-            const validRevisionStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+            const validRevisionStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO'];
             if (!validRevisionStatuses.includes(nuevoEstatusRevision)) {
                 return NextResponse.json({ message: `Valor de 'estatus_revision' (${nuevoEstatusRevision}) inválido.` }, { status: 400 });
             }
