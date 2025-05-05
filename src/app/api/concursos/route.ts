@@ -4,14 +4,16 @@ import {
   getConcursos, 
   getConcursosById, 
   crearConcurso, 
-  modificarConcurso 
-} from '@/services/concursosService'; // Asegúrate que estén bien las rutas
+  modificarConcurso, actualizarSoloEstatusConcurso
+} from '@/services/concursosService';
+import { getProveedoresYPartidas } from '@/services/catalogoProveedoresService'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const forSelect = searchParams.get('forSelect');
   const userSecre = searchParams.get('userSecre');
   const userSistema = searchParams.get('userSistema');
+  const verificar = searchParams.get('verificar');
   const id = searchParams.get('id');
 
   try {
@@ -29,6 +31,11 @@ export async function GET(req: NextRequest) {
     if (id) {
       const concurso = await getConcursosById(id);
       return NextResponse.json(concurso);
+    }
+
+    if(verificar){
+      const proveedores = await getProveedoresYPartidas();
+      return NextResponse.json(proveedores);
     }
 
     console.log("API GET /concursos: Parámetros no válidos o faltantes.");
@@ -56,14 +63,26 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id_concurso, ...data } = body;
+    const { id_concurso, estatus_concurso, ...otrosCampos } = body;
 
     if (!id_concurso) {
       return NextResponse.json({ message: "Falta el ID del concurso para editar." }, { status: 400 });
     }
 
-    const concursoActualizado = await modificarConcurso(id_concurso, data);
+    // ✅ Si solo quieren actualizar el estatus
+    if (estatus_concurso && Object.keys(otrosCampos).length === 0) {
+      const actualizado = await actualizarSoloEstatusConcurso(id_concurso, estatus_concurso);
+      return NextResponse.json(actualizado);
+    }
+
+    // ✅ Si quieren actualizar más cosas (nombre, fechas, etc.)
+    const concursoActualizado = await modificarConcurso(id_concurso, {
+      estatus_concurso,
+      ...otrosCampos,
+    });
+
     return NextResponse.json(concursoActualizado);
+
   } catch (error: any) {
     console.error("API PUT /concursos error:", error);
     return NextResponse.json({ message: error.message || 'Error al editar concurso' }, { status: 500 });

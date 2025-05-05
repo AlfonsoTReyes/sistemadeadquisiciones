@@ -2,12 +2,14 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Notificaciones from "./notificaciones"; // Ajusta la ruta si es necesario
+import { pusherClient } from '../lib/pusherADQ-client';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBars,
   faTimes,
   faChevronDown,
-  faFileInvoiceDollar,
+  faBell,
   faClipboardList,
   faFolderOpen,
   faClipboardCheck,
@@ -34,13 +36,17 @@ export default function Menu() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [id_usuario, setIdusuario] = useState("");
+  const [id_rol, setIdrol] = useState("");
   const [usuarioAEditar, setUsuarioAEditar] = useState<number | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
   const [contraseñaEditar, setContraseñaAEditar] = useState<number | null>(null);
   const [isEditRostroModalOpen, setIsRostroEditModalOpen] = useState(false);
   const [rostroEditar, setRostroAEditar] = useState<number | null>(null);
+  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<any[]>([]);
 
+  
   const openEditModal = (id: number) => {
     setUsuarioAEditar(id);
     setIsEditModalOpen(true);
@@ -70,23 +76,34 @@ export default function Menu() {
     setRostroAEditar(null);
     setIsRostroEditModalOpen(false);
   };
+  
 
+  
   useEffect(() => {
     const email = sessionStorage.getItem("userEmail") || "";
-    setEmail(email);
     const nombreGuardado = sessionStorage.getItem("userNombre") || "";
-    setNombre(nombreGuardado);
     const id = sessionStorage.getItem("userId") || "";
-    setIdusuario(id);
-
     const permisos = sessionStorage.getItem("userPermissions");
+    const idrol = sessionStorage.getItem("userRole") || "";
+
+    console.log(idrol);
+    setEmail(email);
+    setNombre(nombreGuardado);
+    setIdusuario(id);
+    setIdrol(idrol);
+  
     if (permisos) {
       setPermissions(JSON.parse(permisos));
     } else {
       setPermissions([]);
       router.push("/");
+      return;
     }
+  
+    // 🔔 Cargar notificaciones
+
   }, []);
+  
 
   const handleLogout = () => {
     sessionStorage.removeItem("userRole");
@@ -96,7 +113,7 @@ export default function Menu() {
     sessionStorage.removeItem("userId");
     sessionStorage.clear();
     setPermissions([]);
-    router.push("login");
+    router.push("/login"); 
   };
 
   if (!permissions || permissions.length === 0) {
@@ -112,14 +129,24 @@ export default function Menu() {
   return (
     <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50">
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300"
-        >
-          <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
-        </button>
-        <h1 className="text-xl font-bold">Sistema de Adquisiciones</h1>
+        {/* Menú hamburguesa y campanita juntos */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300"
+          >
+            <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
+          </button>
+
+          <Notificaciones idrol={id_rol} />
+
+        </div>
+
+        {/* Título al centro */}
+        <h1 className="text-xl font-bold text-center flex-1">Sistema de Adquisiciones</h1>
       </div>
+
+      
 
       <ul
         className={`${
@@ -330,32 +357,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_comite') && (
               <li className="mb-1">
                 <Link
-                  href="/comite"
+                  href="/ordenes_dia"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comité
-                </Link>
-              </li>
-            )}
-
-            {permissions.includes('menu_ver_contratos') && (
-              <li className="mb-1">
-                <Link
-                  href="/contratos"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
-                </Link>
-              </li>
-            )}
-
-            {permissions.includes('menu_ver_cotizaciones') && (
-              <li className="mb-1">
-                <Link
-                  href="/cotizaciones"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Cotizaciones
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Ordenes del día
                 </Link>
               </li>
             )}
@@ -382,16 +387,17 @@ export default function Menu() {
               </li>
             )}
 
-            {permissions.includes('menu_ver_recepcion_articulo') && (
+            {permissions.includes('menu_ver_comite_calendarios') && (
               <li className="mb-1">
                 <Link
-                  href="/requisicion"
+                  href="/usuarios_comite"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Recepción de articulo
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Mis comites
                 </Link>
               </li>
             )}
+
             {permissions.includes('menu_ver_comite') && (
               <li className="mb-1">
                 <button
@@ -416,17 +422,6 @@ export default function Menu() {
                 </Link>
               </li>
             )}
-            
-            {permissions.includes('menu_ver_comite_calendarios') && (
-              <li className="mb-1">
-                <Link
-                  href="/usuarios_comite"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Dictamenes comite
-                </Link>
-              </li>
-            )}
 
             {permissions.includes('menu_ver_comite_calendarios') && (
               <li className="mb-1">
@@ -434,7 +429,7 @@ export default function Menu() {
                   href="/administracionAdquisiciones"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administración de adquisiciones
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administración de tipo adjudicaciones
                 </Link>
               </li>
             )}
@@ -445,18 +440,7 @@ export default function Menu() {
                   href="/comite"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comite calendarios
-                </Link>
-              </li>
-            )}
-
-            {permissions.includes('menu_ver_comite_extraordinarios') && (
-              <li className="mb-1">
-                <Link
-                  href="/requisicion"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Comite extraordinarios
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administración comite calendarios
                 </Link>
               </li>
             )}
@@ -483,7 +467,7 @@ export default function Menu() {
                   href="/requisicion"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adjudicaciones
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adjudicaciones listas
                 </Link>
               </li>
             )}
@@ -567,16 +551,6 @@ export default function Menu() {
                 <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
               </button>
             </li>
-            {permissions.includes('menu_ver_adquisiciones') && (
-              <li className="mb-1">
-                <Link
-                  href="/requisicion"
-                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-                >
-                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adquisiciones
-                </Link>
-              </li>
-            )}
             {permissions.includes('menu_ver_contratos_espera') && (
               <li className="mb-1">
                 <Link
@@ -636,10 +610,10 @@ export default function Menu() {
             {permissions.includes('menu_ver_comite_secretarias') && (
               <li className="mb-1">
                 <Link
-                  href="/requirente"
+                  href="/usuario_comite"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Comité
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Mis comite
                 </Link>
               </li>
             )}
@@ -744,10 +718,10 @@ export default function Menu() {
 
               <li className="mb-1">
                 <Link
-                  href="/comite"
+                  href="/usuarios_comite"
                   className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
                 >
-                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Comite
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Mis comite
                 </Link>
               </li>
             )}
