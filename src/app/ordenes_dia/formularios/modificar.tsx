@@ -1,52 +1,79 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { createSolicitud } from '../../../peticiones_api/peticionSolicitudes';
-import { getUserById } from '../../../peticiones_api/fetchUsuarios';
+import { updateSolicitud, getSolicitudById } from "../../peticiones_api/peticionSolicitudes";
+import { getUserById } from "../../peticiones_api/fetchUsuarios";
 
-interface AltaSolicitudProps {
+interface ModificarSolicitudProps {
   onClose: () => void;
-  onSolicitudAdded: () => void;
+  onSolicitudUpdated: () => void;
+  idSolicitud: number;
 }
 
-const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded }) => {
+const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSolicitudUpdated, idSolicitud }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [folio, setFolio] = useState("");
   const [motivo, setMotivo] = useState("");
   const [monto, setMonto] = useState("");
   const [idAdjudicacion, setIdAdjudicacion] = useState("");
   const [secretaria, setSecretaria] = useState("");
-  const [secretariaId, setSecretariId] = useState("");
-  const [nombre, setNombre] = useState("");
   const [dependencia, setDependencia] = useState("");
-  const [dependenciaId, setDependenciaId] = useState("");
   const [nomina, setNomina] = useState("");
-  const [usuario, setUsuario] = useState("");
   const [lugar, setLugar] = useState("");
   const [asunto, setAsunto] = useState("");
   const [necesidad, setNecesidad] = useState("");
   const [cotizacion, setCotizacion] = useState("");
   const [compra_servicio, setCompraServicio] = useState("");
+  const [fecha, setFecha] = useState("");
+  
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]); // Fecha actual
 
+  // Obtener los datos de la solicitud a modificar
   useEffect(() => {
-    // Obtener el ID de usuario desde sessionStorage
+    const fetchSolicitud = async () => {
+      try {
+        setIsLoading(true);
+        const solicitudData = await getSolicitudById(idSolicitud);
+        if (solicitudData) {
+          console.log(solicitudData);
+          setFolio(solicitudData.folio);
+          setMotivo(solicitudData.motivo);
+          setMonto(solicitudData.monto.toString());
+          setIdAdjudicacion(solicitudData.tipo_adquisicion.toString());
+          setLugar(solicitudData.lugar);
+          setAsunto(solicitudData.asunto);
+          setNecesidad(solicitudData.necesidad);
+          setCotizacion(solicitudData.cotizacion);
+          setCompraServicio(solicitudData.compra_servicio);
+          if (solicitudData.fecha_solicitud) {
+            const fechaFormateada = solicitudData.fecha_solicitud.slice(0, 10);
+            setFecha(fechaFormateada);
+          }
+          
+        }
+      } catch (err) {
+        console.error("Error al obtener la solicitud:", err);
+        setError("No se pudo obtener la información de la solicitud.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSolicitud();
+  }, [idSolicitud]);
+
+  // Obtener datos del usuario autenticado
+  useEffect(() => {
     const userId = sessionStorage.getItem("userId");
 
     if (userId) {
-      // Llamar a la función para obtener datos del usuario
       getUserById(userId)
         .then((userData) => {
           if (userData) {
-            setNombre(userData.nombre_u);
             setSecretaria(userData.nombre_s);
-            setSecretariId(userData.id_secretaria)
             setDependencia(userData.nombre_d);
-            setDependenciaId(userData.id_dependencia);
             setNomina(userData.nomina);
-            setUsuario(userData.id_usuario);
-            setLugar("San Juan del Río, Querétaro"); 
+
           }
         })
         .catch((err) => {
@@ -55,7 +82,7 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
         });
     }
   }, []);
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === "folio") setFolio(value);
@@ -76,33 +103,30 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
     setSuccessMessage("");
     setIsLoading(true);
 
-    if (!folio || !motivo || !monto || !idAdjudicacion || !secretaria) {
-      setError("todos los campos son obligatorios.");
+    if (!idSolicitud || !folio || !motivo || !monto || !idAdjudicacion || !secretaria) {
+      setError("Todos los campos son obligatorios.");
       setIsLoading(false);
       return;
     }
 
     const solicitudData = {
+      idSolicitud,
       folio,
       motivo,
       monto: parseFloat(monto),
       id_adjudicacion: parseInt(idAdjudicacion),
-      secretaria: secretariaId,
-      dependencia: dependenciaId,
       lugar,
       asunto,
       necesidad,
       cotizacion: Boolean(cotizacion),
       compra_servicio,
-      nomina,
-      usuario
     };
 
     try {
-      await createSolicitud(solicitudData);
+      await updateSolicitud(solicitudData);
 
-      setSuccessMessage("Solicitud registrada correctamente");
-      onSolicitudAdded();
+      setSuccessMessage("Solicitud actualizada correctamente");
+      onSolicitudUpdated();
       setTimeout(() => {
         onClose();
       }, 1000);
@@ -115,7 +139,7 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
 
   return (
     <div>
-      <h1 className="text-lg font-bold mb-4">Alta de solicitud</h1>
+      <h1 className="text-lg font-bold mb-4">Modificar solicitud</h1>
 
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
@@ -129,20 +153,16 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
       <form onSubmit={handleSubmit} className="mx-auto">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
-            <label>Nómina: <span className="text-red-500">*</span></label>
-            <input disabled type="text"  value={nomina} name="nomina" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <label>Secretaría:</label>
+            <input disabled type="text" value={secretaria} name="secretaria" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
           </div>
           <div className="mb-4">
-            <label>Secretaría: <span className="text-red-500">*</span></label>
-            <input disabled type="text"  value={secretaria} name="secretaria" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <label>Nómina:</label>
+            <input disabled type="text" value={nomina} name="nomina" className="border border-gray-300 p-2 rounded w-full bg-gray-100"/>
           </div>
           <div className="mb-4">
             <label>Dependencia: <span className="text-red-500">*</span></label>
-            <input disabled type="text" value={dependencia} name="dependencia" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
-          </div>
-          <div className="mb-4">
-            <label>Nombre: <span className="text-red-500">*</span></label>
-            <input disabled type="text" value={nombre} name="nombre" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input disabled type="text" value={dependencia} name="dependencia" required className="border border-gray-300 p-2 rounded w-full"/>
           </div>
           <div className="mb-4">
             <label>Fecha: <span className="text-red-500">*</span></label>
@@ -151,23 +171,22 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
           <div className="mb-4">
             <label>Lugar: <span className="text-red-500">*</span></label>
             <input type="text" name="lugar" value={lugar} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
-
           </div>
           <div className="mb-4">
             <label>Folio: <span className="text-red-500">*</span></label>
-            <input type="text" name="folio" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input type="text" name="folio" value={folio} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>Asunto: <span className="text-red-500">*</span></label>
-            <input type="text" name="asunto" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input type="text" name="asunto" value={asunto} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>Motivo: <span className="text-red-500">*</span></label>
-            <input type="text" name="motivo" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input type="text" name="motivo" value={motivo} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>Necesidad: <span className="text-red-500">*</span></label>
-            <input type="text" name="necesidad" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input type="text" name="necesidad" value={necesidad} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
             <label>¿Tiene cotización? <span className="text-red-500">*</span></label>
@@ -185,32 +204,20 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
           </div>
           <div className="mb-4">
             <label>Describa la compra o servicio <span className="text-red-500">*</span></label>
-            <input type="text" name="compra_servicio" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input type="text" name="compra_servicio" value={compra_servicio} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
           <div className="mb-4">
-            <label>
-              Monto: <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              name="monto"
-              required
-              step="any"
-              min="0"
-              className="border border-gray-300 p-2 rounded w-full"
-              onChange={handleInputChange}
-            />
+            <label>Monto: <span className="text-red-500">*</span></label>
+            <input type="number" name="monto" value={monto} required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
           </div>
-
-
           <div className="mb-4">
             <label>Tipo de adquisición: <span className="text-red-500">*</span></label>
-            <select name="idAdjudicacion" onChange={handleInputChange} className="w-full p-2 border rounded" required>
+            <select name="idAdjudicacion" value={idAdjudicacion} onChange={handleInputChange} className="w-full p-2 border rounded" required>
               <option value="">Selecciona adjudicación</option>
               <option value="1">Bienes y servicios</option>
               <option value="2">Obras públicas</option>
-              <option value="3">Medios de comunicación</option>
-
+              <option value="3">Arrendamiento</option>
+              <option value="4">Contrataciones </option>
             </select>
           </div>
         </div>
@@ -224,7 +231,7 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
 
         <div className="flex justify-between mt-6">
           <button type="submit" disabled={isLoading} className={`w-1/2 p-2 rounded ${isLoading ? "bg-gray-500" : "bg-blue-500"} text-white`}>
-            {isLoading ? "Cargando..." : "Guardar"}
+            {isLoading ? "Cargando..." : "Guardar Cambios"}
           </button>
           <button type="button" onClick={onClose} className="bg-red-500 text-white p-2 rounded w-1/2 hover:bg-red-600">
             Cerrar
@@ -235,4 +242,4 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
   );
 };
 
-export default AltaSolicitud;
+export default ModificarSolicitud;

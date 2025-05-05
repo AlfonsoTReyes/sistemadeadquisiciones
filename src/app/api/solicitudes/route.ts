@@ -2,8 +2,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSolicitudes, getSolicitudesAll, getSolicitudByIdPDF, getSolicitudById, createSolicitud, updateSolicitud,
-  getSolicitudByConcursos
+  getSolicitudByConcursos,
+  getSolicitudesFiltradasPorEstatus,
+  getSolicitudesAllFiltradasPorEstatus
  } from "../../../services/solicitudeservice";
+
 
 // obtener todas las solicitudes o una en específico
 export async function GET(req: NextRequest) {
@@ -14,7 +17,7 @@ export async function GET(req: NextRequest) {
     const secretaria = searchParams.get("secretaria");
     const sistema = searchParams.get("sistema");
     const tipo = searchParams.get("tipo");
-
+    const tipoordenes = searchParams.get("tipoordenes");
 
     if (tipo) {
       const solicitud = await getSolicitudByConcursos();
@@ -39,22 +42,91 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json(solicitud);
     }
+    const estatusPorTipo: Record<string, string[]> = {
+      "1": ["En comite"],
+      "2": ["En concurso"]
+    };
 
-    if(sistema !=='UNIVERSAL'){
-      if (secretaria) {
-        const solicitud = await getSolicitudes(parseInt(secretaria));
-        if (!solicitud) {
-          return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    let solicitud;
+
+    if (tipoordenes && estatusPorTipo[tipoordenes]) {
+      // Es tipo 1 o 2 → usa método que filtra por estatus
+      const estatus = estatusPorTipo[tipoordenes][0];
+
+      if (sistema !== "UNIVERSAL") {
+        if (secretaria) {
+          solicitud = await getSolicitudesFiltradasPorEstatus(parseInt(secretaria), estatus);
         }
-        return NextResponse.json(solicitud);
+      } else {
+        solicitud = await getSolicitudesAllFiltradasPorEstatus(estatus);
       }
-    }else{
-      const solicitud = await getSolicitudesAll();
-        if (!solicitud) {
-          return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    } else {
+      // Otros tipos (sin filtro de estatus)
+      if (sistema !== "UNIVERSAL") {
+        if (secretaria) {
+          solicitud = await getSolicitudes(parseInt(secretaria));
         }
-        return NextResponse.json(solicitud);
+      } else {
+        solicitud = await getSolicitudesAll();
+      }
     }
+
+    if (!solicitud || solicitud.length === 0) {
+      return NextResponse.json({ message: "No se encontraron solicitudes" }, { status: 404 });
+    }
+
+    return NextResponse.json(solicitud);
+    // if(tipoordenes=="1"){
+    //   if(sistema !=='UNIVERSAL'){
+    //     if (secretaria) {
+    //       const solicitud = await getSolicitudesOrdenes(parseInt(secretaria));
+    //       if (!solicitud) {
+    //         return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //       }
+    //       return NextResponse.json(solicitud);
+    //     }
+    //   }else{
+    //     const solicitud = await getSolicitudesAllOrdenes();
+    //       if (!solicitud) {
+    //         return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //       }
+    //       return NextResponse.json(solicitud);
+    //   }
+    // } else{
+    //   if(tipoordenes=="2"){
+    //     if(sistema !=='UNIVERSAL'){
+    //       if (secretaria) {
+    //         const solicitud = await getSolicitudesConcursos(parseInt(secretaria));
+    //         if (!solicitud) {
+    //           return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //         }
+    //         return NextResponse.json(solicitud);
+    //       }
+    //     }else{
+    //       const solicitud = await getSolicitudesAllConcursos();
+    //         if (!solicitud) {
+    //           return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //         }
+    //         return NextResponse.json(solicitud);
+    //     }
+    //   } else{
+    //       if(sistema !=='UNIVERSAL'){
+    //         if (secretaria) {
+    //           const solicitud = await getSolicitudes(parseInt(secretaria));
+    //           if (!solicitud) {
+    //             return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //           }
+    //           return NextResponse.json(solicitud);
+    //         }
+    //       }else{
+    //         const solicitud = await getSolicitudesAll();
+    //           if (!solicitud) {
+    //             return NextResponse.json({ message: "solicitud no encontrada" }, { status: 404 });
+    //           }
+    //           return NextResponse.json(solicitud);
+    //       }
+    //   }
+    // }
 
   } catch (error) {
     console.error("error al obtener solicitudes:", error);
@@ -72,7 +144,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
 
-    if(id_adjudicacion == 1){
+    if(id_adjudicacion == 1 || id_adjudicacion == 3){
       tipo= 7;
     }else{
       tipo = 8;

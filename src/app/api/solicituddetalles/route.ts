@@ -42,8 +42,6 @@ export async function PUT(req: NextRequest) {
 
     let resultado;
 
-    // según el tipo de documento se llama a una función distinta
-
     console.log(tipoOrigen, nuevoEstatus);
     switch (tipoOrigen) {
       

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const uploadResponse = await cloudinary.uploader.upload(dataURI, {
       folder: `documentos_adicionales/${id_solicitud}`,
       public_id: `${tipo_documento}_${Date.now()}`,
-      resource_type: file.type.startsWith("application/") ? "raw" : "auto",
+      resource_type: "auto",
     });
 
     
