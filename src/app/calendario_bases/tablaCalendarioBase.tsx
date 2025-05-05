@@ -2,6 +2,8 @@
 import { useState } from "react";
 import ModificarEvento from "./formularios/modificar";
 import ModalEliminarEvento from "./formularios/eliminar";
+import ModalInvitacionComite from "../invitacion_oferentes/modalBasesCalendario"
+
 
 interface Evento {
   id_evento_calendario: number;
@@ -22,6 +24,7 @@ interface TablaProps {
 const TablaCalendarioEventos: React.FC<TablaProps> = ({ eventos, onReload }) => {
   const [eventoEditar, setEventoEditar] = useState<number | null>(null);
   const [eventoEliminar, setEventoEliminar] = useState<number | null>(null); // 🔥 ESTADO PARA MODAL ELIMINAR
+  const [mostrarModalInvitacion, setMostrarModalInvitacion] = useState(false);
 
   return (
     <div className="overflow-x-auto">
@@ -30,6 +33,16 @@ const TablaCalendarioEventos: React.FC<TablaProps> = ({ eventos, onReload }) => 
           No hay eventos en el calendario.
         </div>
       )}
+
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setMostrarModalInvitacion(true)}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+        >
+          📤 Enviar fechas a comité
+        </button>
+      </div>
+
       <table className="min-w-full table-auto border">
         <thead className="bg-blue-700 text-white">
           <tr>
@@ -91,6 +104,13 @@ const TablaCalendarioEventos: React.FC<TablaProps> = ({ eventos, onReload }) => 
           }}
         />
       )}
+      {mostrarModalInvitacion && (
+        <ModalInvitacionComite
+          idConcurso={eventos[0]?.id_concurso ?? 0}
+          onClose={() => setMostrarModalInvitacion(false)}
+        />
+      )}
+
     </div>
   );
 };

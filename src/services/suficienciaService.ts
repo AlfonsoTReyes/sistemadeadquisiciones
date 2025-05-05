@@ -451,7 +451,7 @@ export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) 
 export const getSuficienciasBySolicitudID = async (idSolicitud: number) => {
   try {
     const result = await sql`
-      SELECT 1 FROM solicitud_suficiencia WHERE id_solicitud = ${idSolicitud} LIMIT 1;
+      SELECT 1 FROM solicitud_suficiencia WHERE id_solicitud = ${idSolicitud} AND tipo= 'Pre-suficiencia' LIMIT 1;
     `;
     return !!result.rowCount;
   } catch (error) {

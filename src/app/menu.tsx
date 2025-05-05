@@ -5,8 +5,28 @@ import React from 'react'; // Necesario para JSX y Toaster
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react"; // useCallback añadido
 import { useRouter } from "next/navigation";
+import Notificaciones from "./notificaciones"; // Ajusta la ruta si es necesario
+import { pusherClient } from '../lib/pusherADQ-client';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+
+  faBars,
+  faTimes,
+  faChevronDown,
+  faBell,
+  faClipboardList,
+  faFolderOpen,
+  faClipboardCheck,
+  faUserCog,
+  faUser,
+  faUsers,
+  faUserShield,
+  faKey,
+  faUserCircle,
+  faLock,
+  faSmile,
+  faSignOutAlt,
+
   faBars, faTimes, faChevronDown, faFileInvoiceDollar, faClipboardList,
   faFolderOpen, faClipboardCheck, faUserCog, faUser, faUsers, faUserShield,
   faKey, faUserCircle, faLock, faSmile, faSignOutAlt, faBuildingColumns, // Icono ejemplo Finanzas
@@ -14,6 +34,7 @@ import {
   faFileContract,
   faGavel, // Icono ejemplo Comité/Concursos
   faWarehouse // Icono ejemplo Adquisiciones/Secretarías
+
 } from "@fortawesome/free-solid-svg-icons";
 
 // Modales (Asegúrate que las rutas sean correctas)
@@ -47,16 +68,33 @@ export default function Menu() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
+
+  const [id_usuario, setIdusuario] = useState("");
+  const [id_rol, setIdrol] = useState("");
+
   const [id_usuario, setIdUsuario] = useState<string | null>(null); // Inicializar como null
   const [isLoadingSession, setIsLoadingSession] = useState(true); // Estado de carga de sesión
 
-  // Estados de Modales (sin cambios)
   const [usuarioAEditar, setUsuarioAEditar] = useState<number | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
   const [contraseñaEditar, setContraseñaAEditar] = useState<number | null>(null);
   const [isEditRostroModalOpen, setIsRostroEditModalOpen] = useState(false);
   const [rostroEditar, setRostroAEditar] = useState<number | null>(null);
+  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<any[]>([]);
+
+
+  
+  const openEditModal = (id: number) => {
+    setUsuarioAEditar(id);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setUsuarioAEditar(null);
+    setIsEditModalOpen(false);
+  };
 
   // Handlers de Modales (sin cambios)
   const openEditModal = (id: number) => { setUsuarioAEditar(id); setIsEditModalOpen(true); };
@@ -65,6 +103,7 @@ export default function Menu() {
   const closeEditPassModal = () => { setContraseñaAEditar(null); setIsPassEditModalOpen(false); };
   const openEditRostroModal = (id: number) => { setRostroAEditar(id); setIsRostroEditModalOpen(true); };
   const closeEditRostroModal = () => { setRostroAEditar(null); setIsRostroEditModalOpen(false); };
+
 
   // useEffect para cargar sesión
   useEffect(() => {
@@ -108,6 +147,53 @@ export default function Menu() {
       router.push(LOGIN_URL); // Redirigir si no es válida
     }
 
+
+  const closeEditRostroModal = () => {
+    setRostroAEditar(null);
+    setIsRostroEditModalOpen(false);
+  };
+  
+
+  
+  useEffect(() => {
+    const email = sessionStorage.getItem("userEmail") || "";
+    const nombreGuardado = sessionStorage.getItem("userNombre") || "";
+    const id = sessionStorage.getItem("userId") || "";
+    const permisos = sessionStorage.getItem("userPermissions");
+    const idrol = sessionStorage.getItem("userRole") || "";
+
+    console.log(idrol);
+    setEmail(email);
+    setNombre(nombreGuardado);
+    setIdusuario(id);
+    setIdrol(idrol);
+  
+    if (permisos) {
+      setPermissions(JSON.parse(permisos));
+    } else {
+      setPermissions([]);
+      router.push("/");
+      return;
+    }
+  
+    // 🔔 Cargar notificaciones
+
+  }, []);
+  
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("userPermissions");
+    sessionStorage.removeItem("userEmail");
+    sessionStorage.removeItem("userNombre");
+    sessionStorage.removeItem("userId");
+    sessionStorage.clear();
+    setPermissions([]);
+    router.push("/login"); 
+  };
+
+  if (!permissions || permissions.length === 0) {
+
     setIsLoadingSession(false); // Termina carga
   }, [router]);
 
@@ -146,6 +232,7 @@ export default function Menu() {
 
   // Renderizado si no hay permisos (aunque useEffect ya debería haber redirigido)
   if (!id_usuario || permissions.length === 0) {
+
     return (
       <div className="bg-custom-color text-white w-full p-4 text-center">
         <p>No tienes acceso o la sesión ha expirado. Serás redirigido...</p>
@@ -155,6 +242,55 @@ export default function Menu() {
 
   // --- Renderizado Principal del Menú ---
   return (
+
+    <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50">
+      <div className="flex items-center justify-between">
+        {/* Menú hamburguesa y campanita juntos */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300"
+          >
+            <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
+          </button>
+
+          <Notificaciones idrol={id_rol} />
+
+        </div>
+
+        {/* Título al centro */}
+        <h1 className="text-xl font-bold text-center flex-1">Sistema de Adquisiciones</h1>
+      </div>
+
+      
+
+      <ul
+        className={`${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        } transform transition-transform duration-300 fixed top-0 left-0 h-full w-64 bg-gray-800 p-4 overflow-y-auto z-40`}
+        style={{ backgroundColor: "#0a1640" }}
+      >
+        <li className="mb-1">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </li>
+        {permissions.includes('menu_ver_usuarios_proveedores') && (
+          <>
+            <li className="mb-1">
+              <button
+                onClick={() => setIsSessionOpen(!isSession)}
+                className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+              >
+                <div className="flex items-center">
+                  <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> USUARIO PROVEEDORES
+                </div>
+              </button>
+            </li>
+
     <> {/* Fragmento para Toaster y Nav */}
       {/* Contenedor de Toasts */}
       <Toaster
@@ -192,6 +328,7 @@ export default function Menu() {
           </li>
 
           {/* --- SECCIONES DEL MENÚ CON PERMISOS Y SUBMENÚS --- */}
+
 
           {/* Sección USUARIO PROVEEDORES (Ejemplo con submenú) */}
           {permissions.includes('menu_ver_usuarios_proveedores') && (
@@ -284,8 +421,117 @@ export default function Menu() {
             </li>
           )}
 
+
+            {permissions.includes('menu_ver_solicitudes_pendientes') && (
+              <li className="mb-1">
+                <Link
+                  href="/solicitantes/solicitudes"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitudes
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite') && (
+              <li className="mb-1">
+                <Link
+                  href="/ordenes_dia"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Ordenes del día
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_pre_suficiencias') && (
+              <li className="mb-1">
+                <Link
+                  href="/pre_suficiencia"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitudes pre suficiencia
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_solicitudes_suficiencias') && (
+              <li className="mb-1">
+                <Link
+                  href="/suficiencia"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Solicitudes suficiencia
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/usuarios_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Mis comites
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite') && (
+              <li className="mb-1">
+                <button
+                  onClick={() => setIsSessionOpen(!isSession)}
+                  className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> COMITE
+                  </div>
+                  <FontAwesomeIcon icon={faChevronDown} className="ml-2" />
+                </button>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/usuarios_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Mis comites
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/administracionAdquisiciones"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administración de tipo adjudicaciones
+                </Link>
+              </li>
+            )}
+            
+            {permissions.includes('menu_ver_comite_calendarios') && (
+              <li className="mb-1">
+                <Link
+                  href="/comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Administración comite calendarios
+                </Link>
+              </li>
+            )}
+          </>
+        )}
+
+        {permissions.includes('menu_ver_modulo_concursos_contratos') && (
+          <>
+
           {/* Sección SECRETARIAS (Ejemplo con submenú) */}
           {permissions.includes('menu_ver_modulo_secretarias') && (
+
             <li className="mb-1">
               <button onClick={() => setIsSecretariasOpen(!isSecretariasOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
                 <div className="flex items-center"><FontAwesomeIcon icon={faWarehouse} className="mr-2 w-5" /> SECRETARÍAS</div>
@@ -298,10 +544,92 @@ export default function Menu() {
                 </ul>
               )}
             </li>
+
+            {permissions.includes('menu_ver_ajudicaciones') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Adjudicaciones listas
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_concursos') && (
+              <li className="mb-1">
+                <Link
+                  href="/concursos"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Concursos
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_contratos') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contratos
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_proveedores_participantes') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Proveedores
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_expendientes') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Expedientes
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_bases') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Bases
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_fallos') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Fallos
+                </Link>
+              </li>
+            )}
+          </>
+        )}
+
+        {permissions.includes('menu_ver_contratos') && (
+          <>
+
           )}
 
           {/* Sección FINANZAS (Ejemplo con submenú) */}
           {permissions.includes('menu_ver_modulo_finanzas') && (
+
             <li className="mb-1">
               <button onClick={() => setIsFinanzasOpen(!isFinanzasOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
                 <div className="flex items-center"><FontAwesomeIcon icon={faBuildingColumns} className="mr-2 w-5" /> FINANZAS</div>
@@ -315,10 +643,48 @@ export default function Menu() {
                 </ul>
               )}
             </li>
+
+            {permissions.includes('menu_ver_contratos_espera') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Contatos en espera
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_contratos_aprobados') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Aprobados
+                </Link>
+              </li> 
+            )}
+            {permissions.includes('menu_ver_padron_proveedores') && (
+              <li className="mb-1">
+                <Link
+                  href="/requisicion"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardCheck} className="mr-2" /> Padrón de proveedores
+                </Link>
+              </li> 
+            )}
+          </>
+        )}
+
+        {permissions.includes('menu_ver_modulo_secretarias') && (
+          <>
+
           )}
 
           {/* Sección ADMINISTRACIÓN (Usuarios, Roles, Permisos) */}
           {permissions.includes('menu_ver_administracion') && (
+
             <li className="mb-1">
               <button onClick={() => setIsAdministracionOpen(!isAdministracionOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
                 <div className="flex items-center"><FontAwesomeIcon icon={faUserCog} className="mr-2 w-5" /> Administración</div>
@@ -332,6 +698,92 @@ export default function Menu() {
                 </ul>
               )}
             </li>
+
+            {permissions.includes('menu_ver_solicitudes_adquisiciones') && (
+              <li className="mb-1">
+                <Link
+                  href="/solicitantes/solicitudes"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes de Adquisiciones
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_comite_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/usuario_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Mis comite
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_contratos_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Contratos
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_cotizaciones_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Cotizaciones
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_suficiencias_pre_aprobadas') && (
+              <li className="mb-1">
+                <Link
+                  href="/pre_suficiencia"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Suficiencias pre aprobadas
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_ordenes_compra_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compra
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_recepcion_articulo_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Recepción de articulo
+                </Link>
+              </li>
+            )}
+            {permissions.includes('menu_ver_seguimientos_secretarias') && (
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Seguimientos
+                </Link>
+              </li>
+            )}
+          </>
+        )}
+        {permissions.includes('menu_ver_modulo_finanzas') && (
+          <>
+
           )}
 
           {/* Separador antes del menú de sesión */}
@@ -339,6 +791,7 @@ export default function Menu() {
 
           {/* Menú de Sesión del Usuario */}
           {email && id_usuario && (
+
             <li className="mb-1">
               <button onClick={() => setIsSessionOpen(!isSessionOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
                 <div className="flex items-center truncate" title={email}><FontAwesomeIcon icon={faUserCircle} className="mr-2 flex-shrink-0 w-5" /><span className="truncate">{email}</span></div>
@@ -352,6 +805,89 @@ export default function Menu() {
                 </ul>
               )}
             </li>
+
+            {permissions.includes('menu_ver_solicitudes_pre_suficiencias_finanzas') && (
+              <li className="mb-1">
+                <Link
+                  href={{ pathname: "/pre_suficiencia", query: { tipo: "pre" } }}
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes pre suficiencia
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_solicitudes_suficiencias_finanzas') && (
+              <li className="mb-1">
+                <Link
+                  href={{ pathname: "/pre_suficiencia", query: { tipo: "suf" } }}
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Solicitudes suficiencia
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_comite') && (
+
+              <li className="mb-1">
+                <Link
+                  href="/usuarios_comite"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Mis comite
+                </Link>
+              </li>
+            )}
+            
+            {permissions.includes('menu_ver_cotizaciones_finanzas') && (
+
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Cotizaciones
+                </Link>
+              </li>
+            )}
+
+            {permissions.includes('menu_ver_ordenes_compra_finanzas') && (
+
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Ordenes de compras
+                </Link>
+              </li>
+            )}
+            
+            {permissions.includes('menu_ver_solicitudes_polizas_finanzas') && (
+
+              <li className="mb-1">
+                <Link
+                  href="/requirente"
+                  className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="mr-2" /> Polizas
+                </Link>
+              </li>
+            )}
+            
+          </>
+        )}
+
+        {permissions.includes('menu_ver_administracion') && (
+          <li className="mb-1">
+            <button
+              onClick={() => setIsUsuariosOpen(!isUsuariosOpen)}
+              className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
+            >
+              <div className="flex items-center">
+                <FontAwesomeIcon icon={faUserCog} className="mr-2" /> Administración
+
           )}
         </ul> {/* Fin Menú Lateral */}
 
@@ -363,6 +899,7 @@ export default function Menu() {
               <div className="bg-white p-6 rounded-lg shadow-xl text-black w-full max-w-2xl relative max-h-[90vh] overflow-y-auto"> {/* Estilos mejorados */}
                 <button onClick={closeEditModal} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600" aria-label="Cerrar modal"><FontAwesomeIcon icon={faTimes} size="lg" /></button>
                 <ModificarUsuario id_usuario={usuarioAEditar} onClose={closeEditModal} onUsuarioUpdated={() => { /* Podrías recargar datos si es necesario */ }} />
+
               </div>
             </div>
           )}

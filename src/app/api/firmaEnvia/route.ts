@@ -3,7 +3,7 @@ import { updateSolicitudEstatusFirma } from "../../../services/solicitudeservice
 import { getJustificacionBySolicitud } from "../../../services/justificacionservice";
 import { getSuficienciasBySolicitudID } from "../../../services/suficienciaService";
 import { getDocsBySolicitud } from "../../../services/documentosoliservice";
-
+import { enviarNotificacion } from "../../../services/notificaciooneservice";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +27,14 @@ export async function POST(req: NextRequest) {
 
     // Si pasa la validación, se firma
     const resultado = await updateSolicitudEstatusFirma(id_solicitud);
+    const notificacion = await enviarNotificacion({
+      titulo: 'Solicitud adquisición',
+      mensaje: `La solicitud con el folio ${resultado.folio} fue enviada para revisión.`,
+      tipo: 'Informativo', // o 'solicitud' si prefieres
+      id_usuario_origen: 8,
+      id_rol_destino: [1, 3],
+      destino_tipo: 'rol',
+    });
 
     return NextResponse.json({ message: "Solicitud firmada correctamente", data: resultado.data });
   } catch (error) {

@@ -195,15 +195,22 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
           </label>
 
-          <label>Uso
-            <span className="text-red-500">*</span>
-            <input name="uso" className="border border-gray-300 p-2 rounded w-full" value={formData.uso} onChange={handleChange} required />
-          </label>
+          <label>
+              Uso <span className="text-red-500">*</span>
+              <textarea
+                name="uso"
+                className="border border-gray-300 p-2 rounded w-full"
+                value={formData.uso}
+                onChange={handleChange}
+                required
+                rows={4} 
+              />
+            </label>
 
           {/* textareas */}
           <label>Planteamiento
           <span className="text-red-500">*</span>
-            <textarea name="planteamiento" className="border border-gray-300 p-2 rounded w-full" value={formData.planteamiento} onChange={handleChange} required />
+            <textarea name="planteamiento" className="border border-gray-300 p-2 rounded w-full" value={formData.planteamiento} onChange={handleChange} required rows={4} />
             <input
               type="text"
               placeholder="Comentario sobre el archivo"
@@ -238,7 +245,7 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
           <label>Antecedente
             <span className="text-red-500">*</span>
-            <textarea name="antecedente" className="border border-gray-300 p-2 rounded w-full" value={formData.antecedente} onChange={handleChange} required />
+            <textarea rows={4} name="antecedente" className="border border-gray-300 p-2 rounded w-full" value={formData.antecedente} onChange={handleChange} required />
             <input
               type="text"
               placeholder="Comentario sobre el archivo"
@@ -272,17 +279,16 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
           <label>Necesidad
             <span className="text-red-500">*</span>
-            <textarea name="necesidad"className="border border-gray-300 p-2 rounded w-full" value={formData.necesidad} onChange={handleChange} required />
+            <textarea rows={4} name="necesidad"className="border border-gray-300 p-2 rounded w-full" value={formData.necesidad} onChange={handleChange} required />
           </label>
 
           <label>Consecuencias
             <span className="text-red-500">*</span>
-            <textarea name="consecuencias" className="border border-gray-300 p-2 rounded w-full" value={formData.consecuencias} onChange={handleChange} required />
+            <textarea rows={4} name="consecuencias" className="border border-gray-300 p-2 rounded w-full" value={formData.consecuencias} onChange={handleChange} required />
           </label>
 
           <label>Históricos monetarios
-            <span className="text-red-500">*</span>
-            <textarea name="historicos_monetarios" className="border border-gray-300 p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} required />
+            <textarea rows={4} name="historicos_monetarios" className="border border-gray-300 p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} />
             <input
               type="text"
               placeholder="Comentario sobre el archivo"
@@ -320,14 +326,34 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
           {/* botones */}
           <div className="col-span-1 sm:col-span-2 flex justify-center gap-4 mt-4">
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-              Guardar
-            </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`px-4 py-2 rounded transition text-white ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600'
+            }`}
+          >
+            {isLoading ? 'Guardando...' : 'Guardar'}
+          </button>
+
             <button type="button" onClick={onClose} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
               Cancelar
             </button>
           </div>
         </form>
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded relative animate-fade-in-out">
+            ✅ {successMessage}
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded relative animate-fade-in-out">
+            ❌ {error}
+          </div>
+        )}
 
       </div>
     </div>

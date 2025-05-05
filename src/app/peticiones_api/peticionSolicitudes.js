@@ -105,3 +105,16 @@ export const createFirma = async (solicitudData) => {
   }
 };
 
+
+
+export const fetchOrdenesDiaSolicitud = async (userSecre, userSistema) => {
+  try {
+    const response = await fetch(`${API_URL}?secretaria=${userSecre}&sistema=${userSistema}&tipoordenes=1`);
+    if (!response.ok) {
+      throw new Error("Error al obtener las solicitudes");
+    }
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};

@@ -93,3 +93,28 @@ export const eliminarConcurso = async (id_concurso) => {
     return null;
   }
 };
+
+
+export const actualizarEstatusConcurso = async (id_concurso, datosActualizados) => {
+  try {
+    const res = await fetch(`${API_URL}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id_concurso,     // Aquí se incluye correctamente dentro del JSON
+        ...datosActualizados,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Error al actualizar el concurso");
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Error al actualizar concurso:", error);
+    return null;
+  }
+};

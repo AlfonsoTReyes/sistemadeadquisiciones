@@ -43,6 +43,47 @@ export const getSolicitudesAll = async () => {
   }
 };
 
+
+
+export const getSolicitudesFiltradasPorEstatus = async (secretaria: number, estatus: string) => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.id_secretaria = ${secretaria} AND sa.estatus = ${estatus};
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+export const getSolicitudesAllFiltradasPorEstatus = async (estatus: string) => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.estatus = ${estatus};
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+
 // obtener solicitud por id
 export const getSolicitudById = async (id: number) => {
   try {

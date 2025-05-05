@@ -14,7 +14,7 @@ interface ModalConfirmacionProps {
 const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
   onClose, idDoc, tipoOrigen, onUpdateSuccess,}) => {
     // Estado para manejar el nuevo estatus seleccionado
-    const [nuevoEstatus, setNuevoEstatus] = useState<string>("pendiente");
+    const [nuevoEstatus, setNuevoEstatus] = useState<string>("Pendiente");
     const [isUpdating, setIsUpdating] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState("");

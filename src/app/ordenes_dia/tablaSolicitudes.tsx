@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import ModificarSolicitud from "./formularios/modificar";
 import Link from 'next/link';
-import ModalConfirmacion from "../detalle_solicitudes/formularios/modificarEstatus";
+import ModalConfirmacion from "../solicitantes/detalle_solicitudes/formularios/modificarEstatus";
 import ModalFirmaEnvio from "./formularios/firmar";
 import ModalAdjudicar from "./formularios/adjudicar";
 
@@ -170,32 +170,6 @@ const TablaSolicitudes: React.FC<{
                             <td className="border px-4 py-2">${solicitud.monto.toLocaleString()}</td>
                             <td className="border px-4 py-2">{solicitud.estatus}</td>
                             <td className="border px-4 py-2">
-                            {!["En revisión", "Aprobada", "En comite", "Enviado para revisión", "En concurso", "En fallo", "En contrato", "En orden de compra"].includes(solicitud.estatus) && (
-                                    <>
-                                {permisos.includes('firmar_enviar_solicitud') && (
-                                    <button
-                                        onClick={() => openFirmaModal(solicitud.id_solicitud)}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        Firmar y enviar
-                                    </button>
-                                )}
-                                </>
-                            )}
-                                {!["En revisión", "Aprobada", "En comite", "Enviado para revisión", "En concurso", "En fallo", "En contrato", "En orden de compra"].includes(solicitud.estatus) && (
-                                    <>
-                                        <br />
-                                        {permisos.includes('editar_solicitud_adquisicion_secretaria') && (
-                                        <button
-                                            onClick={() => openEditModal(solicitud.id_solicitud)}
-                                            className="text-yellow-600 hover:underline"
-                                        >
-                                            Editar
-                                        </button>
-                                        )}
-                                        <br />
-                                    </>
-                                )}
                                 {permisos.includes('cambiar_estatus_solicitud_adquisicion') && (
                                     <button
                                     onClick={() =>
@@ -220,44 +194,20 @@ const TablaSolicitudes: React.FC<{
                                 )}
                                 <br></br>
                                 
-{/* Si monto > 764899.69 → mostrar "Orden del día" */}
-{["En revisión", "Aprobada", "En comite", "Enviado para revisión", "En concurso", "En fallo", "En contrato", "En orden de compra"].includes(solicitud.estatus) && solicitud.monto > 764899.69 && (
-  <>
-    {permisos.includes('adjudicar_comite_solicitud_adq') && (
-      <Link
-        className="text-pink-500 hover:underline"
-        href="../../orden_dia"
-        onClick={() => handleDetalleClick(solicitud.id_solicitud)}
-      >
-        Orden del día
-      </Link>
-    )}
-    <br />
-    {permisos.includes('ver_detalles_comite_solicitud_adq') && (
-      <Link
-        className="text-dark-500 hover:underline"
-        href="./detalle_solicitudes"
-        onClick={() => handleDetalleClick(solicitud.id_solicitud)}
-      >
-        Detalle de comité
-      </Link>
-    )}
-  </>
-)}
-
-{/* Si monto ≤ 764899.69 → mostrar "Mandar a contrato" */}
-{["En revisión", "Aprobada", "En comite", "Enviado para revisión", "En concurso", "En fallo", "En contrato", "En orden de compra"].includes(solicitud.estatus) && solicitud.monto <= 764899.69 && (
-  <>
-    {permisos.includes('mandar_a_contrato_solicitud_adq') && (
-      <button
-        className="text-green-700 hover:underline"
-        onClick={() => console.log("Mandar a contrato:", solicitud.id_solicitud)}
-      >
-        Mandar a contrato
-      </button>
-    )}
-  </>
-)}
+                                {/* Si monto > 764899.69 → mostrar "Orden del día" */}
+                                {["En revisión", "Aprobada", "En comite", "Enviado para revisión", "En concurso", "En fallo", "En contrato", "En orden de compra"].includes(solicitud.estatus) && solicitud.monto > 764899.69 && (
+                                  <>
+                                    {permisos.includes('adjudicar_comite_solicitud_adq') && (
+                                      <Link
+                                        className="text-pink-500 hover:underline"
+                                        href="../../orden_dia"
+                                        onClick={() => handleDetalleClick(solicitud.id_solicitud)}
+                                      >
+                                        Orden del día
+                                      </Link>
+                                    )}
+                                  </>
+                                )}
 
                             </td>
                         </tr>

@@ -1,6 +1,6 @@
 // src/services/catalogoProveedoresService.ts
 
-import { sql } from '@vercel/postgres';
+import { sql, QueryResultRow, QueryResult } from '@vercel/postgres';
 
 // --- Interfaces/Types ---
 
@@ -202,6 +202,137 @@ export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | nu
     }
 };
 
+
+interface Partida {
+  codigo_partida: string;
+  descripcion: string;
+}
+
+interface ProveedorBaseRow {
+  id_proveedor: number;
+  rfc: string;
+  nombre_o_razon_social: string; // Resultado del COALESCE
+  giro_comercial: string | null; // Puede ser null si no está definido
+  correo: string | null;
+  telefono_uno: string | null;
+  pagina_web: string | null;
+}
+
+// Define la estructura de la fila devuelta por la segunda consulta (partidas)
+interface PartidaRow {
+  id_proveedor: number;
+  codigo_partida: string;
+  descripcion: string;
+}
+
+// Define la estructura final del objeto devuelto por la función
+interface ProveedorConPartidas {
+id_proveedor: number;
+rfc: string;
+nombre_o_razon_social: string;
+giro_comercial: string | null; // Asegúrate que los tipos coincidan con ProveedorBaseRow
+correo: string | null;
+telefono_uno: string | null;
+pagina_web: string | null;
+partidas: Partida[];
+}
+
+
+export const getProveedoresYPartidas = async (
+  codigoPartidaFiltro: string | null = null
+): Promise<ProveedorConPartidas[]> => {
+  try {
+    // --- 1. Obtener proveedores base ---
+    let proveedoresResult: QueryResult<ProveedorBaseRow>;
+
+    // Usamos directamente los template tags de `sql` para las consultas
+    if (codigoPartidaFiltro) {
+      proveedoresResult = await sql<ProveedorBaseRow>`
+        SELECT
+          p.id_proveedor, p.rfc, p.giro_comercial, p.correo, p.telefono_uno, p.pagina_web,
+          COALESCE(pf.nombre || ' ' || pf.apellido_p || ' ' || pf.apellido_m, pm.razon_social) AS nombre_o_razon_social
+        FROM proveedores p
+        LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
+        LEFT JOIN proveedores_morales pm ON p.id_proveedor = pm.id_proveedor
+        WHERE p.estatus = TRUE
+          AND EXISTS (
+            SELECT 1 FROM proveedor_partidas pp
+            WHERE pp.id_proveedor = p.id_proveedor AND pp.codigo_partida = ${codigoPartidaFiltro}
+          )
+        ORDER BY p.id_proveedor, COALESCE(pf.nombre, pm.razon_social) ASC
+      `;
+    } else {
+      proveedoresResult = await sql<ProveedorBaseRow>`
+        SELECT
+          p.id_proveedor, p.rfc, p.giro_comercial, p.correo, p.telefono_uno, p.pagina_web,
+          COALESCE(pf.nombre || ' ' || pf.apellido_p || ' ' || pf.apellido_m, pm.razon_social) AS nombre_o_razon_social
+        FROM proveedores p
+        LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
+        LEFT JOIN proveedores_morales pm ON p.id_proveedor = pm.id_proveedor
+        WHERE p.estatus = TRUE
+        ORDER BY p.id_proveedor, COALESCE(pf.nombre, pm.razon_social) ASC
+      `;
+    }
+
+    const proveedoresBase = proveedoresResult.rows;
+    if (proveedoresBase.length === 0) {
+        console.log("No se encontraron proveedores base.");
+        return []; // No hay proveedores, retornar array vacío
+    }
+
+    // --- 2. Obtener partidas para los proveedores encontrados ---
+    const proveedorIds: number[] = proveedoresBase.map(p => p.id_proveedor);
+
+    // CORRECCIÓN APLICADA AQUÍ: Usar 'as any' para el array en el template tag
+    // Esto es necesario porque la definición de tipos de 'sql' espera Primitive,
+    // aunque en ejecución maneje arrays correctamente con ANY.
+    const partidasResult = await sql<PartidaRow>`
+      SELECT pp.id_proveedor, pp.codigo_partida, cp.descripcion
+      FROM proveedor_partidas pp
+      JOIN catalogo_partidas_presupuestarias cp ON pp.codigo_partida = cp.codigo
+      WHERE pp.id_proveedor = ANY (${proveedorIds as any}) -- <- ¡LA CORRECCIÓN!
+      ORDER BY pp.id_proveedor, pp.codigo_partida;
+    `;
+
+    const todasLasPartidas = partidasResult.rows;
+
+    // --- 3. Combinar resultados (usando Map para eficiencia) ---
+    const partidasPorProveedor = new Map<number, Partida[]>();
+    todasLasPartidas.forEach(partidaRow => {
+        const { id_proveedor, codigo_partida, descripcion } = partidaRow;
+        if (!partidasPorProveedor.has(id_proveedor)) {
+            partidasPorProveedor.set(id_proveedor, []);
+        }
+        // Usamos el type assertion '!' porque acabamos de asegurar que la clave existe
+        partidasPorProveedor.get(id_proveedor)!.push({
+            codigo_partida: codigo_partida,
+            descripcion: descripcion,
+        });
+    });
+
+    // Mapear los proveedores base y añadir sus partidas correspondientes
+    const resultadoFinal: ProveedorConPartidas[] = proveedoresBase.map(proveedor => {
+      return {
+        id_proveedor: proveedor.id_proveedor,
+        rfc: proveedor.rfc,
+        nombre_o_razon_social: proveedor.nombre_o_razon_social,
+        giro_comercial: proveedor.giro_comercial,
+        correo: proveedor.correo,
+        telefono_uno: proveedor.telefono_uno,
+        pagina_web: proveedor.pagina_web,
+        // Obtener las partidas del Map; si no hay, devolver array vacío
+        partidas: partidasPorProveedor.get(proveedor.id_proveedor) || [],
+      };
+    });
+
+    return resultadoFinal;
+
+  } catch (error: any) {
+    console.error("❌ Error en getProveedoresYPartidas:", error);
+    // Considera relanzar un error más específico o manejarlo según tu aplicación
+    throw new Error(`Error al obtener proveedores y partidas: ${error.message}`);
+  }
+
 // --- ***** NUEVA FUNCIÓN PARA BUSCAR ARTÍCULOS ***** ---
 /**
  * Busca artículos/servicios de un proveedor específico por término de descripción.
@@ -258,4 +389,5 @@ export const buscarArticulosPorProveedorYTermino = async (idProveedor: number, t
         console.error(`${logPrefix} Error:`, error);
         throw new Error(`Error al buscar artículos para el proveedor: ${error.message}`);
     }
+
 };

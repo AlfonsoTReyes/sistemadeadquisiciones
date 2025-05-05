@@ -165,17 +165,17 @@ const TablaSolicitudes: React.FC<{
             <div className="bg-white shadow-xl rounded-xl p-6 border border-gray-200 hover:shadow-2xl transition duration-300">
                 <div className="text-5xl text-center mb-4">📄</div>
                 <h2 className="text-xl font-bold text-center text-gray-800 mb-4">Solicitud</h2>
-                <p><strong>Folio:</strong> {solicitud.id_solicitud}</p>
+                <p><strong>Folio:</strong> {solicitud.folio}</p>
                 <p><strong>Solicitante:</strong> {solicitud.nomina_solicitante}</p>
                 <p><strong>Secretaría:</strong> {solicitud.nombre_secretaria}</p>
                 <p><strong>Motivo:</strong> {solicitud.motivo}</p>
                 <p><strong>Monto:</strong> ${solicitud.monto}</p>
                 <p><strong>Fecha Solicitud:</strong> {new Date(solicitud.fecha_solicitud).toLocaleString()}</p>
-                <p className={`font-semibold ${solicitud.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                <p className={`font-semibold ${solicitud.estatus === "Pendiente" ? "text-red-500" : "text-green-600"}`}>
                     Estatus: {solicitud.estatus}
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
-                    {!["en revisión", "aprobada", "enviada para revisión"].includes(solicitud.estatus.toLowerCase()) && (
+                    {!["en revisión", "aprobada", "enviado para revisión"].includes(solicitud.estatus.toLowerCase()) && (
                         <>
                             {permisos.includes('editar_solicitud_adquisicion_secretaria') && (
                                 <button 
@@ -215,11 +215,11 @@ const TablaSolicitudes: React.FC<{
                     <p><strong>Lugar:</strong> {justificacion.lugar}</p>
                     <p><strong>Dirigido a:</strong> {justificacion.nombre_dirigido}</p>
                     <p><strong>Fecha:</strong> {new Date(justificacion.fecha_hora).toLocaleString()}</p>
-                    <p className={`font-semibold ${justificacion.estatus === "Pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                    <p className={`font-semibold ${justificacion.estatus === "Pendiente" ? "text-red-500" : "text-green-600"}`}>
                         Estatus: {justificacion.estatus}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
-                        {!["en revisión", "aprobada", "enviada para revisión"].includes(justificacion.estatus.toLowerCase()) && (
+                        {!["en revisión", "aprobada", "enviado para revisión"].includes(justificacion.estatus.toLowerCase()) && (
                             <>
                             {permisos.includes('editar_justificacion_adquisicion_secretaria') && (
                                 <button 
@@ -293,7 +293,7 @@ const TablaSolicitudes: React.FC<{
                     <p><strong>Fecha de creación:</strong> {new Date(techoPresupuestal.created_at).toLocaleString()}</p>
                     <p><strong>No. Folio:</strong> {techoPresupuestal.oficio}</p>
                     <p><strong>Fecha Aprobación:</strong> {new Date(techoPresupuestal.fecha_contestacion).toLocaleString() || "Sin contestación"}</p>
-                    <p className={`font-semibold ${techoPresupuestal.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                    <p className={`font-semibold ${techoPresupuestal.estatus === "Pendiente" ? "text-red-500" : "text-green-600"}`}>
                         Estatus: {techoPresupuestal.estatus}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
@@ -393,13 +393,13 @@ const TablaSolicitudes: React.FC<{
                         </h2>
                         <p><strong>Nombre original:</strong> {doc.nombre_original}</p>
                         <p><strong>Subido el:</strong> {new Date(doc.created_at).toLocaleString()}</p>
-                        <p className={`font-semibold ${doc.estatus === "Pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                        <p className={`font-semibold ${doc.estatus === "Pendiente" ? "text-red-500" : "text-green-600"}`}>
                         Estatus: {doc.estatus}
                         </p>
                         <div className="mt-4 flex flex-col gap-2">
                             {permisos.includes('ver_docs_adquisicion_secretaria') && (
                                 <a
-                                    href={`/${doc.ruta_archivo}`}
+                                    href={`${doc.ruta_archivo}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="bg-blue-500 text-white text-center py-2 rounded-xl shadow hover:bg-blue-600 transition"
@@ -416,7 +416,7 @@ const TablaSolicitudes: React.FC<{
                                     Ver Comentarios
                                 </button>
                             )}
-                            {permisos.includes('eliminar_docs_adquisicion') && !["en revisión", "aprobada", "enviada para revisión"].includes(doc.estatus.toLowerCase()) && (
+                            {permisos.includes('eliminar_docs_adquisicion') && !["en revisión", "aprobada", "enviado para revisión"].includes(doc.estatus.toLowerCase()) && (
                                 <button 
                                     onClick={() => openEditDocModal(doc.id_doc_solicitud)} 
                                     className="bg-red-500 text-white py-2 px-4 rounded-xl shadow hover:bg-red-600 transition"
@@ -489,7 +489,7 @@ const TablaSolicitudes: React.FC<{
                         <p><strong>Folio:</strong> {techoPresupuestalOficial.oficio}</p>
                         <p><strong>Fecha creación:</strong> {new Date(techoPresupuestalOficial.created_at).toLocaleString()}</p>
                         <p><strong>Fecha aprobación:</strong> {techoPresupuestalOficial.fecha_contestacion ? new Date(techoPresupuestalOficial.fecha_contestacion).toLocaleString() : "Sin contestar"}</p>
-                        <p className={`font-semibold ${techoPresupuestalOficial.estatus === "pendiente" ? "text-yellow-500" : "text-green-600"}`}>
+                        <p className={`font-semibold ${techoPresupuestalOficial.estatus === "Pendiente" ? "text-red-500" : "text-green-600"}`}>
                             Estatus: {techoPresupuestalOficial.estatus}
                         </p>
                         <div className="mt-4 flex flex-col gap-2">

@@ -92,29 +92,29 @@ const generarPDFJustificacion = async (idSolicitud: number) => {
       // contenido del cuerpo
       doc.setFont("helvetica", "normal");
       const cuerpo = `
-PLANTEAMIENTO:
-${planteamiento || "N/A"}
+      PLANTEAMIENTO:
+      ${planteamiento || "N/A"}
 
-ANTECEDENTE:
-${antecedente || "N/A"}
+      ANTECEDENTE:
+      ${antecedente || "N/A"}
 
-NECESIDAD:
-${necesidad || "N/A"}
+      NECESIDAD:
+      ${necesidad || "N/A"}
 
-FUNDAMENTO LEGAL:
-${fundamento_legal || "N/A"}
+      FUNDAMENTO LEGAL:
+      ${fundamento_legal || "N/A"}
 
-USO:
-${uso || "N/A"}
+      USO:
+      ${uso || "N/A"}
 
-CONSECUENCIAS:
-${consecuencias || "N/A"}
+      CONSECUENCIAS:
+      ${consecuencias || "N/A"}
 
-HISTÓRICOS MONETARIOS:
-${historicos_monetarios || "N/A"}
+      HISTÓRICOS MONETARIOS:
+      ${historicos_monetarios || "N/A"}
 
-MARCAS ESPECÍFICAS:
-${marcas_especificas || "N/A"}
+      MARCAS ESPECÍFICAS:
+      ${marcas_especificas || "N/A"}
       `.trim();
 
       const lineas = doc.splitTextToSize(cuerpo, anchoTexto);
@@ -129,6 +129,45 @@ ${marcas_especificas || "N/A"}
         doc.text(linea, margenIzq, y);
         y += interlineado;
       }
+
+      if (data.documentos && data.documentos.length > 0) {
+        y += 20;
+        if (y > altoPagina - margenBot) {
+          doc.addPage();
+          doc.addImage(img, "PNG", 0, 0, anchoPagina, altoPagina);
+          y = margenTop;
+        }
+      
+        doc.setFont("helvetica", "bold");
+        doc.text("DOCUMENTOS ADJUNTOS:", margenIzq, y); y += 8;
+      
+        // Encabezados de la tabla
+        doc.setFont("helvetica", "bold");
+        doc.text("No.", margenIzq, y);
+        doc.text("Sección", margenIzq + 15, y);
+        doc.text("Documento", margenIzq + 60, y);
+        y += 6;
+        doc.setFont("helvetica", "normal");
+      
+        data.documentos.forEach((docItem: any, index: number) => {
+          if (y > altoPagina - margenBot) {
+            doc.addPage();
+            doc.addImage(img, "PNG", 0, 0, anchoPagina, altoPagina);
+            y = margenTop;
+          }
+      
+          const url = docItem.ruta_archivo.startsWith("http")
+            ? docItem.ruta_archivo
+            : `https://tuservidor.com/${docItem.ruta_archivo}`; // ajusta si son rutas relativas
+      
+          doc.text(`${index + 1}`, margenIzq, y);
+          doc.text(docItem.seccion.toUpperCase(), margenIzq + 15, y);
+          doc.textWithLink("Consultar aquí", margenIzq + 60, y, { url });
+
+          y += 6;
+        });
+      }
+      
 
       // firma final
       y += 10;

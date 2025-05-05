@@ -7,6 +7,7 @@ import {
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import cloudinary from '../../../../lib/cloudinary';
 
 export const config = {
     runtime: "nodejs"
@@ -48,33 +49,23 @@ export async function POST(req: NextRequest) {
         if (!archivo || !seccion || !id_justificacion || !id_usuario) {
           return NextResponse.json({ message: "Faltan datos obligatorios" }, { status: 400 });
         }
-  
-        const extPermitidas = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/png", "image/jpeg"];
-        if (!extPermitidas.includes(archivo.type)) {
-          return NextResponse.json({ message: "Tipo de archivo no permitido" }, { status: 400 });
-        }
-  
-        // Convertir archivo a buffer
+
         const buffer = Buffer.from(await archivo.arrayBuffer());
+        const base64 = buffer.toString('base64');
+        const dataURI = `data:${archivo.type};base64,${base64}`;
   
-        // Crear carpeta: public/justificacion/{id_justificacion}
-        const folderPath = path.join(process.cwd(), "public", "justificacion_detalle", id_justificacion);
-        await mkdir(folderPath, { recursive: true });
-  
-        // Generar nombre único y guardar
-        const nombreOriginal = archivo.name;
-        const nombreArchivo = `${uuidv4()}_${nombreOriginal}`;
-        const filePath = path.join(folderPath, nombreArchivo);
-        await writeFile(filePath, buffer);
-  
-        const rutaPublica = `justificacion/${id_justificacion}/${nombreArchivo}`;
+        const uploadResponse = await cloudinary.uploader.upload(dataURI, {
+          folder: `justificacion_detalle/${id_justificacion}`,
+          public_id: archivo.name.split('.').slice(0, -1).join('') + `_${Date.now()}`,
+          resource_type: "auto",
+        });
   
         // Registrar en la base de datos
         await createJustificacionDocumento({
           id_justificacion: Number(id_justificacion),
           seccion,
-          nombre_original: nombreOriginal,
-          ruta_archivo: rutaPublica,
+          nombre_original: uploadResponse.public_id,
+          ruta_archivo: uploadResponse.secure_url,
           tipo_archivo: archivo.type,
           id_usuario: Number(id_usuario),
           comentario,
@@ -128,13 +119,27 @@ export async function DELETE(req: NextRequest) {
       }
   
       // Paso 2: Eliminar el archivo físico
-      const rutaFisica = path.join(process.cwd(), "public", documento.ruta_archivo);
-      try {
-        await unlink(rutaFisica);
-      } catch (fsError) {
-        console.warn("⚠️ No se pudo eliminar el archivo físico:", fsError);
-        // no detenemos el proceso si el archivo ya no existe
+      if (documento.nombre_original && documento.tipo_archivo) {
+        let resourceType = "image";
+      
+        if (documento.tipo_archivo.startsWith("video/")) {
+          resourceType = "video";
+        } else if (
+          documento.tipo_archivo.startsWith("application/") ||
+          documento.tipo_archivo.startsWith("text/")
+        ) {
+          resourceType = "raw"; // para PDF, Word, Excel, etc.
+        }
+      
+        try {
+          await cloudinary.uploader.destroy(documento.nombre_original, {
+            resource_type: resourceType,
+          });
+        } catch (cloudError) {
+          console.warn("⚠️ No se pudo eliminar de Cloudinary:", cloudError);
+        }
       }
+      
   
       // Paso 3: Eliminar registro en base de datos
       await deleteJustificacionDetalle(parseInt(id));

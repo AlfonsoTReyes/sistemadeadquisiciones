@@ -3,6 +3,10 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ModificarConcurso from "./formularios/modificar";
 import ModalBasesPage from "../bases/ModalBase";
+import ModalCambiarEstatus from "./formularios/estatus";
+import ModalFormularioDictamen from "./formularios/dictamenfallo";
+import ModalFormularioFallo from "./formularios/fallo";
+
 
 interface Concurso {
   id_concurso: number;
@@ -25,7 +29,10 @@ const TablaConcursos: React.FC<{
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [isBasesModalOpen, setIsBasesModalOpen] = useState(false);
   const [idConcursoEditar, setIdConcursoEditar] = useState<number | null>(null);
-  const [concursoSeleccionado, setConcursoSeleccionado] = useState<{ idConcurso: number; idSolicitud: number } | null>(null);
+  const [concursoParaEstatus, setConcursoParaEstatus] = useState<Concurso | null>(null);
+const [concursoParaDictamen, setConcursoParaDictamen] = useState<Concurso | null>(null);
+const [concursoParaFallo, setConcursoParaFallo] = useState<Concurso | null>(null);
+
   const [idConcursoSeleccionado, setIdConcursoSeleccionado] = useState<number | null>(null);
   const [idSolicitudSeleccionada, setIdSolicitudSeleccionada] = useState<number | null>(null);
   const router = useRouter();
@@ -136,9 +143,26 @@ const TablaConcursos: React.FC<{
                 <br />
                 <button className="text-dark-700">Enviar invitación a oferentes</button>
                 <br />
-                <button className="text-green-700">Estatus</button>
+                <button
+                  className="text-green-700"
+                  onClick={() => setConcursoParaEstatus(c)}
+                >
+                  Estatus
+                </button>
                 <br />
-                <button className="text-green-700">Dictamen fallo</button>
+                <button
+                  className="text-indigo-700"
+                  onClick={() => setConcursoParaDictamen(c)}
+                >
+                  Dictamen
+                </button>
+                <br />
+                <button
+                  className="text-purple-700"
+                  onClick={() => setConcursoParaFallo(c)}
+                >
+                  Fallo
+                </button>
               </td>
             </tr>
           ))}
@@ -164,6 +188,32 @@ const TablaConcursos: React.FC<{
         />
 
         )}
+
+        {concursoParaEstatus && (
+          <ModalCambiarEstatus
+            idConcurso={concursoParaEstatus.id_concurso}
+            onClose={() => setConcursoParaEstatus(null)}
+            onUpdated={onConcursoUpdated}
+          />
+        )}
+
+
+        {concursoParaDictamen && (
+          <ModalFormularioDictamen
+            idConcurso={concursoParaDictamen.id_concurso}
+            onClose={() => setConcursoParaDictamen(null)}
+            onSuccess={onConcursoUpdated}
+          />
+        )}
+
+        {concursoParaFallo && (
+          <ModalFormularioFallo
+            idDictamen={concursoParaFallo.id_concurso}
+            onClose={() => setConcursoParaFallo(null)}
+            onSuccess={onConcursoUpdated}
+          />
+        )}
+
 
     </div>
   );

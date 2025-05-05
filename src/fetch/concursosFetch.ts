@@ -43,3 +43,18 @@ export const fetchConcursosForSelect = async (): Promise<SelectOption[]> => {
         throw errorToThrow;
     }
 };
+
+
+export const getProveedoresPartidas = async () => {
+    try {
+      const res = await fetch(`${CONCURSOS_API_URL}?verificar=1`);
+  
+      if (!res.ok) throw new Error("Error al verificar invitación");
+  
+      const data = await res.json();
+      return data; // { yaFueEnviado, numero_oficio, fecha_hora_envio, participantes, eventos }
+    } catch (error: any) {
+      console.error("Error en verificar invitación:", error);
+      return null;
+    }
+  };
