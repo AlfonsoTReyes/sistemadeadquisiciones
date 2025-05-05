@@ -202,7 +202,62 @@ export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | nu
     }
 };
 
+/**
+ * Busca artículos/servicios de un proveedor específico por término de descripción.
+ * Reutiliza la interfaz ArticuloCatalogo y el parseo de precio.
+ * @param {number} idProveedor - El ID del proveedor.
+ * @param {string} term - Término de búsqueda para la descripción (mínimo 3 caracteres).
+ * @returns {Promise<ArticuloCatalogo[]>} - Lista de artículos que coinciden.
+ */
+export const buscarArticulosPorProveedorYTermino = async (idProveedor: number, term: string): Promise<ArticuloCatalogo[]> => {
+  const logPrefix = `SERVICE buscarArticulosPorProveedorYTermino (Prov ID: ${idProveedor}, Term: ${term}):`;
+  console.log(logPrefix);
 
+  if (isNaN(idProveedor) || idProveedor <= 0) {
+      throw new Error("ID de proveedor inválido.");
+  }
+  if (!term || term.trim().length < 3) {
+      console.log(`${logPrefix} Search term too short.`);
+      return []; // No buscar si el término es muy corto
+  }
+
+  const likeTerm = `%${term.trim()}%`;
+
+  try {
+      // Query similar a la de getProveedoresConDetalles, pero filtrando por id_proveedor y descripción
+      const result = await sql<Omit<ArticuloDbRow, 'id_proveedor'>>`
+          SELECT
+              id_articulo,
+              codigo_partida,
+              descripcion,
+              unidad_medida,
+              precio_unitario
+          FROM articulos_proveedor
+          WHERE id_proveedor = ${idProveedor}
+            AND descripcion ILIKE ${likeTerm}
+            AND estatus = TRUE -- Solo buscar artículos activos
+          ORDER BY descripcion ASC
+          LIMIT 20; -- Limitar resultados para el selector
+      `;
+
+      console.log(`${logPrefix} Found ${result.rowCount} articles.`);
+
+      // Mapear y convertir precio_unitario a número (reutilizando lógica)
+      const articulos: ArticuloCatalogo[] = result.rows.map(dbRow => ({
+          id_articulo: dbRow.id_articulo,
+          codigo_partida: dbRow.codigo_partida,
+          descripcion: dbRow.descripcion,
+          unidad_medida: dbRow.unidad_medida,
+          precio_unitario: parseFloat(dbRow.precio_unitario) || 0, // Convertir y manejar NaN
+      }));
+
+      return articulos;
+
+  } catch (error: any) {
+      console.error(`${logPrefix} Error:`, error);
+      throw new Error(`Error al buscar artículos para el proveedor: ${error.message}`);
+  }
+};
 interface Partida {
   codigo_partida: string;
   descripcion: string;
@@ -332,62 +387,5 @@ export const getProveedoresYPartidas = async (
     // Considera relanzar un error más específico o manejarlo según tu aplicación
     throw new Error(`Error al obtener proveedores y partidas: ${error.message}`);
   }
-
-// --- ***** NUEVA FUNCIÓN PARA BUSCAR ARTÍCULOS ***** ---
-/**
- * Busca artículos/servicios de un proveedor específico por término de descripción.
- * Reutiliza la interfaz ArticuloCatalogo y el parseo de precio.
- * @param {number} idProveedor - El ID del proveedor.
- * @param {string} term - Término de búsqueda para la descripción (mínimo 3 caracteres).
- * @returns {Promise<ArticuloCatalogo[]>} - Lista de artículos que coinciden.
- */
-export const buscarArticulosPorProveedorYTermino = async (idProveedor: number, term: string): Promise<ArticuloCatalogo[]> => {
-    const logPrefix = `SERVICE buscarArticulosPorProveedorYTermino (Prov ID: ${idProveedor}, Term: ${term}):`;
-    console.log(logPrefix);
-
-    if (isNaN(idProveedor) || idProveedor <= 0) {
-        throw new Error("ID de proveedor inválido.");
-    }
-    if (!term || term.trim().length < 3) {
-        console.log(`${logPrefix} Search term too short.`);
-        return []; // No buscar si el término es muy corto
-    }
-
-    const likeTerm = `%${term.trim()}%`;
-
-    try {
-        // Query similar a la de getProveedoresConDetalles, pero filtrando por id_proveedor y descripción
-        const result = await sql<Omit<ArticuloDbRow, 'id_proveedor'>>`
-            SELECT
-                id_articulo,
-                codigo_partida,
-                descripcion,
-                unidad_medida,
-                precio_unitario
-            FROM articulos_proveedor
-            WHERE id_proveedor = ${idProveedor}
-              AND descripcion ILIKE ${likeTerm}
-              AND estatus = TRUE -- Solo buscar artículos activos
-            ORDER BY descripcion ASC
-            LIMIT 20; -- Limitar resultados para el selector
-        `;
-
-        console.log(`${logPrefix} Found ${result.rowCount} articles.`);
-
-        // Mapear y convertir precio_unitario a número (reutilizando lógica)
-        const articulos: ArticuloCatalogo[] = result.rows.map(dbRow => ({
-            id_articulo: dbRow.id_articulo,
-            codigo_partida: dbRow.codigo_partida,
-            descripcion: dbRow.descripcion,
-            unidad_medida: dbRow.unidad_medida,
-            precio_unitario: parseFloat(dbRow.precio_unitario) || 0, // Convertir y manejar NaN
-        }));
-
-        return articulos;
-
-    } catch (error: any) {
-        console.error(`${logPrefix} Error:`, error);
-        throw new Error(`Error al buscar artículos para el proveedor: ${error.message}`);
-    }
-
+  
 };
