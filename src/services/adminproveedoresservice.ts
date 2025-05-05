@@ -784,7 +784,7 @@ export const actualizarEstatusRevision = async (
 
     // Validación de entradas (como antes)
     if (isNaN(idProveedor)) throw new Error("ID de proveedor inválido.");
-    const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'];
+    const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO'];
     if (!nuevoEstatusRevision || !validStatuses.includes(nuevoEstatusRevision)) {
         throw new Error(`Estatus de revisión inválido: "${nuevoEstatusRevision}".`);
     }

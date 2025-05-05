@@ -3,9 +3,8 @@
 "use client"; // Necesario para hooks de cliente y sessionStorage
 import React, { useState, useEffect, useCallback } from 'react'; // Añade useCallback
 import { useRouter } from 'next/navigation';
-import Menu from '../../menu_principal';
-
-import Pie from '../../../app/pie'; // Ajusta ruta
+import Menu from '../../menu';
+import Pie from "../../pie";
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 // Importa el componente que SÓLO muestra y permite editar estatus
 import VistaDocumentosAdmin from './formularios/vistaDocumentos'; // <-- Ajusta ruta al componente correcto
@@ -49,8 +48,8 @@ export default function DocumentosProveedorAdminPage() {
                     const parsedAdminId = parseInt(storedAdminId, 10);
                     adminIdFound = !isNaN(parsedAdminId) ? parsedAdminId : null;
                     if (!adminIdFound) {
-                         errorFound = "ID de administrador inválido en sesión. Inicie sesión de nuevo.";
-                         providerIdFound = null; // Invalidar si admin falla
+                        errorFound = "ID de administrador inválido en sesión. Inicie sesión de nuevo.";
+                        providerIdFound = null; // Invalidar si admin falla
                     }
                 } else {
                     // Si no existe 'userId', el admin no está logueado correctamente
@@ -87,13 +86,13 @@ export default function DocumentosProveedorAdminPage() {
                     const provData = await fetchProveedorDetallesPorIdAdmin(id); // Asumiendo que esta función devuelve al menos id, rfc, tipo, nombre/razón
 
                     if (provData && provData.id_proveedor) {
-                         // Guardar solo la info necesaria para la cabecera
-                         setProviderInfo({
-                             id_proveedor: provData.id_proveedor,
-                             rfc: provData.rfc,
-                             tipo_proveedor: provData.tipo_proveedor,
-                             nombre_o_razon_social: provData.nombre_o_razon_social // Asegúrate que fetch lo devuelva
-                         });
+                        // Guardar solo la info necesaria para la cabecera
+                        setProviderInfo({
+                            id_proveedor: provData.id_proveedor,
+                            rfc: provData.rfc,
+                            tipo_proveedor: provData.tipo_proveedor,
+                            nombre_o_razon_social: provData.nombre_o_razon_social // Asegúrate que fetch lo devuelva
+                        });
                     } else {
                         // Si fetch devuelve null o datos incompletos
                         throw new Error(`No se encontró información básica para el proveedor con ID ${id}.`);
@@ -146,22 +145,22 @@ export default function DocumentosProveedorAdminPage() {
                             Proveedor: <span className="font-semibold text-gray-900">{providerInfo.nombre_o_razon_social || providerInfo.rfc}</span> (RFC: {providerInfo.rfc})
                         </p>
                     ) : (
-                         <p className="text-gray-500 italic">No se pudo cargar la información del proveedor.</p>
+                        <p className="text-gray-500 italic">No se pudo cargar la información del proveedor.</p>
                     )}
                 </div>
 
 
                 {/* Renderizar el componente principal de documentos/comentarios */}
                 {/* Solo si tenemos ID y no hubo error inicial VistaDocumentosAdmin */}
-                
+
                 {!loadingPage && !errorPage && typeof idProveedor === 'number' && typeof idAdminLogueado === 'number' ? (
-                <VistaDocumentosAdmin
-                    idProveedor={idProveedor}
-                    idUsuarioAdminLogueado={idAdminLogueado}
-                />
+                    <VistaDocumentosAdmin
+                        idProveedor={idProveedor}
+                        idUsuarioAdminLogueado={idAdminLogueado}
+                    />
                 ) : !loadingPage && !errorPage ? (
-                     <p className="text-center text-red-500 mt-10">
-                         {errorPage || "No se pudo cargar la información necesaria."} {/* Mostrar error específico si existe */}
+                    <p className="text-center text-red-500 mt-10">
+                        {errorPage || "No se pudo cargar la información necesaria."} {/* Mostrar error específico si existe */}
                     </p>
                 ) : null /* No mostrar nada mientras carga */}
 

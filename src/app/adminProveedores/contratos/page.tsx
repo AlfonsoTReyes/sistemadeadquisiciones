@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Menu from '../../menu';
+import Pie from "../../pie";
 import { fetchContracts } from '@/fetch/contratosFetch'; // Ajusta la ruta si es necesario
 import { ContratoEnLista } from '@/types/contrato'; // Ajusta la ruta si es necesario
 
@@ -84,36 +86,44 @@ const AdminContratosListPage: React.FC = () => {
     }, []); // Se ejecuta solo una vez al montar
 
     return (
-        <div className="p-4 md:p-6">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b">
-                <h1 className="text-xl font-semibold">Gestión de Contratos (Admin)</h1>
-                {/* --- BOTÓN AÑADIDO --- */}
-                <Link href="/adminProveedores/contratos/crear">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        + Crear Nuevo Contrato
-                    </button>
-                </Link>
-                 {/* --- FIN BOTÓN AÑADIDO --- */}
-            </div>
+        // Contenedor General Flexbox
+        <div className="flex flex-col min-h-screen">
+            <Menu /> {/* <-- MENÚ PRINCIPAL ARRIBA */}
 
-            {/* Mensajes de Carga y Error */}
-            {isLoading && (
-                <div className="text-center p-4">
-                    <p>Cargando lista de contratos...</p>
-                    {/* Podrías añadir un spinner aquí */}
+            {/* Contenedor Principal del Contenido */}
+            {/* AJUSTA pt-XX según la altura real de tu menú */}
+            <main className="flex-grow p-4 md:p-6 pt-20 md:pt-24"> {/* <-- AJUSTES: <main>, flex-grow, pt-XX */}
+                <div className="flex justify-between items-center mb-4 pb-3 border-b">
+                    <h1 className="text-xl font-semibold">Gestión de Contratos (Admin)</h1>
+                    <Link href="/adminProveedores/contratos/crear">
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            + Crear Nuevo Contrato
+                        </button>
+                    </Link>
                 </div>
-            )}
-            {error && (
-                <div className="p-3 mb-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert">
-                    <p className="font-bold">{error}</p>
-                </div>
-            )}
 
-            {/* Tabla de Contratos */}
-            {!isLoading && !error && (
-                <ContractListTable contratos={contratos} basePath="/adminProveedores/contratos" />
-            )}
-        </div>
+                {/* Mensajes de Carga y Error */}
+                {isLoading && (
+                    <div className="text-center p-4">
+                        <p>Cargando lista de contratos...</p>
+                    </div>
+                )}
+                {error && !isLoading && ( // Mostrar error solo si no está cargando
+                    <div className="p-3 mb-4 border-l-4 bg-red-100 border-red-500 text-red-700" role="alert">
+                        <p className="font-bold">{error}</p>
+                    </div>
+                )}
+
+                {/* Tabla de Contratos */}
+                {/* Renderizar tabla solo si no hay carga y no hay error */}
+                {!isLoading && !error && (
+                    <ContractListTable contratos={contratos} basePath="/adminProveedores/contratos" />
+                )}
+
+            </main> {/* <-- FIN Contenedor Principal (<main>) */}
+
+            <Pie /> {/* <-- PIE ABAJO */}
+        </div> // <-- FIN Contenedor General
     );
 };
 

@@ -11,7 +11,7 @@ import {
     TablaComparativaComentario,
     ProveedorEnTabla,
     CrearTablaComparativaInput,
-    AgregarProveedorInput,
+    AgregarProveedorInput, // Asegúrate que este tipo esté actualizado (sin los campos eliminados)
     AgregarItemInput,
     ActualizarItemInput,
     AgregarObservacionInput,
@@ -19,13 +19,13 @@ import {
     AgregarFirmaInput,
     AgregarComentarioInput,
     ActualizarTablaInput,
-    ItemDbRow, // Tipo intermedio para items leídos de la BD
-    ProveedorSnapshotDbRow, // Tipo intermedio para proveedores leídos de la BD
-    ObservacionDbRow, // Tipo intermedio para observaciones leídas de la BD
-    FirmaDbRow, // Tipo intermedio para firmas leídas de la BD
-    ComentarioDbRow // Tipo intermedio para comentarios leídos de la BD
-} from '@/types/tablaComparativa'; // Asegúrate que la ruta a tus tipos sea correcta
-import { ProveedorDetallado } from '@/types/proveedor'; // Asumiendo que tienes un tipo Proveedor básico
+    ItemDbRow,
+    ProveedorSnapshotDbRow, // Asegúrate que este tipo esté actualizado
+    ObservacionDbRow,
+    FirmaDbRow,
+    ComentarioDbRow
+} from '@/types/tablaComparativa';
+import { ProveedorDetallado } from '@/types/proveedor'; // Se usa para obtener datos para el snapshot
 
 // --- Helper Functions (Opcional, para cálculos o lógica repetitiva) ---
 
@@ -56,33 +56,33 @@ const actualizarTotalesProveedorEnDB = async (
     tasaIva: number = 0.16
 ): Promise<void> => {
     console.log(`SERVICE: Recalculating totals for tabla_comparativa_proveedor ID: ${idTablaComparativaProveedor}`);
-    // 1. Obtener todos los items actuales para este proveedor en esta tabla
-    const itemsResult = await client.sql<ItemDbRow>`
+    // 1. Obtener items
+    const itemsResult = await client.sql<Pick<ItemDbRow, 'cantidad' | 'precio_unitario'>>`
         SELECT cantidad, precio_unitario
         FROM tabla_comparativa_items
         WHERE id_tabla_comparativa_proveedor = ${idTablaComparativaProveedor};
     `;
 
-    // 2. Calcular nuevos totales
+    // 2. Calcular totales
     const subtotalCalculado = itemsResult.rows.reduce((sum, item) => {
-        const cantidad = parseFloat(item.cantidad); // Vienen como string de la BD
-        const precio = parseFloat(item.precio_unitario); // Vienen como string de la BD
-        return sum + (cantidad * precio);
+        const cantidad = parseFloat(item.cantidad);
+        const precio = parseFloat(item.precio_unitario);
+        // Añadir chequeo por si acaso parseFloat falla
+        return sum + (isNaN(cantidad) || isNaN(precio) ? 0 : cantidad * precio);
     }, 0);
-
     const ivaCalculado = subtotalCalculado * tasaIva;
     const totalCalculado = subtotalCalculado + ivaCalculado;
-
     console.log(`SERVICE: New totals calculated - Subtotal: ${subtotalCalculado}, IVA: ${ivaCalculado}, Total: ${totalCalculado}`);
 
-    // 3. Actualizar la tabla tabla_comparativa_proveedores
+    // 3. Actualizar tabla_comparativa_proveedores
     await client.sql`
         UPDATE tabla_comparativa_proveedores
         SET
             subtotal_proveedor = ${subtotalCalculado},
             iva_proveedor = ${ivaCalculado},
-            total_proveedor = ${totalCalculado},
-            fecha_actualizacion = CURRENT_TIMESTAMP -- Actualizar fecha de tabla padre también? Opcional
+            total_proveedor = ${totalCalculado}
+            -- *** ELIMINAR ESTA LÍNEA: ***
+            -- fecha_actualizacion = CURRENT_TIMESTAMP
         WHERE id = ${idTablaComparativaProveedor};
     `;
     console.log(`SERVICE: Totals updated in DB for tabla_comparativa_proveedor ID: ${idTablaComparativaProveedor}`);
@@ -97,29 +97,30 @@ const actualizarTotalesProveedorEnDB = async (
  * @returns {Promise<TablaComparativa>} La tabla comparativa recién creada.
  */
 export const crearTablaComparativa = async (data: CrearTablaComparativaInput): Promise<TablaComparativa> => {
+    // ... (código sin cambios)
     console.log("SERVICE: Creating new Tabla Comparativa:", data);
     const { nombre, descripcion, id_usuario_creador } = data;
     try {
-        // estado por defecto es 'borrador' según la definición de la tabla
         const result = await sql<TablaComparativa>`
             INSERT INTO tablas_comparativas (nombre, descripcion, id_usuario_creador)
             VALUES (${nombre}, ${descripcion}, ${id_usuario_creador})
             RETURNING *;
         `;
-        if (result.rowCount === 0) {
-            throw new Error("No se pudo crear la tabla comparativa.");
-        }
+        if (result.rowCount === 0) throw new Error("No se pudo crear la tabla comparativa.");
         console.log(`SERVICE: Tabla Comparativa created with ID: ${result.rows[0].id}`);
         return result.rows[0];
     } catch (error: any) {
         console.error("SERVICE ERROR in crearTablaComparativa:", error);
+        // Manejo específico de FK violation
+        if (error.code === '23503' && error.constraint === 'tablas_comparativas_id_usuario_creador_fkey') {
+            throw new Error(`Error al crear: El usuario creador con ID ${id_usuario_creador} no existe.`);
+        }
         throw new Error(`Error al crear la tabla comparativa: ${error.message}`);
     }
 };
 
 /**
  * Obtiene una lista simple de todas las Tablas Comparativas.
- * TODO: Implementar paginación y filtros si es necesario.
  * @returns {Promise<TablaComparativa[]>} Lista de tablas comparativas (solo datos base).
  */
 export const getTablasComparativasLista = async (): Promise<TablaComparativa[]> => {
@@ -148,38 +149,31 @@ export const getTablasComparativasLista = async (): Promise<TablaComparativa[]> 
 export const getTablaComparativaPorId = async (idTablaComparativa: number): Promise<TablaComparativaCompleta | null> => {
     console.log(`SERVICE: Fetching full details for Tabla Comparativa ID: ${idTablaComparativa}`);
     try {
-        // 1. Obtener datos base de la tabla comparativa
+        // 1. Base
         const tablaResult = await sql<TablaComparativa>`
             SELECT * FROM tablas_comparativas WHERE id = ${idTablaComparativa};
         `;
-        if (tablaResult.rowCount === 0) {
-            console.log(`SERVICE: Tabla Comparativa with ID ${idTablaComparativa} not found.`);
-            return null;
-        }
+        if (tablaResult.rowCount === 0) return null;
         const tablaBase = tablaResult.rows[0];
 
-        // 2. Obtener proveedores asociados (snapshot)
+        // 2. Proveedores Snapshot
         const proveedoresResult = await sql<ProveedorSnapshotDbRow>`
             SELECT * FROM tabla_comparativa_proveedores
-            WHERE id_tabla_comparativa = ${idTablaComparativa}
-            ORDER BY id ASC; -- O por nombre_empresa_snapshot
+            WHERE id_tabla_comparativa = ${idTablaComparativa} ORDER BY id ASC;
         `;
         const proveedoresSnapshots = proveedoresResult.rows;
-        const idProveedoresEnTabla = proveedoresSnapshots.map(p => p.id); // IDs de tabla_comparativa_proveedores
+        const idProveedoresEnTabla = proveedoresSnapshots.map(p => p.id);
 
+        // 3. Items y Observaciones (si hay proveedores)
         let items: ItemDbRow[] = [];
         let observaciones: ObservacionDbRow[] = [];
-
         if (idProveedoresEnTabla.length > 0) {
-            // 3. Obtener todos los ítems de TODOS los proveedores de esta tabla
             const itemsResult = await sql<ItemDbRow>`
                 SELECT * FROM tabla_comparativa_items
                 WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla})
                 ORDER BY id_tabla_comparativa_proveedor, id ASC;
             `;
             items = itemsResult.rows;
-
-            // 4. Obtener todas las observaciones de TODOS los proveedores de esta tabla
             const observacionesResult = await sql<ObservacionDbRow>`
                 SELECT * FROM tabla_comparativa_observaciones
                 WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla})
@@ -188,80 +182,62 @@ export const getTablaComparativaPorId = async (idTablaComparativa: number): Prom
             observaciones = observacionesResult.rows;
         }
 
-        // 5. Obtener firmas (opcionalmente uniendo con usuarios para obtener nombres)
+        // 5. Firmas (Ajustar JOIN a usuarios.id_usuario si es necesario)
         const firmasResult = await sql<FirmaDbRow & { nombre_usuario?: string }>`
-            SELECT tf.*, u.nombre as nombre_usuario -- Asumiendo que tabla 'usuarios' tiene columna 'nombre'
+            SELECT tf.*, u.nombre as nombre_usuario
             FROM tabla_comparativa_firmas tf
-            LEFT JOIN usuarios u ON tf.id_usuario = u.id_usuario
-            WHERE tf.id_tabla_comparativa = ${idTablaComparativa}
-            ORDER BY fecha_firma ASC;
+            LEFT JOIN usuarios u ON tf.id_usuario = u.id_usuario -- <- VERIFICA ESTE JOIN
+            WHERE tf.id_tabla_comparativa = ${idTablaComparativa} ORDER BY fecha_firma ASC;
         `;
         const firmas = firmasResult.rows;
 
-        // 6. Obtener comentarios (opcionalmente uniendo con usuarios)
+        // 6. Comentarios (Ajustar JOIN a usuarios.id_usuario si es necesario)
         const comentariosResult = await sql<ComentarioDbRow & { nombre_usuario?: string }>`
             SELECT tc.*, u.nombre as nombre_usuario
             FROM tabla_comparativa_comentarios tc
-            LEFT JOIN usuarios u ON tc.id_usuario = u.id_usuario
-            WHERE tc.id_tabla_comparativa = ${idTablaComparativa}
-            ORDER BY fecha_comentario ASC;
+            LEFT JOIN usuarios u ON tc.id_usuario = u.id_usuario -- <- VERIFICA ESTE JOIN
+            WHERE tc.id_tabla_comparativa = ${idTablaComparativa} ORDER BY fecha_comentario ASC;
         `;
         const comentarios = comentariosResult.rows;
 
-        // 7. Ensamblar el objeto final
+        // 7. Ensamblar
         const proveedoresCompletos: ProveedorEnTabla[] = proveedoresSnapshots.map(provSnapshot => {
-            // Filtrar ítems para este proveedor específico
             const itemsProveedor = items
                 .filter(item => item.id_tabla_comparativa_proveedor === provSnapshot.id)
-                .map(dbRow => ({ // Convertir strings a numbers donde sea necesario
+                .map(dbRow => ({
                     ...dbRow,
-                    // Asegurar que las características técnicas sean un objeto/array si son null/undefined
                     caracteristicas_tecnicas: dbRow.caracteristicas_tecnicas || null,
                     cantidad: parseFloat(dbRow.cantidad),
                     precio_unitario: parseFloat(dbRow.precio_unitario),
                     subtotal_item: parseFloat(dbRow.subtotal_item),
-                    // Convertir otros numéricos si es necesario
                     id_articulo_origen: dbRow.id_articulo_origen ? parseInt(dbRow.id_articulo_origen.toString(), 10) : null,
                 }));
-
-            // Filtrar observaciones para este proveedor específico
             const observacionesProveedor = observaciones
                 .filter(obs => obs.id_tabla_comparativa_proveedor === provSnapshot.id)
-                .map(dbRow => ({ // Ajustar tipos si es necesario
-                    ...dbRow,
-                    cumple: Boolean(dbRow.cumple)
-                }));
-
-            // Convertir los totales del proveedor snapshot a número
+                .map(dbRow => ({ ...dbRow, cumple: Boolean(dbRow.cumple) }));
             const proveedorConNumeros: TablaComparativaProveedorSnapshot = {
                 ...provSnapshot,
                 subtotal_proveedor: parseFloat(provSnapshot.subtotal_proveedor),
                 iva_proveedor: parseFloat(provSnapshot.iva_proveedor),
                 total_proveedor: parseFloat(provSnapshot.total_proveedor),
             };
-
-            return {
-                ...proveedorConNumeros,
-                items: itemsProveedor,
-                observaciones: observacionesProveedor,
-            };
+            return { ...proveedorConNumeros, items: itemsProveedor, observaciones: observacionesProveedor };
         });
 
         const tablaCompleta: TablaComparativaCompleta = {
             ...tablaBase,
             proveedores: proveedoresCompletos,
-            firmas: firmas.map(f => ({ ...f, id_usuario: parseInt(f.id_usuario.toString(), 10) })), // Ajustar tipos
-            comentarios: comentarios.map(c => ({ ...c, id_usuario: parseInt(c.id_usuario.toString(), 10) })), // Ajustar tipos
+            firmas: firmas.map(f => ({ ...f, id_usuario: parseInt(f.id_usuario.toString(), 10) })),
+            comentarios: comentarios.map(c => ({ ...c, id_usuario: parseInt(c.id_usuario.toString(), 10) })),
         };
-
-        console.log(`SERVICE: Successfully fetched and assembled details for Tabla Comparativa ID: ${idTablaComparativa}`);
+        console.log(`SERVICE: Successfully fetched details for Tabla ID: ${idTablaComparativa}`);
         return tablaCompleta;
-
     } catch (error: any) {
         console.error(`SERVICE ERROR in getTablaComparativaPorId (ID: ${idTablaComparativa}):`, error);
-        throw new Error(`Error al obtener los detalles de la tabla comparativa: ${error.message}`);
+        throw new Error(`Error al obtener detalles: ${error.message}`);
     }
 };
+
 
 /**
  * Agrega un proveedor existente a una tabla comparativa, creando el registro 'snapshot'.
@@ -269,70 +245,87 @@ export const getTablaComparativaPorId = async (idTablaComparativa: number): Prom
  * @returns {Promise<TablaComparativaProveedorSnapshot>} El registro del proveedor snapshot creado.
  */
 export const agregarProveedorATabla = async (data: AgregarProveedorInput): Promise<TablaComparativaProveedorSnapshot> => {
+    // Campos eliminados ya no se destructuran: atencion_de_snapshot, condiciones_pago_snapshot, tiempo_entrega_snapshot
     const {
         id_tabla_comparativa,
         id_proveedor,
-        // Datos Snapshot (estos deberían venir pre-llenados desde el frontend/API,
-        // posiblemente obtenidos del catálogo de proveedores justo antes de llamar a esta función)
         nombre_empresa_snapshot,
         rfc_snapshot,
         giro_comercial_snapshot,
-        atencion_de_snapshot,
         domicilio_snapshot,
         telefono_snapshot,
         correo_electronico_snapshot,
         pagina_web_snapshot,
-        condiciones_pago_snapshot,
-        tiempo_entrega_snapshot,
     } = data;
-    console.log(`SERVICE: Adding provider ID ${id_proveedor} to Tabla Comparativa ID ${id_tabla_comparativa}`);
+    console.log(`SERVICE: Adding provider ID ${id_proveedor} to Tabla ID ${id_tabla_comparativa}`);
 
     try {
-        // Validar que la tabla comparativa exista (opcional, la FK lo hará pero esto da mejor error)
-        // const checkTabla = await sql`SELECT 1 FROM tablas_comparativas WHERE id = ${id_tabla_comparativa}`;
-        // if (checkTabla.rowCount === 0) throw new Error(`Tabla comparativa con ID ${id_tabla_comparativa} no encontrada.`);
+        // --- VALIDACIONES ADICIONALES (Opcional, FKs ayudan) ---
+        // Verificar que id_tabla_comparativa existe
+        const tablaCheck = await sql`SELECT 1 FROM tablas_comparativas WHERE id = ${id_tabla_comparativa}`;
+        if (tablaCheck.rowCount === 0) throw new Error(`Tabla comparativa con ID ${id_tabla_comparativa} no encontrada.`);
+        // Verificar que id_proveedor existe
+        const provCheck = await sql`SELECT 1 FROM proveedores WHERE id_proveedor = ${id_proveedor}`; // Ajusta nombre de tabla/columna si es diferente
+        if (provCheck.rowCount === 0) throw new Error(`Proveedor maestro con ID ${id_proveedor} no encontrado.`);
+        // --- FIN VALIDACIONES ---
 
-        // Validar que el proveedor exista (opcional)
-        // const checkProv = await sql`SELECT 1 FROM proveedores WHERE id = ${id_proveedor}`;
-        // if (checkProv.rowCount === 0) throw new Error(`Proveedor con ID ${id_proveedor} no encontrado.`);
 
-        const result = await sql<TablaComparativaProveedorSnapshot>`
+        // --- Query INSERT actualizada (sin los campos eliminados) ---
+        const result = await sql<ProveedorSnapshotDbRow>`
             INSERT INTO tabla_comparativa_proveedores (
                 id_tabla_comparativa, id_proveedor, nombre_empresa_snapshot, rfc_snapshot,
-                giro_comercial_snapshot, atencion_de_snapshot, domicilio_snapshot, telefono_snapshot,
-                correo_electronico_snapshot, pagina_web_snapshot, condiciones_pago_snapshot,
-                tiempo_entrega_snapshot
-                -- Los totales empiezan en 0 por defecto
+                giro_comercial_snapshot, domicilio_snapshot, telefono_snapshot,
+                correo_electronico_snapshot, pagina_web_snapshot
+                -- Los campos eliminados ya no se insertan
             ) VALUES (
                 ${id_tabla_comparativa}, ${id_proveedor}, ${nombre_empresa_snapshot}, ${rfc_snapshot},
-                ${giro_comercial_snapshot}, ${atencion_de_snapshot}, ${domicilio_snapshot}, ${telefono_snapshot},
-                ${correo_electronico_snapshot}, ${pagina_web_snapshot}, ${condiciones_pago_snapshot},
-                ${tiempo_entrega_snapshot}
+                ${giro_comercial_snapshot}, ${domicilio_snapshot}, ${telefono_snapshot},
+                ${correo_electronico_snapshot}, ${pagina_web_snapshot}
             )
             RETURNING *;
         `;
+        // --- Fin Query ---
 
         if (result.rowCount === 0) {
             throw new Error("No se pudo agregar el proveedor a la tabla comparativa.");
         }
-        console.log(`SERVICE: Provider added successfully. New tabla_comparativa_proveedores ID: ${result.rows[0].id}`);
-        // Convertir los totales a número antes de devolver
         const row = result.rows[0];
+        console.log(`SERVICE: Provider added successfully. New tabla_comparativa_proveedores ID: ${row.id}`);
+        // Convertir a números antes de devolver
         return {
             ...row,
-            subtotal_proveedor: parseFloat(row.subtotal_proveedor.toString()),
-            iva_proveedor: parseFloat(row.iva_proveedor.toString()),
-            total_proveedor: parseFloat(row.total_proveedor.toString()),
+            // Asegurar que todos los campos del tipo actualizado estén aquí
+            id: row.id,
+            id_tabla_comparativa: row.id_tabla_comparativa,
+            id_proveedor: row.id_proveedor,
+            nombre_empresa_snapshot: row.nombre_empresa_snapshot,
+            rfc_snapshot: row.rfc_snapshot,
+            giro_comercial_snapshot: row.giro_comercial_snapshot,
+            domicilio_snapshot: row.domicilio_snapshot,
+            telefono_snapshot: row.telefono_snapshot,
+            correo_electronico_snapshot: row.correo_electronico_snapshot,
+            pagina_web_snapshot: row.pagina_web_snapshot,
+            // Convertir totales
+            subtotal_proveedor: parseFloat(row.subtotal_proveedor),
+            iva_proveedor: parseFloat(row.iva_proveedor),
+            total_proveedor: parseFloat(row.total_proveedor),
         };
 
     } catch (error: any) {
-        // Manejar error de llave única (proveedor ya existe en la tabla)
-        if (error.message.includes('duplicate key value violates unique constraint "tabla_comparativa_proveedores_id_tabla_comparativa_id_provee_key"')) {
+        // Manejar error de llave única
+        if (error.code === '23505' && error.constraint === 'tabla_comparativa_proveedores_id_tabla_comparativa_id_provee_key') { // Ajusta el nombre exacto del constraint si es diferente
             console.error(`SERVICE ERROR: Provider ${id_proveedor} already exists in Tabla ${id_tabla_comparativa}.`);
             throw new Error(`El proveedor seleccionado ya existe en esta tabla comparativa.`);
         }
+        // Manejar error de FK (si las validaciones previas fallan o hay concurrencia)
+        if (error.code === '23503') {
+            console.error("SERVICE ERROR FK violation:", error);
+            if (error.constraint === 'tabla_comparativa_proveedores_id_tabla_comparativa_fkey') throw new Error(`La tabla comparativa ID ${id_tabla_comparativa} no existe.`);
+            if (error.constraint === 'tabla_comparativa_proveedores_id_proveedor_fkey') throw new Error(`El proveedor maestro ID ${id_proveedor} no existe.`); // Ajusta nombre de constraint
+            throw new Error(`Error de referencia: ${error.detail || error.message}`);
+        }
         console.error("SERVICE ERROR in agregarProveedorATabla:", error);
-        throw new Error(`Error al agregar el proveedor a la tabla comparativa: ${error.message}`);
+        throw new Error(`Error al agregar el proveedor: ${error.message}`);
     }
 };
 
@@ -541,22 +534,22 @@ export const eliminarItem = async (idItem: number): Promise<void> => {
  * @returns {Promise<void>}
  */
 export const eliminarProveedorDeTabla = async (idTablaComparativaProveedor: number): Promise<void> => {
-    console.log(`SERVICE: Removing provider snapshot ID: ${idTablaComparativaProveedor} from tabla comparativa.`);
+    // ... (código sin cambios)
+    console.log(`SERVICE: Removing provider snapshot ID: ${idTablaComparativaProveedor}`);
     try {
         const result = await sql`
             DELETE FROM tabla_comparativa_proveedores WHERE id = ${idTablaComparativaProveedor};
         `;
         if (result.rowCount === 0) {
+            // Considerar esto como éxito silencioso o lanzar un error 404
             console.warn(`SERVICE: Provider snapshot ID ${idTablaComparativaProveedor} not found for deletion.`);
-            // Opcional: lanzar error si se espera que siempre exista
-            // throw new Error(`Registro de proveedor en tabla comparativa con ID ${idTablaComparativaProveedor} no encontrado.`);
+            throw new Error(`Registro de proveedor en tabla comparativa con ID ${idTablaComparativaProveedor} no encontrado.`);
         } else {
-            console.log(`SERVICE: Provider snapshot ID ${idTablaComparativaProveedor} and associated items/observations deleted successfully.`);
+            console.log(`SERVICE: Provider snapshot ID ${idTablaComparativaProveedor} deleted successfully.`);
         }
     } catch (error: any) {
         console.error(`SERVICE ERROR in eliminarProveedorDeTabla (ID: ${idTablaComparativaProveedor}):`, error);
-        // Podría haber errores de FK si hay dependencias no cubiertas por CASCADE (no debería con el schema actual)
-        throw new Error(`Error al eliminar el proveedor de la tabla comparativa: ${error.message}`);
+        throw new Error(`Error al eliminar el proveedor de la tabla: ${error.message}`);
     }
 };
 
@@ -656,8 +649,14 @@ export const actualizarTablaComparativa = async (idTablaComparativa: number, dat
 
 // OBSERVACIONES
 export const agregarObservacion = async (data: AgregarObservacionInput): Promise<TablaComparativaObservacion> => {
-    console.log(`SERVICE: Adding observation for proveedor ${data.id_tabla_comparativa_proveedor}`);
+    // ... (código sin cambios)
+    console.log(`SERVICE: Adding observation for proveedor snapshot ${data.id_tabla_comparativa_proveedor}`);
     try {
+        // Validación adicional (opcional): Verificar que id_tabla_comparativa_proveedor existe
+        const checkProv = await sql`SELECT 1 FROM tabla_comparativa_proveedores WHERE id = ${data.id_tabla_comparativa_proveedor}`;
+        if (checkProv.rowCount === 0) throw new Error(`El proveedor (ID en tabla: ${data.id_tabla_comparativa_proveedor}) no existe en ninguna tabla comparativa.`);
+        // Podrías añadir una validación más compleja para asegurar que pertenece a la tabla correcta si tuvieras idTabla aquí
+
         const result = await sql<ObservacionDbRow>`
             INSERT INTO tabla_comparativa_observaciones (id_tabla_comparativa_proveedor, descripcion_validacion, cumple, comentario_adicional)
             VALUES (${data.id_tabla_comparativa_proveedor}, ${data.descripcion_validacion}, ${data.cumple}, ${data.comentario_adicional})
@@ -665,9 +664,12 @@ export const agregarObservacion = async (data: AgregarObservacionInput): Promise
         `;
         if (result.rowCount === 0) throw new Error("No se pudo agregar la observación.");
         const row = result.rows[0];
-        return { ...row, cumple: Boolean(row.cumple) }; // Convertir a boolean
+        return { ...row, cumple: Boolean(row.cumple) };
     } catch (error: any) {
         console.error("SERVICE ERROR in agregarObservacion:", error);
+        if (error.code === '23503') { // Error de FK
+            throw new Error(`Error al agregar observación: El proveedor asociado (ID en tabla: ${data.id_tabla_comparativa_proveedor}) no existe.`);
+        }
         throw new Error(`Error al agregar la observación: ${error.message}`);
     }
 };
@@ -704,9 +706,14 @@ export const actualizarObservacion = async (idObservacion: number, data: Actuali
 };
 
 export const eliminarObservacion = async (idObservacion: number): Promise<void> => {
+    // ... (código sin cambios)
     console.log(`SERVICE: Deleting observation ID: ${idObservacion}`);
     try {
-        await sql`DELETE FROM tabla_comparativa_observaciones WHERE id = ${idObservacion};`;
+        const result = await sql`DELETE FROM tabla_comparativa_observaciones WHERE id = ${idObservacion};`;
+        if (result.rowCount === 0) {
+            console.warn(`SERVICE: Observation ID ${idObservacion} not found for deletion.`);
+            throw new Error(`Observación con ID ${idObservacion} no encontrada.`);
+        }
     } catch (error: any) {
         console.error(`SERVICE ERROR in eliminarObservacion (ID: ${idObservacion}):`, error);
         throw new Error(`Error al eliminar la observación: ${error.message}`);
@@ -715,26 +722,42 @@ export const eliminarObservacion = async (idObservacion: number): Promise<void> 
 
 // FIRMAS
 export const agregarFirma = async (data: AgregarFirmaInput): Promise<TablaComparativaFirma> => {
+    // ... (código sin cambios, FKs manejan validación de tabla/usuario)
     console.log(`SERVICE: Adding firma for tabla ${data.id_tabla_comparativa} by user ${data.id_usuario}`);
     try {
+        // Validaciones adicionales (opcional)
+        const tablaCheck = await sql`SELECT 1 FROM tablas_comparativas WHERE id = ${data.id_tabla_comparativa}`;
+        if (tablaCheck.rowCount === 0) throw new Error(`Tabla comparativa ID ${data.id_tabla_comparativa} no encontrada.`);
+        const userCheck = await sql`SELECT 1 FROM usuarios WHERE id_usuario = ${data.id_usuario}`; // Ajusta tabla/columna usuario
+        if (userCheck.rowCount === 0) throw new Error(`Usuario ID ${data.id_usuario} no encontrado.`);
+
         const result = await sql<FirmaDbRow>`
             INSERT INTO tabla_comparativa_firmas (id_tabla_comparativa, id_usuario, tipo_firma, comentario_firma)
             VALUES (${data.id_tabla_comparativa}, ${data.id_usuario}, ${data.tipo_firma}, ${data.comentario_firma})
             RETURNING *;
         `;
         if (result.rowCount === 0) throw new Error("No se pudo agregar la firma.");
-        return result.rows[0];
+        // Convertir id_usuario a número por si acaso
+        const row = result.rows[0];
+        return { ...row, id_usuario: parseInt(row.id_usuario.toString(), 10) };
     } catch (error: any) {
         console.error("SERVICE ERROR in agregarFirma:", error);
-        // Podría haber error de FK si usuario o tabla no existen
+        if (error.code === '23503') { // Error de FK
+            throw new Error(`Error al agregar firma: La tabla o el usuario no existen.`);
+        }
         throw new Error(`Error al agregar la firma: ${error.message}`);
     }
 };
 
 export const eliminarFirma = async (idFirma: number): Promise<void> => {
+    // ... (código sin cambios)
     console.log(`SERVICE: Deleting firma ID: ${idFirma}`);
     try {
-        await sql`DELETE FROM tabla_comparativa_firmas WHERE id = ${idFirma};`;
+        const result = await sql`DELETE FROM tabla_comparativa_firmas WHERE id = ${idFirma};`;
+        if (result.rowCount === 0) {
+            console.warn(`SERVICE: Firma ID ${idFirma} not found for deletion.`);
+            throw new Error(`Firma con ID ${idFirma} no encontrada.`);
+        }
     } catch (error: any) {
         console.error(`SERVICE ERROR in eliminarFirma (ID: ${idFirma}):`, error);
         throw new Error(`Error al eliminar la firma: ${error.message}`);
@@ -744,25 +767,42 @@ export const eliminarFirma = async (idFirma: number): Promise<void> => {
 
 // COMENTARIOS
 export const agregarComentario = async (data: AgregarComentarioInput): Promise<TablaComparativaComentario> => {
+    // ... (código sin cambios, similar a agregarFirma)
     console.log(`SERVICE: Adding comentario for tabla ${data.id_tabla_comparativa} by user ${data.id_usuario}`);
     try {
+        // Validaciones adicionales (opcional)
+        const tablaCheck = await sql`SELECT 1 FROM tablas_comparativas WHERE id = ${data.id_tabla_comparativa}`;
+        if (tablaCheck.rowCount === 0) throw new Error(`Tabla comparativa ID ${data.id_tabla_comparativa} no encontrada.`);
+        const userCheck = await sql`SELECT 1 FROM usuarios WHERE id_usuario = ${data.id_usuario}`; // Ajusta tabla/columna usuario
+        if (userCheck.rowCount === 0) throw new Error(`Usuario ID ${data.id_usuario} no encontrado.`);
+
         const result = await sql<ComentarioDbRow>`
             INSERT INTO tabla_comparativa_comentarios (id_tabla_comparativa, id_usuario, texto_comentario)
             VALUES (${data.id_tabla_comparativa}, ${data.id_usuario}, ${data.texto_comentario})
             RETURNING *;
         `;
         if (result.rowCount === 0) throw new Error("No se pudo agregar el comentario.");
-        return result.rows[0];
+        // Convertir id_usuario a número por si acaso
+        const row = result.rows[0];
+        return { ...row, id_usuario: parseInt(row.id_usuario.toString(), 10) };
     } catch (error: any) {
         console.error("SERVICE ERROR in agregarComentario:", error);
+        if (error.code === '23503') { // Error de FK
+            throw new Error(`Error al agregar comentario: La tabla o el usuario no existen.`);
+        }
         throw new Error(`Error al agregar el comentario: ${error.message}`);
     }
 };
 
 export const eliminarComentario = async (idComentario: number): Promise<void> => {
+    // ... (código sin cambios)
     console.log(`SERVICE: Deleting comentario ID: ${idComentario}`);
     try {
-        await sql`DELETE FROM tabla_comparativa_comentarios WHERE id = ${idComentario};`;
+        const result = await sql`DELETE FROM tabla_comparativa_comentarios WHERE id = ${idComentario};`;
+        if (result.rowCount === 0) {
+            console.warn(`SERVICE: Comentario ID ${idComentario} not found for deletion.`);
+            throw new Error(`Comentario con ID ${idComentario} no encontrado.`);
+        }
     } catch (error: any) {
         console.error(`SERVICE ERROR in eliminarComentario (ID: ${idComentario}):`, error);
         throw new Error(`Error al eliminar el comentario: ${error.message}`);

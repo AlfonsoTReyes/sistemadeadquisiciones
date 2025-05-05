@@ -31,7 +31,7 @@ export default function PageRegistroProveedorDatos() {
     } else {
       setError("No se encontró ID de usuario. Por favor, inicie sesión.");
       console.warn("RegistroDatos Page - No User ID found in session. Redirecting to login.");
-      router.push('/proveedores/login'); // Redirect immediately if no ID
+      router.push('/proveedores/proveedoresusuarios'); // Redirect immediately if no ID
     }
     setIsLoading(false);
   }, [router]); // Add router to dependency array

@@ -4,12 +4,18 @@ import { triggerPusherEvent } from '../lib/pusher-server';
 // --- INTERFACES ADAPTADAS ---
 
 // Interfaz para un representante legal (como se recibe/envía en arrays)
+export interface Proveedor {
+    id_proveedor: number;
+    nombre_o_razon_social: string;
+    rfc: string;
+}
+
+// Interfaz para un representante legal (Input)
 interface RepresentanteLegalInput {
-    id_morales?: number; // Opcional: para identificar en actualizaciones
+    id_morales?: number;
     nombre_representante: string;
     apellido_p_representante: string;
     apellido_m_representante?: string | null;
-    // Podrías añadir aquí otros campos específicos del representante si los tuvieras
 }
 
 // Interfaz para datos devueltos (ahora con array de representantes)
@@ -51,7 +57,7 @@ export interface ProveedorDetallado {
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
     representantes?: RepresentanteLegalOutput[]; // Usamos una interfaz Output
 
-     [key: string]: any;
+    [key: string]: any;
 }
 
 // Interfaz para la info de un representante devuelta por la API/Servicio
@@ -65,36 +71,25 @@ interface RepresentanteLegalOutput {
 
 // Interface para crear proveedor (ADAPTADA)
 interface CreateProveedorData {
-  id_usuario_proveedor: number;
-  // Comunes
-  rfc: string; giro_comercial: string; correo: string; calle: string; numero: string; colonia: string; codigo_postal: string; municipio: string; estado: string; telefono_uno: string; actividadSat: string;
-  telefono_dos?: string | null; pagina_web?: string | null; camara_comercial?: string | null; numero_registro_camara?: string | null; numero_registro_imss?: string | null; proveedorEventos?: boolean;
-
-  tipoProveedor: 'moral' | 'fisica';
-
-  // Específicos Física
-  nombre?: string; apellido_p?: string; curp?: string; apellido_m?: string | null;
-
-  // Específicos Moral (ADAPTADO)
-  razon_social?: string; // Único para la entidad
-  representantes?: RepresentanteLegalInput[];
+    id_usuario_proveedor: number;
+    rfc: string; giro_comercial: string; correo: string; calle: string; numero: string; colonia: string; codigo_postal: string; municipio: string; estado: string; telefono_uno: string; actividadSat: string;
+    telefono_dos?: string | null; pagina_web?: string | null; camara_comercial?: string | null; numero_registro_camara?: string | null; numero_registro_imss?: string | null; proveedorEventos?: boolean;
+    tipoProveedor: 'moral' | 'fisica';
+    nombre?: string; apellido_p?: string; curp?: string; apellido_m?: string | null; // Fisica
+    razon_social?: string; // Moral
+    representantes?: RepresentanteLegalInput[]; // Moral
 }
+
 
 // Interface para actualizar proveedor
 interface UpdateProveedorData {
-  // Comunes (opcionales)
-  rfc?: string; giro_comercial?: string; correo?: string; calle?: string; numero?: string; colonia?: string; codigo_postal?: string; municipio?: string; estado?: string; telefono_uno?: string;
-  telefono_dos?: string | null; pagina_web?: string | null; camara_comercial?: string | null; numero_registro_camara?: string | null; numero_registro_imss?: string | null; estatus?: boolean; actividadSat?: string | null; proveedorEventos?: boolean;
-
-  tipoProveedor: 'moral' | 'fisica'; // Necesario para la lógica
-
-  // Específicos Física (opcionales)
-  nombre?: string; apellido_p?: string; curp?: string; apellido_m?: string | null;
-
-  // Específicos Moral (ADAPTADO)
-  razon_social?: string; // Único para la entidad
-  representantes?: RepresentanteLegalInput[];
-   [key: string]: any; // Para otros campos si es necesario
+    rfc?: string; giro_comercial?: string; correo?: string; calle?: string; numero?: string; colonia?: string; codigo_postal?: string; municipio?: string; estado?: string; telefono_uno?: string; actividadSat?: string | null;
+    telefono_dos?: string | null; pagina_web?: string | null; camara_comercial?: string | null; numero_registro_camara?: string | null; numero_registro_imss?: string | null; proveedorEventos?: boolean; estatus?: boolean;
+    tipoProveedor: 'moral' | 'fisica'; // Necesario
+    nombre?: string; apellido_p?: string; curp?: string; apellido_m?: string | null; // Fisica
+    razon_social?: string; // Moral
+    representantes?: RepresentanteLegalInput[]; // Moral
+    [key: string]: any;
 }
 
 
@@ -105,12 +100,26 @@ const procesarResultadoProveedor = (rows: any[]): ProveedorDetallado | null => {
     if (!rows || rows.length === 0) {
         return null;
     }
-
-    // Tomar datos comunes y de la entidad moral de la primera fila
     const firstRow = rows[0];
     const tipo = firstRow.razon_social ? 'moral' : (firstRow.nombre_fisica ? 'fisica' : 'desconocido');
 
+    // Construir nombre combinado
+    let nombreCombinado = 'Desconocido';
+    if (tipo === 'moral' && firstRow.razon_social) {
+        nombreCombinado = firstRow.razon_social;
+    } else if (tipo === 'fisica' && firstRow.nombre_fisica && firstRow.apellido_p_fisica) {
+        nombreCombinado = `${firstRow.nombre_fisica} ${firstRow.apellido_p_fisica} ${firstRow.apellido_m_fisica || ''}`.trim();
+    } else if (firstRow.rfc) {
+        nombreCombinado = firstRow.rfc; // Fallback
+    }
+
+    // Construir domicilio combinado
+    const domicilioParts = [firstRow.calle, firstRow.numero, firstRow.colonia, firstRow.codigo_postal, firstRow.municipio, firstRow.estado].filter(Boolean);
+    const domicilioCombinado = domicilioParts.length > 0 ? domicilioParts.join(', ') : null;
+
+
     const proveedorBase: ProveedorDetallado = {
+        // ... (mapeo de campos como lo tenías) ...
         id_proveedor: firstRow.id_proveedor,
         rfc: firstRow.rfc,
         giro_comercial: firstRow.giro_comercial,
@@ -136,29 +145,29 @@ const procesarResultadoProveedor = (rows: any[]): ProveedorDetallado | null => {
         id_usuario_proveedor: firstRow.id_usuario_proveedor,
         actividad_sat: firstRow.actividad_sat,
         proveedor_eventos: firstRow.proveedor_eventos,
-        tipo_proveedor: tipo,
         estatus_revision: firstRow.estatus_revision,
-        // Inicializar específicos a null o según el tipo
+        tipo_proveedor: tipo,
+        // --- Campos específicos y combinados ---
         nombre_fisica: tipo === 'fisica' ? firstRow.nombre_fisica : null,
         apellido_p_fisica: tipo === 'fisica' ? firstRow.apellido_p_fisica : null,
         apellido_m_fisica: tipo === 'fisica' ? firstRow.apellido_m_fisica : null,
         curp: tipo === 'fisica' ? firstRow.curp : null,
         razon_social: tipo === 'moral' ? firstRow.razon_social : null,
-        representantes: tipo === 'moral' ? [] : undefined // Inicializar array si es moral
+        representantes: tipo === 'moral' ? [] : undefined, // Inicializar
+        nombre_o_razon_social: nombreCombinado, // <-- Añadido
+        domicilio: domicilioCombinado, // <-- Añadido
     };
 
-    // Si es moral, iterar TODAS las filas para construir el array de representantes
+    // Lógica para poblar 'representantes' si es moral (como la tenías)
     if (tipo === 'moral') {
         proveedorBase.representantes = rows
-            .filter(row => row.id_morales != null) // Asegurarse que la fila tiene datos de moral
+            .filter(row => row.id_morales != null)
             .map(row => ({
-                id_morales: row.id_morales, // El ID único de esta fila/representante
+                id_morales: row.id_morales,
                 nombre_representante: row.nombre_representante,
                 apellido_p_representante: row.apellido_p_representante,
                 apellido_m_representante: row.apellido_m_representante,
-                // Añadir otros campos del representante si existen en la tabla moral
             }));
-         // Opcional: Eliminar duplicados si la query generó alguno por error
         proveedorBase.representantes = Array.from(new Map(proveedorBase.representantes.map(item => [item.id_morales, item])).values());
     }
 
@@ -166,118 +175,95 @@ const procesarResultadoProveedor = (rows: any[]): ProveedorDetallado | null => {
 };
 
 export const getProveedorById = async (id: number): Promise<ProveedorDetallado | null> => {
-  console.log(`DEBUG Service: getProveedorById: Fetching provider by ID: ${id}`);
-  try {
-    if (isNaN(id)) throw new Error("ID de proveedor inválido.");
-
-    // La query necesita traer TODOS los campos, incluyendo los de moral/fisica
-    // El LEFT JOIN con proveedores_morales ahora puede devolver múltiples filas por proveedor
-    const result = await sql`
-      SELECT
-        p.*, -- Todos de proveedores (incluirá estatus_revision)
-        -- Seleccionar explícitamente si se prefiere o hay ambigüedad
-        -- p.estatus_revision,
-        m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
-        f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
-      FROM proveedores p
-      LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
-      LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-      WHERE p.id_proveedor = ${id};
-    `;
-
-    return procesarResultadoProveedor(result.rows);
-
-  } catch (error) {
-    console.error(`Error fetching proveedor by ID ${id}:`, error);
-    // Considera no rechazar la promesa aquí, sino devolver null o un objeto de error
-    // para que el llamador maneje el fallo de obtención de datos.
-    // return Promise.reject(new Error('Error al obtener datos del proveedor.'));
-     throw new Error('Error al obtener datos del proveedor.'); // O relanzar
-  }
+    console.log(`DEBUG Service: getProveedorById: Fetching provider by ID: ${id}`);
+    try {
+        if (isNaN(id)) throw new Error("ID de proveedor inválido.");
+        const result = await sql`
+          SELECT p.*, m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
+                 f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
+          FROM proveedores p LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
+                             LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
+          WHERE p.id_proveedor = ${id};`;
+        return procesarResultadoProveedor(result.rows);
+    } catch (error) {
+        console.error(`Error fetching proveedor by ID ${id}:`, error);
+        throw new Error('Error al obtener datos del proveedor.');
+    }
 };
 
 export const getProveedorByUserId = async (id_usuario_proveedor: number): Promise<ProveedorDetallado | null> => {
-  console.log(`DEBUG Service: getProveedorByUserId: Fetching provider profile for user ID: ${id_usuario_proveedor}`);
-  try {
-      if (isNaN(id_usuario_proveedor)) throw new Error("ID de usuario proveedor inválido.");
-
-      // Misma query que getProveedorById pero filtrando por id_usuario_proveedor
-       const result = await sql`
-         SELECT
-           p.*, -- Incluye estatus_revision
-           -- p.estatus_revision, -- Explícito si se prefiere
-           m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
-           f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
-         FROM proveedores p
-         LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
-         LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-         WHERE p.id_usuario_proveedor = ${id_usuario_proveedor};
-       `;
-
-       return procesarResultadoProveedor(result.rows);
-
-  } catch (error) {
-      console.error(`Error fetching provider profile by user ID ${id_usuario_proveedor}:`, error);
-      throw new Error('Error al obtener el perfil del proveedor por usuario.');
-  }
+    console.log(`DEBUG Service: getProveedorByUserId: Fetching provider profile for user ID: ${id_usuario_proveedor}`);
+    try {
+        if (isNaN(id_usuario_proveedor)) throw new Error("ID de usuario proveedor inválido.");
+        const result = await sql`
+          SELECT p.*, m.id_morales, m.razon_social, m.nombre_representante, m.apellido_p_representante, m.apellido_m_representante,
+                 f.id_fisicas, f.nombre AS nombre_fisica, f.apellido_p AS apellido_p_fisica, f.apellido_m AS apellido_m_fisica, f.curp
+          FROM proveedores p LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
+                             LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
+          WHERE p.id_usuario_proveedor = ${id_usuario_proveedor};`;
+        return procesarResultadoProveedor(result.rows);
+    } catch (error) {
+        console.error(`Error fetching provider profile by user ID ${id_usuario_proveedor}:`, error);
+        throw new Error('Error al obtener el perfil del proveedor por usuario.');
+    }
 };
 
 
 // --- createProveedorCompleto (ADAPTADO) ---
 export const createProveedorCompleto = async (data: CreateProveedorData): Promise<{ id_proveedor: number }> => {
-  const {
-      id_usuario_proveedor, tipoProveedor,
-      // Comunes
-      rfc, giro_comercial, correo, calle, numero, colonia, codigo_postal, municipio, estado, telefono_uno, actividadSat, telefono_dos, pagina_web, camara_comercial, numero_registro_camara, numero_registro_imss, proveedorEventos,
-      // Físicos
-      nombre, apellido_p, apellido_m, curp,
-      // Morales
-      razon_social, representantes // Ahora es un array
-  } = data;
+    const {
+        id_usuario_proveedor, tipoProveedor,
+        // Comunes
+        rfc, giro_comercial, correo, calle, numero, colonia, codigo_postal, municipio, estado, telefono_uno, actividadSat, telefono_dos, pagina_web, camara_comercial, numero_registro_camara, numero_registro_imss, proveedorEventos,
+        // Físicos
+        nombre, apellido_p, apellido_m, curp,
+        // Morales
+        razon_social, representantes // Ahora es un array
+    } = data;
 
-  // Validaciones básicas
-  if (tipoProveedor === 'moral' && (!razon_social || !representantes || representantes.length === 0)) {
-       throw new Error("Para Persona Moral: Razón Social y al menos un Representante son requeridos.");
-  }
-   if (tipoProveedor === 'fisica' && (!nombre || !apellido_p || !curp)) {
-       throw new Error("Para Persona Física: Nombre, Apellido P y CURP son requeridos.");
-   }
-   if (!actividadSat) { throw new Error("Actividad SAT requerida."); }
+    // Validaciones básicas
+    if (tipoProveedor === 'moral' && (!razon_social || !representantes || representantes.length === 0)) {
+        throw new Error("Para Persona Moral: Razón Social y al menos un Representante son requeridos.");
+    }
+    if (tipoProveedor === 'fisica' && (!nombre || !apellido_p || !curp)) {
+        throw new Error("Para Persona Física: Nombre, Apellido P y CURP son requeridos.");
+    }
+    if (!actividadSat) { throw new Error("Actividad SAT requerida."); }
 
 
-  let client: VercelPoolClient | null = null;
-  let newProveedorId: number | null = null;
+    let client: VercelPoolClient | null = null;
+    let newProveedorId: number | null = null;
 
-  try {
-      client = await sql.connect();
-      await client.sql`BEGIN`;
-      console.log(`SERVICE Create: Iniciando registro para user ID: ${id_usuario_proveedor}, Tipo: ${tipoProveedor}`);
+    try {
+        client = await sql.connect();
+        await client.sql`BEGIN`;
+        console.log(`SERVICE Create: Iniciando registro para user ID: ${id_usuario_proveedor}, Tipo: ${tipoProveedor}`);
 
-      // 1. INSERT en proveedores
-      const proveedorResult = await client.sql`
+        // 1. INSERT en proveedores
+        const proveedorResult = await client.sql`
           INSERT INTO proveedores (
               rfc, giro_comercial, correo, calle, numero, colonia, codigo_postal, municipio, estado, telefono_uno, telefono_dos, pagina_web, camara_comercial, numero_registro_camara, numero_registro_imss, actividad_sat, proveedor_eventos, estatus, id_usuario_proveedor, created_at, updated_at, fecha_solicitud
           ) VALUES (
               ${rfc}, ${giro_comercial}, ${correo}, ${calle}, ${numero}, ${colonia}, ${codigo_postal}, ${municipio}, ${estado}, ${telefono_uno}, ${telefono_dos ?? null}, ${pagina_web ?? null}, ${camara_comercial ?? null}, ${numero_registro_camara ?? null}, ${numero_registro_imss ?? null}, ${actividadSat}, ${proveedorEventos ?? false}, ${true}, ${id_usuario_proveedor}, NOW(), NOW(), NOW()
           ) RETURNING id_proveedor;
       `;
-      newProveedorId = proveedorResult.rows[0]?.id_proveedor;
-      if (!newProveedorId) { throw new Error("Fallo al crear registro principal del proveedor."); }
-      console.log(`SERVICE Create: Registro en 'proveedores' creado con ID: ${newProveedorId}`);
+        newProveedorId = proveedorResult.rows[0]?.id_proveedor;
+        if (!newProveedorId) { throw new Error("Fallo al crear registro principal del proveedor."); }
+        console.log(`SERVICE Create: Registro en 'proveedores' creado con ID: ${newProveedorId}`);
 
-      // 2. INSERT en tabla específica
-      if (tipoProveedor === 'moral') {
-          // Iterar sobre el array de representantes
-          if (!representantes || representantes.length === 0) { throw new Error("Se requiere al menos un representante para proveedor moral.");} // Doble check
-          if (!razon_social) { throw new Error("Se requiere razón social para proveedor moral.");} // Doble check
+        // 2. INSERT en tabla específica
+        if (tipoProveedor === 'moral') {
+            // Iterar sobre el array de representantes
+            if (!representantes || representantes.length === 0) { throw new Error("Se requiere al menos un representante para proveedor moral."); } // Doble check
+            if (!razon_social) { throw new Error("Se requiere razón social para proveedor moral."); } // Doble check
 
-          console.log(`SERVICE Create: Insertando ${representantes.length} representante(s) para ID: ${newProveedorId}`);
-          for (const rep of representantes) {
-              if (!rep.nombre_representante || !rep.apellido_p_representante) {
-                  throw new Error("Cada representante debe tener al menos nombre y apellido paterno.");
-              }
-              // Insertar UNA FILA por cada representante, repitiendo id_proveedor y razon_social
-              await client.sql`
+            console.log(`SERVICE Create: Insertando ${representantes.length} representante(s) para ID: ${newProveedorId}`);
+            for (const rep of representantes) {
+                if (!rep.nombre_representante || !rep.apellido_p_representante) {
+                    throw new Error("Cada representante debe tener al menos nombre y apellido paterno.");
+                }
+                // Insertar UNA FILA por cada representante, repitiendo id_proveedor y razon_social
+                await client.sql`
                   INSERT INTO proveedores_morales (
                       id_proveedor,
                       razon_social,
@@ -294,33 +280,33 @@ export const createProveedorCompleto = async (data: CreateProveedorData): Promis
                       -- null, null -- Para acta/poder si estuvieran
                   );
               `;
-          }
-           console.log(`SERVICE Create: Inserciones en 'proveedores_morales' completadas para ID: ${newProveedorId}`);
+            }
+            console.log(`SERVICE Create: Inserciones en 'proveedores_morales' completadas para ID: ${newProveedorId}`);
 
-      } else if (tipoProveedor === 'fisica') {
-          await client.sql`
+        } else if (tipoProveedor === 'fisica') {
+            await client.sql`
             INSERT INTO personas_fisicas (id_proveedor, nombre, apellido_p, apellido_m, curp)
             VALUES (${newProveedorId}, ${nombre}, ${apellido_p}, ${apellido_m ?? null}, ${curp});
           `;
-           console.log(`SERVICE Create: Inserción en 'personas_fisicas' completada para ID: ${newProveedorId}`);
-      }
+            console.log(`SERVICE Create: Inserción en 'personas_fisicas' completada para ID: ${newProveedorId}`);
+        }
 
-      await client.sql`COMMIT`;
-      console.log(`SERVICE Create: Transacción completada para ID: ${newProveedorId}`);
-      return { id_proveedor: newProveedorId };
+        await client.sql`COMMIT`;
+        console.log(`SERVICE Create: Transacción completada para ID: ${newProveedorId}`);
+        return { id_proveedor: newProveedorId };
 
     } catch (error: any) {
         console.error(`SERVICE Create: Error durante el registro para user ID: ${id_usuario_proveedor}`);
         if (client) { try { await client.sql`ROLLBACK`; console.log("SERVICE Create: ROLLBACK ejecutado."); } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
         console.error(`Error creando proveedor:`, error);
         // Propagar errores específicos
-         if (error.code === '23505' && error.constraint?.includes('proveedores_id_usuario_proveedor')) {
-             throw new Error('Este usuario ya tiene un perfil de proveedor registrado.');
-         }
-         if (error.code === '23503') { // Error de FK (aunque no debería ocurrir aquí si la lógica es correcta)
+        if (error.code === '23505' && error.constraint?.includes('proveedores_id_usuario_proveedor')) {
+            throw new Error('Este usuario ya tiene un perfil de proveedor registrado.');
+        }
+        if (error.code === '23503') { // Error de FK (aunque no debería ocurrir aquí si la lógica es correcta)
             console.error("Error FK Detectado:", error.detail);
             throw new Error(`Error de referencia: ${error.detail}`);
-         }
+        }
         throw new Error(`Error en el registro: ${error.message}`);
     } finally {
         if (client) { await client.release(); }
@@ -332,7 +318,7 @@ export const createProveedorCompleto = async (data: CreateProveedorData): Promis
 export const updateProveedorCompleto = async (
     id_proveedor: number,
     proveedorData: UpdateProveedorData // Usa la interfaz adaptada
-  ): Promise<ProveedorDetallado | null> => { // Devuelve el proveedor actualizado o null
+): Promise<ProveedorDetallado | null> => { // Devuelve el proveedor actualizado o null
     const {
         tipoProveedor,
         // Comunes (pueden ser undefined)
@@ -386,14 +372,14 @@ export const updateProveedorCompleto = async (
             //    (Solo si se proporcionó una nueva razón social)
             let razonSocialActual = razon_social; // Usar la nueva si viene
             if (razonSocialActual !== undefined) {
-                 console.log(`SERVICE Update: Actualizando razon_social a "${razonSocialActual}" para ID ${id_proveedor}`);
-                 await client.sql`UPDATE proveedores_morales SET razon_social = ${razonSocialActual} WHERE id_proveedor = ${id_proveedor};`;
+                console.log(`SERVICE Update: Actualizando razon_social a "${razonSocialActual}" para ID ${id_proveedor}`);
+                await client.sql`UPDATE proveedores_morales SET razon_social = ${razonSocialActual} WHERE id_proveedor = ${id_proveedor};`;
             } else {
-                 // Si no se envió, necesitamos obtener la actual para los nuevos inserts
-                 const currentMoralData = await client.sql`SELECT razon_social FROM proveedores_morales WHERE id_proveedor = ${id_proveedor} LIMIT 1;`;
-                 razonSocialActual = currentMoralData.rows[0]?.razon_social;
-                 if(razonSocialActual === undefined) console.warn(`WARN Service Update: No se encontró razon_social existente para ID ${id_proveedor}, posible inconsistencia.`);
-                 // Si no existe ninguna fila moral previa, razonSocialActual será undefined.
+                // Si no se envió, necesitamos obtener la actual para los nuevos inserts
+                const currentMoralData = await client.sql`SELECT razon_social FROM proveedores_morales WHERE id_proveedor = ${id_proveedor} LIMIT 1;`;
+                razonSocialActual = currentMoralData.rows[0]?.razon_social;
+                if (razonSocialActual === undefined) console.warn(`WARN Service Update: No se encontró razon_social existente para ID ${id_proveedor}, posible inconsistencia.`);
+                // Si no existe ninguna fila moral previa, razonSocialActual será undefined.
             }
 
 
@@ -412,10 +398,10 @@ export const updateProveedorCompleto = async (
 
             // Procesar entrantes: UPDATE o INSERT
             for (const repIn of repsEntrantes) {
-                 if (!repIn.nombre_representante || !repIn.apellido_p_representante) {
-                     console.warn("SERVICE Update: Saltando representante sin nombre o apellido paterno:", repIn);
-                     continue; // Saltar si faltan datos básicos
-                 }
+                if (!repIn.nombre_representante || !repIn.apellido_p_representante) {
+                    console.warn("SERVICE Update: Saltando representante sin nombre o apellido paterno:", repIn);
+                    continue; // Saltar si faltan datos básicos
+                }
                 if (repIn.id_morales != null && mapaExistentes.has(repIn.id_morales)) {
                     // --- UPDATE ---
                     console.log(`SERVICE Update: Actualizando representante (id_morales: ${repIn.id_morales})`);
@@ -431,7 +417,7 @@ export const updateProveedorCompleto = async (
                 } else {
                     // --- INSERT ---
                     // Necesitamos la razón social (actual o la nueva)
-                    if(razonSocialActual === undefined) throw new Error("No se puede insertar representante sin razón social.");
+                    if (razonSocialActual === undefined) throw new Error("No se puede insertar representante sin razón social.");
                     console.log(`SERVICE Update: Insertando nuevo representante para ID ${id_proveedor}`);
                     await client.sql`
                         INSERT INTO proveedores_morales (id_proveedor, razon_social, nombre_representante, apellido_p_representante, apellido_m_representante)
@@ -443,31 +429,31 @@ export const updateProveedorCompleto = async (
             // C. Eliminar existentes que NO vinieron en la solicitud
             const idsParaEliminar = Array.from(mapaExistentes.keys()); // IDs que quedaron en el mapa
             if (idsParaEliminar.length > 0) {
-                 console.log(`SERVICE Update: Eliminando ${idsParaEliminar.length} representante(s) obsoletos:`, idsParaEliminar);
-                 await client.query(`DELETE FROM proveedores_morales WHERE id_morales = ANY($1::int[])`, [idsParaEliminar]);
+                console.log(`SERVICE Update: Eliminando ${idsParaEliminar.length} representante(s) obsoletos:`, idsParaEliminar);
+                await client.query(`DELETE FROM proveedores_morales WHERE id_morales = ANY($1::int[])`, [idsParaEliminar]);
             } else {
                 console.log(`SERVICE Update: No hay representantes obsoletos para eliminar.`);
             }
 
 
         } else if (tipoProveedor === 'fisica') {
-             console.log(`SERVICE Update: Procesando tipo FISICA.`);
-             // Actualizar tabla personas_fisicas (dinámicamente como antes)
-             const updateFieldsFisicas: string[] = [];
-             const updateValuesFisicas: any[] = [];
-             let paramIndexFisicas = 1;
-             const addUpdateFieldFisica = (fieldNameDb: string, value: any) => { if (value !== undefined) { updateFieldsFisicas.push(`${fieldNameDb} = $${paramIndexFisicas++}`); updateValuesFisicas.push(value); } };
-             addUpdateFieldFisica('nombre', nombre); addUpdateFieldFisica('apellido_p', apellido_p); addUpdateFieldFisica('apellido_m', apellido_m); addUpdateFieldFisica('curp', curp);
+            console.log(`SERVICE Update: Procesando tipo FISICA.`);
+            // Actualizar tabla personas_fisicas (dinámicamente como antes)
+            const updateFieldsFisicas: string[] = [];
+            const updateValuesFisicas: any[] = [];
+            let paramIndexFisicas = 1;
+            const addUpdateFieldFisica = (fieldNameDb: string, value: any) => { if (value !== undefined) { updateFieldsFisicas.push(`${fieldNameDb} = $${paramIndexFisicas++}`); updateValuesFisicas.push(value); } };
+            addUpdateFieldFisica('nombre', nombre); addUpdateFieldFisica('apellido_p', apellido_p); addUpdateFieldFisica('apellido_m', apellido_m); addUpdateFieldFisica('curp', curp);
 
-             if (updateFieldsFisicas.length > 0) {
-                 const updateQueryFisicas = `UPDATE personas_fisicas SET ${updateFieldsFisicas.join(', ')} WHERE id_proveedor = $${paramIndexFisicas}`;
-                 updateValuesFisicas.push(id_proveedor);
-                 const resFis = await client.query(updateQueryFisicas, updateValuesFisicas);
-                 if(resFis.rowCount === 0) console.warn(`WARN Service Update: No se encontró registro en 'personas_fisicas' para ID ${id_proveedor}.`);
-                 else console.log(`SERVICE Update: Tabla 'personas_fisicas' actualizada.`);
-             } else {
-                 console.log(`SERVICE Update: Sin campos que actualizar en 'personas_fisicas'.`);
-             }
+            if (updateFieldsFisicas.length > 0) {
+                const updateQueryFisicas = `UPDATE personas_fisicas SET ${updateFieldsFisicas.join(', ')} WHERE id_proveedor = $${paramIndexFisicas}`;
+                updateValuesFisicas.push(id_proveedor);
+                const resFis = await client.query(updateQueryFisicas, updateValuesFisicas);
+                if (resFis.rowCount === 0) console.warn(`WARN Service Update: No se encontró registro en 'personas_fisicas' para ID ${id_proveedor}.`);
+                else console.log(`SERVICE Update: Tabla 'personas_fisicas' actualizada.`);
+            } else {
+                console.log(`SERVICE Update: Sin campos que actualizar en 'personas_fisicas'.`);
+            }
         }
 
         await client.sql`COMMIT`;
@@ -481,14 +467,14 @@ export const updateProveedorCompleto = async (
         if (client) { try { await client.sql`ROLLBACK`; console.log("SERVICE Update: ROLLBACK ejecutado."); } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
         console.error("Error detallado en updateProveedorCompleto:", error);
         // Manejar error de FK si ocurre al intentar insertar/actualizar representante
-         if (error.code === '23503' && error.constraint === 'fk_proveedor_moral_proveedor_mult') {
-             throw new Error(`Error de referencia: El proveedor con ID ${id_proveedor} no existe.`);
-         }
+        if (error.code === '23503' && error.constraint === 'fk_proveedor_moral_proveedor_mult') {
+            throw new Error(`Error de referencia: El proveedor con ID ${id_proveedor} no existe.`);
+        }
         throw new Error(`Error al actualizar el proveedor: ${error.message}`);
     } finally {
         if (client) { await client.release(); }
     }
-  };
+};
 
 
 // --- checkProveedorProfileExists ---
@@ -517,7 +503,7 @@ export const checkProveedorProfileExists = async (id_usuario_proveedor: number):
  * @returns Promise<{id_proveedor: number, estatus_revision: string}> - El ID y el nuevo estado.
  * @throws Error si el proveedor no se encuentra o falla la actualización.
  */
-export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{id_proveedor: number, estatus_revision: string}> => {
+export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{ id_proveedor: number, estatus_revision: string }> => {
     console.log(`SERVICE (Proveedor): Solicitando revisión para ID: ${idProveedor}`);
     if (isNaN(idProveedor)) {
         throw new Error("ID de proveedor inválido.");
@@ -552,11 +538,11 @@ export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{
 
         // Verificar si se actualizó (si no, es porque el estado no era válido o no existía)
         if (result.rowCount === 0) {
-             await client.sql`ROLLBACK`;
-             const currentState = await sql`SELECT estatus_revision FROM proveedores WHERE id_proveedor = ${idProveedor}`;
-             const currentStatus = currentState.rows[0]?.estatus_revision;
-             if (!currentStatus) { throw new Error(`Proveedor con ID ${idProveedor} no encontrado.`); }
-             else { throw new Error(`No se pudo solicitar revisión. Estado actual: ${currentStatus}. Solo se puede solicitar desde 'NO SOLICITADO' o 'RECHAZADO'.`); }
+            await client.sql`ROLLBACK`;
+            const currentState = await sql`SELECT estatus_revision FROM proveedores WHERE id_proveedor = ${idProveedor}`;
+            const currentStatus = currentState.rows[0]?.estatus_revision;
+            if (!currentStatus) { throw new Error(`Proveedor con ID ${idProveedor} no encontrado.`); }
+            else { throw new Error(`No se pudo solicitar revisión. Estado actual: ${currentStatus}. Solo se puede solicitar desde 'NO SOLICITADO' o 'RECHAZADO'.`); }
         }
 
         const updatedData = result.rows[0];
@@ -591,12 +577,12 @@ export const solicitarRevisionProveedor = async (idProveedor: number): Promise<{
 
         // Devolver el estado confirmado
         return {
-             id_proveedor: updatedData.id_proveedor,
-             estatus_revision: updatedData.estatus_revision
+            id_proveedor: updatedData.id_proveedor,
+            estatus_revision: updatedData.estatus_revision
         };
 
     } catch (error: any) {
-        if (client) { try { await client.sql`ROLLBACK`; } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr);} }
+        if (client) { try { await client.sql`ROLLBACK`; } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
         console.error(`SERVICE ERROR en solicitarRevisionProveedor ID ${idProveedor}:`, error);
         // Relanzar para que la API Route lo maneje
         throw new Error(`Error al solicitar la revisión: ${error.message || 'Error desconocido'}`);
@@ -634,13 +620,82 @@ export const getProveedoresForSelect = async (): Promise<{ id: number; label: st
         `;
         console.log(`SERVICE Proveedores: Found ${result.rows.length} active providers for select.`);
         // Asegurarse que label no sea null o vacío si es posible
-         return result.rows.map(row => ({
-             ...row,
-             label: row.label?.trim() || `ID: ${row.id}` // Limpiar y fallback final
-         })) as { id: number; label: string }[];
+        return result.rows.map(row => ({
+            ...row,
+            label: row.label?.trim() || `ID: ${row.id}` // Limpiar y fallback final
+        })) as { id: number; label: string }[];
 
     } catch (error) {
         console.error("SERVICE Proveedores: Error fetching providers for select:", error);
         throw new Error('Error al obtener la lista de proveedores para selección.');
+    }
+};
+
+/**
+ * Busca proveedores por término (RFC, Razón Social, Nombre/Apellido) para selectores.
+ * Devuelve una lista básica de proveedores que coinciden.
+ * @param {string} term - Término de búsqueda (mínimo 3 caracteres).
+ * @returns {Promise<Proveedor[]>} - Lista de proveedores básicos que coinciden.
+ */
+export const buscarProveedoresPorTermino = async (term: string): Promise<Proveedor[]> => {
+    const logPrefix = `SERVICE buscarProveedoresPorTermino (Term: ${term}):`;
+    console.log(logPrefix);
+
+    if (!term || term.trim().length < 3) {
+        console.log(`${logPrefix} Search term too short.`);
+        return [];
+    }
+
+    const likeTerm = `%${term.trim()}%`;
+    const params: string[] = []; // Array para los parámetros
+
+    // Construir la query string con placeholders numéricos ($1, $2, etc.)
+    let paramIndex = 1;
+    const whereClauses = [
+        `p.rfc ILIKE $${paramIndex++}`,
+        `pm.razon_social ILIKE $${paramIndex++}`,
+        `pf.nombre ILIKE $${paramIndex++}`,
+        `pf.apellido_p ILIKE $${paramIndex++}`,
+        `pf.apellido_m ILIKE $${paramIndex++}`,
+    ];
+    // Llenar el array de parámetros con el mismo valor repetido
+    for (let i = 0; i < whereClauses.length; i++) {
+        params.push(likeTerm);
+    }
+
+    const queryString = `
+        SELECT DISTINCT
+            p.id_proveedor,
+            p.rfc,
+            COALESCE(
+                pm.razon_social,
+                TRIM(CONCAT(pf.nombre, ' ', pf.apellido_p, ' ', pf.apellido_m)),
+                p.rfc
+            ) AS nombre_o_razon_social
+        FROM proveedores p
+        LEFT JOIN (
+            SELECT DISTINCT ON (id_proveedor) id_proveedor, razon_social
+            FROM proveedores_morales
+        ) pm ON p.id_proveedor = pm.id_proveedor
+        LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
+        WHERE
+            p.estatus = true
+            AND (${whereClauses.join(' OR ')}) -- Unir las cláusulas con OR
+        ORDER BY nombre_o_razon_social ASC
+        LIMIT 15;
+    `;
+
+    try {
+        // Usar sql.query() en lugar del tag template
+        console.log(`${logPrefix} Executing query with ${params.length} params.`);
+        const result = await sql.query<Proveedor>(queryString, params); // Pasar query string y array de parámetros
+
+        console.log(`${logPrefix} Found ${result.rowCount} results.`);
+        return result.rows;
+
+    } catch (error: any) {
+        console.error(`${logPrefix} Error executing query:`, error);
+        // Revisar si el error ahora es diferente
+        throw new Error(`Error al buscar proveedores: ${error.message}`);
     }
 };

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import PieP from "../pie";
-import DynamicMenu from "../menu_principal";
+import DynamicMenu from "../menu_proveedor";
 
 const Dashboard = () => {
   return (

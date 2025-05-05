@@ -1,3 +1,11 @@
+// Interfaz básica para selectores o listas simples
+export interface Proveedor {
+    id_proveedor: number;
+    nombre_o_razon_social: string; // Asumiendo que la API del selector devuelve este campo combinado
+    rfc: string;
+    // Podrías añadir tipo_proveedor si fuera útil para el selector, pero no es estrictamente necesario aquí
+    // tipo_proveedor?: 'fisica' | 'moral';
+}
 export interface ProveedorDetallado {
     id_proveedor: number;
     rfc?: string;

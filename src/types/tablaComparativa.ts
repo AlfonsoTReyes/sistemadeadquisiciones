@@ -35,20 +35,19 @@ export interface TablaComparativa {
  * representa el snapshot de datos de un proveedor en una tabla específica.
  */
 export interface TablaComparativaProveedorSnapshot {
-    id: number; // ID del registro en tabla_comparativa_proveedores
+    id: number;
     id_tabla_comparativa: number;
-    id_proveedor: number; // ID del proveedor en la tabla maestra 'proveedores'
+    id_proveedor: number;
     nombre_empresa_snapshot: string;
     rfc_snapshot: string;
     giro_comercial_snapshot: string | null;
-    atencion_de_snapshot: string | null;
+    // atencion_de_snapshot: string | null; // <-- ELIMINADO
     domicilio_snapshot: string | null;
     telefono_snapshot: string | null;
     correo_electronico_snapshot: string | null;
     pagina_web_snapshot: string | null;
-    condiciones_pago_snapshot: string | null;
-    tiempo_entrega_snapshot: string | null;
-    // Totales calculados para este proveedor EN esta tabla
+    // condiciones_pago_snapshot: string | null; // <-- ELIMINADO
+    // tiempo_entrega_snapshot: string | null; // <-- ELIMINADO
     subtotal_proveedor: number;
     iva_proveedor: number;
     total_proveedor: number;
@@ -157,8 +156,11 @@ export type ActualizarTablaInput = Partial<Pick<TablaComparativa, 'nombre' | 'de
  * Datos necesarios para agregar un proveedor existente a una tabla.
  * Requiere todos los campos snapshot ya que se "congelan" en este punto.
  */
-export interface AgregarProveedorInput extends Omit<TablaComparativaProveedorSnapshot, 'id' | 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'> {
-    // Hereda id_tabla_comparativa, id_proveedor y todos los *_snapshot
+export interface AgregarProveedorInput extends Omit<TablaComparativaProveedorSnapshot,
+    'id' | 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'
+    // Ya no necesitamos omitir los campos eliminados aquí si los quitamos de TablaComparativaProveedorSnapshot
+> {
+    // Hereda id_tabla_comparativa, id_proveedor y los *_snapshot restantes
 }
 
 /**
@@ -224,11 +226,11 @@ export interface AgregarComentarioInput extends Omit<TablaComparativaComentario,
  * ser leída desde la base de datos (ej. totales como string).
  */
 export interface ProveedorSnapshotDbRow extends Omit<TablaComparativaProveedorSnapshot, 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'> {
-    subtotal_proveedor: string; // NUMERIC a menudo viene como string
-    iva_proveedor: string;      // NUMERIC a menudo viene como string
-    total_proveedor: string;    // NUMERIC a menudo viene como string
+    subtotal_proveedor: string;
+    iva_proveedor: string;
+    total_proveedor: string;
+    // Los campos eliminados ya no existen aquí tampoco
 }
-
 /**
  * Representa la fila cruda de tabla_comparativa_items.
  */

@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import Menu from '../../menu_principal'; // Ajusta ruta
 import { useRouter } from 'next/navigation';
-import Pie from '../../../app/pie'; // Ajusta ruta
+import Menu from '../../menu_proveedor'; // Ajusta ruta
+import Pie from "../../pie"; // Ajusta ruta
 import TablaDocumentosProveedor from './tablaDocProveedores'; // Ajusta ruta
 import GestionDocumentosProveedor from './formularios/altaDocProveedores'; // Ajusta ruta
 // Importa la función para obtener el PERFIL COMPLETO por ID de usuario

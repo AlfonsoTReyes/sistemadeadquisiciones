@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Menu from '../menu_principal'; // Ajusta ruta
+import Menu from '../menu'; // Ajusta ruta
 import Pie from "../pie"; // Ajusta ruta
 import ListaProveedoresCatalogo from './formularios/ListaProveedoresCatalogo'; // Importa el componente de lista
 import ModalVerArticulos from './formularios/ModalVerArticulos'; // <-- Importa el nuevo modal
@@ -158,9 +158,9 @@ export default function CatalogoProveedoresPage() {
                             disabled={loadingFiltros || loadingProveedores}
                             className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
-                           <option value="">-- Todas --</option>
-                           {/* ... opciones de partidas ... */}
-                           {!loadingFiltros && !errorFiltros && partidasFiltro.map((partida) => (
+                            <option value="">-- Todas --</option>
+                            {/* ... opciones de partidas ... */}
+                            {!loadingFiltros && !errorFiltros && partidasFiltro.map((partida) => (
                                 <option key={partida.codigo} value={partida.codigo}>
                                     {partida.codigo} - {partida.descripcion}
                                 </option>
@@ -169,9 +169,9 @@ export default function CatalogoProveedoresPage() {
                         {errorFiltros && <p className="text-xs text-red-500 mt-1">{errorFiltros}</p>}
                     </div>
 
-                     {/* Filtro RFC */}
-                     <div>
-                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
+                    {/* Filtro RFC */}
+                    <div>
+                        <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">
                             RFC:
                         </label>
                         <input
@@ -183,9 +183,9 @@ export default function CatalogoProveedoresPage() {
                         />
                     </div>
 
-                     {/* Filtro Nombre/Razón Social */}
-                     <div>
-                         <label htmlFor="filtroNombre" className="block text-sm font-medium text-gray-700 mb-1">
+                    {/* Filtro Nombre/Razón Social */}
+                    <div>
+                        <label htmlFor="filtroNombre" className="block text-sm font-medium text-gray-700 mb-1">
                             Nombre / Razón Social:
                         </label>
                         <input
@@ -214,7 +214,7 @@ export default function CatalogoProveedoresPage() {
                 </div>
 
                 {/* Mensaje de Error General (sin cambios) */}
-                {errorProveedores && !loadingProveedores && ( <div className="...">{errorProveedores}</div> )}
+                {errorProveedores && !loadingProveedores && (<div className="...">{errorProveedores}</div>)}
 
                 {/* Lista de Proveedores (AHORA PASA EL NUEVO HANDLER) */}
                 <ListaProveedoresCatalogo
@@ -223,17 +223,17 @@ export default function CatalogoProveedoresPage() {
                     onVerArticulos={handleVerArticulosClick} // <-- Pasa la función handler
                 />
 
-                 {/* --- RENDERIZADO CONDICIONAL DEL MODAL --- */}
-                 {isArticulosModalOpen && (
-                     <ModalVerArticulos
-                         isOpen={isArticulosModalOpen}
-                         onClose={handleCloseArticulosModal}
-                         articulos={articulosParaModal}
-                         nombreProveedor={proveedorModalNombre}
-                         partidasCatalogo={partidasFiltro} // Usa la misma lista cargada para el filtro principal
-                     />
-                 )}
-                 {/* ---------------------------------------- */}
+                {/* --- RENDERIZADO CONDICIONAL DEL MODAL --- */}
+                {isArticulosModalOpen && (
+                    <ModalVerArticulos
+                        isOpen={isArticulosModalOpen}
+                        onClose={handleCloseArticulosModal}
+                        articulos={articulosParaModal}
+                        nombreProveedor={proveedorModalNombre}
+                        partidasCatalogo={partidasFiltro} // Usa la misma lista cargada para el filtro principal
+                    />
+                )}
+                {/* ---------------------------------------- */}
 
             </div>
             <Pie />
