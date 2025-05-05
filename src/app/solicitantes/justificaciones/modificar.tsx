@@ -297,8 +297,8 @@ const ModificarJustificacion: React.FC<ModificarJustificacionProps> = ({ onClose
             <textarea name="consecuencias" className="border p-2 rounded w-full" value={formData.consecuencias} onChange={handleChange} required />
           </label>
 
-          <label>Históricos monetarios <span className="text-red-500">*</span>
-            <textarea name="historicos_monetarios" className="border p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} required />
+          <label>Históricos monetarios 
+            <textarea name="historicos_monetarios" className="border p-2 rounded w-full" value={formData.historicos_monetarios} onChange={handleChange} />
             <input
               type="text"
               placeholder="Comentario sobre el archivo"

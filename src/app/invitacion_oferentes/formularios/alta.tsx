@@ -28,7 +28,7 @@ const ModalInvitacionComite: React.FC<ModalInvitacionComiteProps> = ({ idConcurs
   const [invitados, setInvitados] = useState<Usuario[]>([]);
   const [otros, setOtros] = useState<Usuario[]>([]);
 
-  const usuarioLogeadoId = Number(sessionStorage.getItem("id_usuario"));
+  const usuarioLogeadoId = Number(sessionStorage.getItem("userId"));
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -79,6 +79,7 @@ const ModalInvitacionComite: React.FC<ModalInvitacionComiteProps> = ({ idConcurs
     };
 
     try {
+        console.log(payload);
       await createInvitacionComite(payload);
       onSuccess();
       onClose();

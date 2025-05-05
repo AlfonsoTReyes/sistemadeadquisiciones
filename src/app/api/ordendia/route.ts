@@ -12,6 +12,7 @@ import {
 import {
   obtenerActaPorOrden, 
 } from "../../../services/actaservice";
+import { updateSolicitudEstatus } from "../../../services/solicitudeservice";
 
 // GET: obtener todas o una por solicitud
 export async function GET(req: NextRequest) {
@@ -136,6 +137,8 @@ export async function POST(req: NextRequest) {
         tipo_usuario: 'invitado'
       });
     }
+
+    const resultado = await updateSolicitudEstatus(id_solicitud, "En comite");
 
     return NextResponse.json(nueva);
   } catch (error) {
