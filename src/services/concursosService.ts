@@ -182,3 +182,18 @@ export const modificarConcurso = async (id_concurso: number, concursoActualizado
     throw new Error('Error al actualizar el concurso.');
   }
 };
+
+export const actualizarSoloEstatusConcurso = async (id_concurso: number, estatus_concurso: string) => {
+  try {
+    await sql`
+      UPDATE public.concurso
+      SET estatus_concurso = ${estatus_concurso}, updated_at = NOW()
+      WHERE id_concurso = ${id_concurso};
+    `;
+
+    return { success: true, message: "Estatus del concurso actualizado correctamente." };
+  } catch (error) {
+    console.error("SERVICE Concurso: Error actualizando solo estatus:", error);
+    throw new Error("Error al actualizar solo el estatus del concurso.");
+  }
+};

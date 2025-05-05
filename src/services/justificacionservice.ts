@@ -50,25 +50,52 @@ export const updateJustificacionEstatus = async (
 
 export const getJustificacionByIdPDF = async (id: number) => {
   try {
-
-    const result = await sql`
-      select 
+    // Obtener datos de la justificación junto al usuario
+    const justificacionResult = await sql`
+      SELECT 
         j.*,
         u.nombre AS nombre_usuario,
         u.apellidos AS apellido_usuario,
         u.puesto AS puesto_usuario
-      from justificacion_solicitud j
-      join solicitud_adquisicion s on j.id_solicitud = s.id_solicitud
-      join usuarios u on s.id_usuario = u.id_usuario
-      where j.id_justificacion =
-      ${id};
+      FROM justificacion_solicitud j
+      JOIN solicitud_adquisicion s ON j.id_solicitud = s.id_solicitud
+      JOIN usuarios u ON s.id_usuario = u.id_usuario
+      WHERE j.id_justificacion = ${id};
     `;
-    return result.rows[0];
+
+    const justificacion = justificacionResult.rows[0];
+    if (!justificacion) throw new Error(`No se encontró la justificación con ID ${id}`);
+
+    // Obtener archivos relacionados a la justificación
+    const archivosResult = await sql`
+      SELECT 
+        id_doc_justificacion,
+        id_justificacion,
+        seccion,
+        nombre_original,
+        ruta_archivo,
+        tipo_archivo,
+        id_usuario,
+        estatus,
+        created_at,
+        updated_at,
+        comentario
+      FROM public.justificacion_detalles
+      WHERE id_justificacion = ${id}
+      ORDER BY seccion, created_at ASC;
+    `;
+
+    // Retornar todo junto
+    return {
+      ...justificacion,
+      documentos: archivosResult.rows
+    };
   } catch (error) {
-    console.error("Error al obtener justificación:", error);
+    console.error("Error al obtener justificación PDF:", error);
     throw error;
   }
 };
+
 
 
 // crear nueva justificación
@@ -278,7 +305,7 @@ export const getJustificacionDetalledByDOCS = async (id: string) => {
 export const getJustificacionBySolicitud = async (idSolicitud: number): Promise<boolean> => {
   try {
     const result = await sql`
-      SELECT 1 FROM justificacion_solicitud WHERE id_solicitud = ${idSolicitud} AND tipo= 'Pre-suficiencia' LIMIT 1;
+      SELECT 1 FROM justificacion_solicitud WHERE id_solicitud = ${idSolicitud};
     `;
     return !!result.rowCount;
   } catch (error) {
