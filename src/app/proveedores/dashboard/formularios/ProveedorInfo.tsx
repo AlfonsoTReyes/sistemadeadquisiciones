@@ -205,7 +205,6 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
     const isFisica = tipo_proveedor === 'fisica';
     const puedeSolicitarRevision = estatus_revision === 'NO_SOLICITADO' || estatus_revision === 'RECHAZADO';
     const textoEstatusRevision = estatus_revision?.replace(/_/g, ' ') || 'No Solicitado';
-    // *** NUEVA CONDICIÓN PARA EL BOTÓN DE PAGO ***
     const mostrarBotonPago = estatus_revision === 'PENDIENTE_PAGO';
 
     return (
@@ -220,14 +219,13 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 estatus_revision === 'PENDIENTE_PAGO' ? 'bg-orange-50 border-orange-300 text-orange-800' : // <-- Estilo para PENDIENTE_PAGO
                 'bg-gray-100 border-gray-300 text-gray-600'}`}>
                 <p className="font-medium text-sm">
-                    Estado de Revisión de Documentación: <span className="font-bold">{textoEstatusRevision}</span>
+                    Estado de Proceso de Solciitud: <span className="font-bold">{textoEstatusRevision}</span>
                 </p>
                 {/* Mensajes contextuales existentes */}
                 {estatus_revision === 'RECHAZADO' && <p className="text-xs mt-1">Revise sus documentos o perfil y vuelva a solicitar la revisión.</p>}
                 {estatus_revision === 'PENDIENTE_REVISION' && <p className="text-xs mt-1">Su solicitud está en espera de ser atendida por un administrador.</p>}
                 {estatus_revision === 'EN_REVISION' && <p className="text-xs mt-1">Un administrador está revisando su información.</p>}
-                {/* *** NUEVO MENSAJE PARA PENDIENTE_PAGO *** */}
-                {estatus_revision === 'PENDIENTE_PAGO' && <p className="text-xs mt-1">Su documentación ha sido aprobada. Por favor, realice el pago correspondiente para completar su registro/revalidación.</p>}
+                {estatus_revision === 'PENDIENTE_PAGO' && <p className="text-xs mt-1">Su documentación ha sido aprobada. Por favor, realice el pago correspondiente para completar su registro/revalidación Y SUBIRLO AL APARTADO DE DOCUMENTOS.</p>}
             </div>
             {/* --- FIN ESTATUS REVISIÓN --- */}
 
@@ -245,7 +243,9 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 <InfoFieldDisplay label="Teléfono Principal" value={providerData.telefono_uno} />
                 <InfoFieldDisplay label="Teléfono Secundario" value={providerData.telefono_dos} />
                 <InfoFieldDisplay label="Página Web" value={providerData.pagina_web ? <a href={providerData.pagina_web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{providerData.pagina_web}</a> : undefined} />
+                {/* 
                 <InfoFieldDisplay label="Estatus" value={<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${providerData.estatus ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{providerData.estatus ? 'Activo' : 'Inactivo'}</span>} />
+                */}
                 <InfoFieldDisplay label="Proveedor para Eventos" value={providerData.proveedor_eventos ? 'Sí' : 'No'} />
             </div>
             <div className="mb-6 border-b pb-4">
@@ -299,7 +299,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
 
             {/* --- Botones de Acción (CON EL NUEVO BOTÓN DE PAGO) --- */}
             <div className="flex flex-wrap justify-end gap-3 mt-6 pt-6 border-t">
-
+{/*
                 {mostrarBotonPago && (
                     <Link href="/pago" passHref>
                         <button
@@ -312,7 +312,8 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                         </button>
                     </Link>
                 )}
-                {/* *** FIN Botón Ir a Pagar *** */}
+*/}
+{/* *** FIN Botón Ir a Pagar *** */}
 
                 {/* Botones existentes */}
                 <button

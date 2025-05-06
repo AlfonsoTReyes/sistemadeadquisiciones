@@ -1,99 +1,54 @@
-// src/hooks/usePusherNotifications.tsx
+// src/hooks/usePusherNotifications.tsx (Versión final de la respuesta anterior)
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import PusherClient from 'pusher-js';
 import toast from 'react-hot-toast';
 
+interface NotificationPayload {
+    id_notificacion: number;
+    mensaje: string;
+    fue_leida?: boolean;
+    // Otros campos...
+}
+
 interface UsePusherNotificationsProps {
-    providerId?: number | null;      // ID del proveedor (opcional)
-    channelName?: string;           // Nombre fijo del canal (opcional)
-    channelPrefix?: string;         // Prefijo si se usa providerId (por defecto)
-    eventName?: string;             // Evento a escuchar (por defecto)
-    enabled?: boolean;              // Habilitar/deshabilitar
+    userId: number | null;
+    eventName?: string;
+    enabled?: boolean;
+    onNotificationReceived: (notification: NotificationPayload) => void;
 }
 
 export function usePusherNotifications({
-    providerId,
-    channelName: fixedChannelName, // Renombrar para claridad interna
-    channelPrefix = 'proveedor-updates-',
-    eventName = 'cambio_estado_proveedor',
+    userId,
+    eventName = 'nueva-notificacion', // Evento genérico para el usuario
     enabled = true,
+    onNotificationReceived,
 }: UsePusherNotificationsProps) {
 
     const pusherClientRef = useRef<PusherClient | null>(null);
     const channelRef = useRef<any>(null);
-    const currentSubscription = useRef<string | null>(null); // Para rastrear a qué canal estamos suscritos
+    const currentSubscription = useRef<string | null>(null);
 
     useEffect(() => {
-        // --- Determinar el canal objetivo ---
-        let targetChannel: string | null = null;
-        if (fixedChannelName) {
-            targetChannel = fixedChannelName;
-        } else if (providerId) {
-            targetChannel = `${channelPrefix}${providerId}`;
-        }
+        const targetChannel = userId ? `user-notifications-${userId}` : null;
 
-        // --- Validaciones y Condiciones de Salida ---
-        // Salir si no está habilitado
-        if (!enabled) {
-            // Desconectar si existía una conexión previa y ahora está deshabilitado
+        if (!enabled || !targetChannel || !process.env.NEXT_PUBLIC_PUSHER_KEY || !process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
+            // ... (lógica de validación y desconexión si no es válido) ...
             if (pusherClientRef.current) {
-                console.log(`PusherNotifications Hook: Deshabilitado. Desconectando cliente Pusher existente (Canal: ${currentSubscription.current}).`);
                 pusherClientRef.current.disconnect();
-                pusherClientRef.current = null;
-                channelRef.current = null;
-                currentSubscription.current = null;
+                pusherClientRef.current = null; channelRef.current = null; currentSubscription.current = null;
             }
             return;
         }
 
-        // Salir si está habilitado pero no hay canal válido (ni fijo ni dinámico)
-        if (!targetChannel) {
-            console.warn("PusherNotifications Hook: Habilitado pero sin 'channelName' o 'providerId' válido.");
-            if (pusherClientRef.current) { // Desconectar si había conexión previa
-                console.log(`PusherNotifications Hook: Sin canal válido. Desconectando cliente Pusher existente (Canal: ${currentSubscription.current}).`);
-                pusherClientRef.current.disconnect();
-                pusherClientRef.current = null;
-                channelRef.current = null;
-                currentSubscription.current = null;
-            }
-            return;
-        }
-
-        // Salir si faltan las claves de Pusher
-        if (!process.env.NEXT_PUBLIC_PUSHER_KEY || !process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
-            console.error("PusherNotifications Hook: Claves de Pusher no configuradas en .env.local");
-            // Considera mostrar un toast de error aquí si es crítico
-            // toast.error("Error de configuración: Notificaciones no disponibles.");
-            if (pusherClientRef.current) { // Desconectar si había conexión previa
-                console.log(`PusherNotifications Hook: Faltan claves Pusher. Desconectando cliente Pusher existente (Canal: ${currentSubscription.current}).`);
-                pusherClientRef.current.disconnect();
-                pusherClientRef.current = null;
-                channelRef.current = null;
-                currentSubscription.current = null;
-            }
-            return;
-        }
-
-        // --- Lógica de Conexión/Suscripción ---
-
-        // Evitar reconexiones innecesarias si ya está conectado al MISMO canal
         if (pusherClientRef.current && currentSubscription.current === targetChannel) {
-            console.log(`PusherNotifications Hook: Ya suscrito al canal ${targetChannel}.`);
-            return;
+            return; // Ya conectado
         }
 
-        // Si estamos intentando conectar a un canal diferente o es la primera vez,
-        // desconectar cliente anterior si existe.
         if (pusherClientRef.current) {
-            console.log(`PusherNotifications Hook: Cambiando de canal (o reconectando). Desconectando cliente Pusher anterior (Canal: ${currentSubscription.current})...`);
-            pusherClientRef.current.disconnect(); // Desconecta completamente
-            pusherClientRef.current = null; // Limpia la referencia
-            channelRef.current = null;
-            currentSubscription.current = null;
+            pusherClientRef.current.disconnect(); // Desconectar anterior
         }
 
-        // --- Inicializar y Suscribir ---
         const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
         const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
@@ -101,11 +56,11 @@ export function usePusherNotifications({
 
         try {
             const client = new PusherClient(pusherKey, { cluster: pusherCluster });
-            pusherClientRef.current = client; // Guardar referencia del nuevo cliente
+            pusherClientRef.current = client;
 
             const channel = client.subscribe(targetChannel);
-            channelRef.current = channel; // Guardar referencia del canal
-            currentSubscription.current = targetChannel; // Actualizar suscripción actual
+            channelRef.current = channel;
+            currentSubscription.current = targetChannel;
 
             channel.bind('pusher:subscription_succeeded', () => {
                 console.log(`PusherNotifications Hook: Suscrito exitosamente a ${targetChannel}`);
@@ -121,22 +76,17 @@ export function usePusherNotifications({
                 currentSubscription.current = null;
             });
 
-            // --- Manejador de eventos ---
             const handleEvent = (data: any) => {
                 console.log(`PusherNotifications Hook: Evento '${eventName}' recibido en ${targetChannel}:`, data);
-
-                // Validar ID solo si nos suscribimos usando providerId (canal dinámico)
-                if (!fixedChannelName && providerId && data?.idProveedor && data.idProveedor !== providerId) {
-                    console.warn(`PusherNotifications Hook: Evento ignorado, ID no coincide (esperado ${providerId}, recibido ${data.idProveedor}).`);
-                    return;
+                if (!data || typeof data.id_notificacion !== 'number' || typeof data.mensaje !== 'string') {
+                    console.warn("PusherNotifications Hook: Payload inválido:", data); return;
                 }
-                // Si es un canal fijo (admin), asumimos que todos los eventos son relevantes
-                // o la validación debe hacerse basada en otro campo dentro de 'data'.
-
-                const displayMessage = data?.mensaje || `Actualización recibida: ${JSON.stringify(data)}`;
-                const statusUpdate = data?.nuevoEstatus ? ` Nuevo estado: ${data.nuevoEstatus}` : '';
-
-                // Mostrar TOAST
+                const newNotification: NotificationPayload = {
+                    id_notificacion: data.id_notificacion,
+                    mensaje: data.mensaje,
+                    fue_leida: data.fue_leida ?? false,
+                };
+                // Mostrar Toast (opcional, podría hacerse en el manager)
                 toast(
                     (t) => (
                         <div onClick={() => toast.dismiss(t.id)} style={{ cursor: 'pointer' }}>
@@ -149,45 +99,26 @@ export function usePusherNotifications({
                         icon: '🔔',
                     }
                 );
-                // Aquí NO se debe volver a hacer channel.bind
+                // Llamar al callback
+                onNotificationReceived(newNotification);
             };
 
-            // Vincular el handler al evento específico
             channel.bind(eventName, handleEvent);
 
-            // --- Función de Limpieza ---
-            return () => {
-                // Usar las referencias guardadas en el momento de la suscripción
+            return () => { // Limpieza
                 const clientInstance = pusherClientRef.current;
                 const channelInstance = channelRef.current;
                 const subscribedChannelName = currentSubscription.current;
-
-                if (clientInstance && channelInstance && subscribedChannelName === targetChannel) { // Asegurarse que limpiamos la suscripción correcta
-                    console.log(`PusherNotifications Hook: Limpiando suscripción a ${subscribedChannelName}`);
+                if (clientInstance && channelInstance && subscribedChannelName === targetChannel) {
                     try {
-                        // Intentar desvincular el handler específico
                         channelInstance.unbind(eventName, handleEvent);
-                        // Intentar desuscribir del canal
                         clientInstance.unsubscribe(subscribedChannelName);
-                        console.log(`PusherNotifications Hook: Desuscrito de ${subscribedChannelName}`);
-                        // Considerar desconectar el cliente si ya no hay más suscripciones activas
-                        // (más complejo de manejar si hay múltiples usos del hook)
-                        // clientInstance.disconnect();
-                        // console.log("PusherNotifications Hook: Cliente Pusher desconectado.");
-
-                        // Limpiar referencias después de desuscribir/desconectar
-                        // pusherClientRef.current = null; // No limpiar si se puede reusar la conexión
-                        channelRef.current = null;
-                        currentSubscription.current = null;
-
+                        channelRef.current = null; currentSubscription.current = null;
                     } catch (error) {
                         console.error("PusherNotifications Hook: Error durante la limpieza:", error);
                     }
-                } else {
-                    console.log(`PusherNotifications Hook: Limpieza omitida, no suscrito a ${targetChannel} o referencias no válidas.`);
                 }
             };
-
         } catch (error) {
             console.error(`PusherNotifications Hook: Error al inicializar Pusher o suscribirse a ${targetChannel}:`, error);
             toast.error("Error al inicializar notificaciones.");
@@ -197,7 +128,5 @@ export function usePusherNotifications({
             currentSubscription.current = null;
         }
 
-        // Dependencias: Reaccionar si cambian las props que determinan la conexión
-    }, [providerId, fixedChannelName, channelPrefix, eventName, enabled]);
-
-} // Fin del hook
+    }, [userId, eventName, enabled, onNotificationReceived]);
+}

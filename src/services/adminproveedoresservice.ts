@@ -3,16 +3,6 @@ import { triggerPusherEvent } from '../lib/pusher-server'; // Ajusta ruta
 import bcrypt from 'bcryptjs';
 // --- INTERFACES (Definir o asegurar que existen en otro lugar) ---
 // Es MUY recomendable tener interfaces definidas para los datos
-interface ProveedorAdminListData {
-    id_proveedor: number;
-    rfc?: string | null;
-    correo?: string | null;
-    estatus?: boolean | null;
-    telefono?: string | null;
-    tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-    // nombre_o_razon_social?: string | null; // Podrías añadir un campo combinado
-}
-
 interface ProveedorCompletoData {
     id_proveedor: number;
     rfc?: string | null;
@@ -111,53 +101,67 @@ interface UpdateProveedorAdminData {
 
     // estatus?: boolean; // El estatus se maneja con updateProveedorEstatus
      [key: string]: any;
-}
-interface ProveedorAdminListData {
+}interface ProveedorAdminListData {
     id_proveedor: number;
     rfc?: string | null;
     correo?: string | null;
     estatus?: boolean | null;
-    telefono?: string | null;
+    estatus_revision?: string | null; // Lo tenías en la query, añádelo a la interfaz si no está
+    telefono?: string | null; // Corresponde a telefono_uno en la query
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-    // Añadir un campo para mostrar nombre o razón social en la tabla
-    nombre_display?: string | null;
+    nombre_display?: string | null; // Puedes mantenerlo si lo usas en otro lado o como fallback
+
+    // *** NUEVOS CAMPOS NECESARIOS ***
+    razon_social?: string | null;
+    nombre_fisica?: string | null;
+    apellido_p_fisica?: string | null;
+    apellido_m_fisica?: string | null;
 }
 
 export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListData[]> => {
     console.log("SERVICE: getAllProveedoresForAdmin called");
     try {
         const result = await sql`
-            SELECT DISTINCT ON (p.id_proveedor) -- Clave: Obtener solo la primera fila por proveedor
+            SELECT DISTINCT ON (p.id_proveedor)
                 p.id_proveedor,
                 p.rfc,
                 p.correo,
                 p.estatus,
                 p.estatus_revision,
-                p.telefono_uno,
-                -- Tomar razon_social o nombre de la fila correspondiente (será el de la primera fila encontrada por el ORDER BY)
-                COALESCE(m.razon_social, f.nombre) AS nombre_o_razon, -- Para mostrar en la tabla
-                m.razon_social IS NOT NULL AS es_moral, -- Para determinar el tipo más fácil
-                f.nombre IS NOT NULL AS es_fisica      -- Para determinar el tipo más fácil
+                p.telefono_uno, 
+                m.razon_social,
+                f.nombre AS nombre_fisica,
+                f.apellido_p AS apellido_p_fisica,
+                f.apellido_m AS apellido_m_fisica,
+                m.razon_social IS NOT NULL AS es_moral,
+                f.nombre IS NOT NULL AS es_fisica, -- O alguna otra columna de f que siempre esté si es física
+                COALESCE(m.razon_social, CONCAT_WS(' ', f.nombre, f.apellido_p, f.apellido_m)) AS nombre_display_calculado
             FROM proveedores p
             LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor
             LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-            -- Ordenar PRIMERO por id_proveedor, luego por lo que quieras para desempatar si importa cuál fila de 'm' tomar
             ORDER BY p.id_proveedor, p.created_at DESC;
         `;
 
-        // Formateo adaptado
-        const proveedoresFormateados = result.rows.map(row => ({
-            id_proveedor: row.id_proveedor,
-            rfc: row.rfc,
-            correo: row.correo,
-            estatus: row.estatus,
-            estatus_revision: row.estatus_revision,
-            telefono: row.telefono_uno,
-            // Determinar tipo basado en los flags booleanos (más robusto que chequear null)
-            tipo_proveedor: row.es_moral ? 'moral' : (row.es_fisica ? 'fisica' : 'desconocido'),
-            // Añadir el nombre para mostrar en la tabla
-            nombre_display: row.nombre_o_razon
-        }));
+        const proveedoresFormateados = result.rows.map(row => {
+            const tipoProveedorDeterminado = row.es_moral ? 'moral' : (row.es_fisica ? 'fisica' : 'desconocido');
+            return {
+                id_proveedor: row.id_proveedor,
+                rfc: row.rfc,
+                correo: row.correo,
+                estatus: row.estatus,
+                estatus_revision: row.estatus_revision,
+                telefono: row.telefono_uno,
+                tipo_proveedor: tipoProveedorDeterminado,
+                
+                razon_social: tipoProveedorDeterminado === 'moral' ? row.razon_social : null,
+                nombre_fisica: tipoProveedorDeterminado === 'fisica' ? row.nombre_fisica : null,
+                apellido_p_fisica: tipoProveedorDeterminado === 'fisica' ? row.apellido_p_fisica : null,
+                apellido_m_fisica: tipoProveedorDeterminado === 'fisica' ? row.apellido_m_fisica : null,
+
+                nombre_display: row.nombre_display_calculado 
+            };
+        });
+
         console.log(`SERVICE: Found ${proveedoresFormateados.length} UNIQUE providers for admin list.`);
         return proveedoresFormateados;
     } catch (error) {
@@ -784,7 +788,7 @@ export const actualizarEstatusRevision = async (
 
     // Validación de entradas (como antes)
     if (isNaN(idProveedor)) throw new Error("ID de proveedor inválido.");
-    const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO'];
+    const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO', 'REVALIDAR'];
     if (!nuevoEstatusRevision || !validStatuses.includes(nuevoEstatusRevision)) {
         throw new Error(`Estatus de revisión inválido: "${nuevoEstatusRevision}".`);
     }

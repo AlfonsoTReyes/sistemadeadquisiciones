@@ -99,12 +99,12 @@ const ContractDetailView: React.FC<ContractDetailViewProps> = ({
 
             {/* Encabezado Principal */}
             <div className="border-b border-gray-200 pb-4 mb-6">
-                 <h2 className="text-2xl font-bold text-center text-indigo-700">
-                     {td.tipoContrato === 'adquisicion' ? (td.nombreContratoAdquisicion || `Contrato de Adquisición ID: ${contrato.id_contrato}`) :
-                      td.tipoContrato === 'servicio' ? (td.objetoPrincipal || `Contrato de Servicio ID: ${contrato.id_contrato}`) :
-                      `Contrato ID: ${contrato.id_contrato}` // Fallback
+                <h2 className="text-2xl font-bold text-center text-indigo-700">
+                    {td.tipoContrato === 'adquisicion' ? (td.nombreContratoAdquisicion || `Contrato de Adquisición ID: ${contrato.id_contrato}`) :
+                        td.tipoContrato === 'servicio' ? (td.objetoPrincipal || `Contrato de Servicio ID: ${contrato.id_contrato}`) :
+                            `Contrato ID: ${contrato.id_contrato}` // Fallback
                     }
-                 </h2>
+                </h2>
                 <p className="text-center text-sm text-gray-500 mt-1">
                     Número de Procedimiento: {td.numeroProcedimiento ?? contrato.numero_contrato ?? 'N/A'}
                 </p>
@@ -125,105 +125,105 @@ const ContractDetailView: React.FC<ContractDetailViewProps> = ({
             {/* --- Sección 2: Objeto del Contrato --- */}
             <DetailSection title="Objeto del Contrato" icon={<FaInfoCircle size={18} />}>
                 <p className="text-base font-medium text-gray-800 mb-2">{td.objetoPrincipal ?? contrato.objeto_contrato ?? 'N/A'}</p>
-                 {td.descripcionDetallada && (
-                     <div className="text-sm text-gray-700 bg-gray-50 p-4 border border-gray-200 rounded whitespace-pre-wrap">
-                         <h4 className="font-semibold mb-1 text-gray-600">Detalles Adicionales:</h4>
-                         {td.descripcionDetallada}
-                     </div>
-                 )}
+                {td.descripcionDetallada && (
+                    <div className="text-sm text-gray-700 bg-gray-50 p-4 border border-gray-200 rounded whitespace-pre-wrap">
+                        <h4 className="font-semibold mb-1 text-gray-600">Detalles Adicionales:</h4>
+                        {td.descripcionDetallada}
+                    </div>
+                )}
             </DetailSection>
 
             {/* --- Sección 3: Vigencia y Montos --- */}
             <DetailSection title="Vigencia y Montos" icon={<FaCalendarAlt size={18} />}>
-                 <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
-                     <DetailItem label="Fecha Inicio" value={formatDate(td.fechaInicio ?? contrato.fecha_inicio)} />
-                     <DetailItem label="Fecha Fin" value={formatDate(td.fechaFin ?? contrato.fecha_fin)} />
-                      {/* Mostrar Monto Mínimo si es Adquisición */}
-                      {td.tipoContrato === 'adquisicion' && (
-                         <DetailItem label="Monto Mínimo" value={formatCurrency(td.montoMinimo, td.moneda ?? contrato.moneda)} />
-                      )}
-                      <DetailItem
+                <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
+                    <DetailItem label="Fecha Inicio" value={formatDate(td.fechaInicio ?? contrato.fecha_inicio)} />
+                    <DetailItem label="Fecha Fin" value={formatDate(td.fechaFin ?? contrato.fecha_fin)} />
+                    {/* Mostrar Monto Mínimo si es Adquisición */}
+                    {td.tipoContrato === 'adquisicion' && (
+                        <DetailItem label="Monto Mínimo" value={formatCurrency(td.montoMinimo, td.moneda ?? contrato.moneda)} />
+                    )}
+                    <DetailItem
                         label={`Monto ${td.tipoContrato === 'adquisicion' ? 'Máximo' : 'Total'}`}
                         value={
                             <span className="font-semibold">
                                 {formatCurrency(contrato.monto_total, td.moneda ?? contrato.moneda)}
                                 <span className="text-gray-500 text-xs ml-1">({td.moneda ?? contrato.moneda ?? 'MXN'})</span>
                             </span>
-                         }
-                         // Ocupa más espacio si no hay monto mínimo
-                         isFullWidth={td.tipoContrato !== 'adquisicion'}
-                      />
-                 </dl>
+                        }
+                        // Ocupa más espacio si no hay monto mínimo
+                        isFullWidth={td.tipoContrato !== 'adquisicion'}
+                    />
+                </dl>
             </DetailSection>
 
             {/* --- Sección 4: Suficiencia y Área Requirente --- */}
-            <DetailSection title="Datos Administrativos" icon={<FaRegBuilding size={18}/>}>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                     {/* Columna Suficiencia */}
-                     <div>
+            <DetailSection title="Datos Administrativos" icon={<FaRegBuilding size={18} />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    {/* Columna Suficiencia */}
+                    <div>
                         <h4 className="text-md font-semibold text-gray-600 mb-2 border-b pb-1">Suficiencia Presupuestal</h4>
                         <dl className="space-y-1 text-sm">
-                             <DetailItem label="Fecha" value={formatDate(suficiencia.fecha)} className='mb-0'/>
-                             <DetailItem label="Oficio" value={suficiencia.numeroOficio} className='mb-0'/>
-                             <DetailItem label="Cuenta" value={suficiencia.cuenta} className='mb-0'/>
-                             <DetailItem label="Recurso" value={suficiencia.tipoRecurso} className='mb-0'/>
-                         </dl>
+                            <DetailItem label="Fecha" value={formatDate(suficiencia.fecha)} className='mb-0' />
+                            <DetailItem label="Oficio" value={suficiencia.numeroOficio} className='mb-0' />
+                            <DetailItem label="Cuenta" value={suficiencia.cuenta} className='mb-0' />
+                            <DetailItem label="Recurso" value={suficiencia.tipoRecurso} className='mb-0' />
+                        </dl>
                     </div>
                     {/* Columna Área Requirente */}
                     <div>
                         <h4 className="text-md font-semibold text-gray-600 mb-2 border-b pb-1">Área Requirente</h4>
                         <dl className="space-y-1 text-sm">
-                            <DetailItem label="Funcionario" value={areaRequirente.nombreFuncionario} className='mb-0'/>
-                            <DetailItem label="Cargo" value={areaRequirente.cargoFuncionario} className='mb-0'/>
+                            <DetailItem label="Funcionario" value={areaRequirente.nombreFuncionario} className='mb-0' />
+                            <DetailItem label="Cargo" value={areaRequirente.cargoFuncionario} className='mb-0' />
                         </dl>
                     </div>
-                 </div>
-                 {/* Mostrar datos Oficio Petición si es Adquisición */}
-                 {td.tipoContrato === 'adquisicion' && (td.oficioPeticionNumero || td.oficioPeticionFecha) && (
-                     <div className="mt-4 pt-4 border-t border-dashed">
-                         <h4 className="text-md font-semibold text-gray-600 mb-1">Oficio Petición</h4>
-                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm">
-                            {td.oficioPeticionNumero && <DetailItem label="Número" value={td.oficioPeticionNumero} className='mb-0'/>}
-                            {td.oficioPeticionFecha && <DetailItem label="Fecha" value={formatDate(td.oficioPeticionFecha)} className='mb-0'/>}
-                         </dl>
-                     </div>
-                 )}
-             </DetailSection>
+                </div>
+                {/* Mostrar datos Oficio Petición si es Adquisición */}
+                {td.tipoContrato === 'adquisicion' && (td.oficioPeticionNumero || td.oficioPeticionFecha) && (
+                    <div className="mt-4 pt-4 border-t border-dashed">
+                        <h4 className="text-md font-semibold text-gray-600 mb-1">Oficio Petición</h4>
+                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm">
+                            {td.oficioPeticionNumero && <DetailItem label="Número" value={td.oficioPeticionNumero} className='mb-0' />}
+                            {td.oficioPeticionFecha && <DetailItem label="Fecha" value={formatDate(td.oficioPeticionFecha)} className='mb-0' />}
+                        </dl>
+                    </div>
+                )}
+            </DetailSection>
 
             {/* --- Sección 5: Condiciones y Garantías --- */}
             {(td.condicionesPago || td.garantiasTexto || td.montoGarantiaCumplimiento || td.montoGarantiaVicios) && (
-                 <DetailSection title="Condiciones y Garantías" icon={<FaShieldAlt size={18}/>}>
-                     {td.condicionesPago && (
-                         <div className="mb-4">
-                             <h4 className="text-md font-semibold text-gray-600 mb-1">Condiciones de Pago:</h4>
-                             <p className="text-sm text-gray-700 bg-gray-50 p-3 border border-gray-200 rounded whitespace-pre-wrap">{td.condicionesPago}</p>
-                         </div>
-                     )}
-                      {(td.montoGarantiaCumplimiento || td.montoGarantiaVicios || td.garantiasTexto) && (
-                          <div>
-                              <h4 className="text-md font-semibold text-gray-600 mb-1">Garantías:</h4>
-                              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm mb-2">
-                                 {td.montoGarantiaCumplimiento && <DetailItem label="Cumplimiento" value={formatCurrency(td.montoGarantiaCumplimiento, td.moneda ?? contrato.moneda)} className='mb-0'/>}
-                                 {td.montoGarantiaVicios && <DetailItem label="Vicios Ocultos" value={formatCurrency(td.montoGarantiaVicios, td.moneda ?? contrato.moneda)} className='mb-0'/>}
-                              </dl>
-                              {td.garantiasTexto && <p className="text-sm text-gray-700 bg-gray-50 p-3 border border-gray-200 rounded whitespace-pre-wrap">{td.garantiasTexto}</p>}
-                          </div>
-                     )}
-                 </DetailSection>
-             )}
+                <DetailSection title="Condiciones y Garantías" icon={<FaShieldAlt size={18} />}>
+                    {td.condicionesPago && (
+                        <div className="mb-4">
+                            <h4 className="text-md font-semibold text-gray-600 mb-1">Condiciones de Pago:</h4>
+                            <p className="text-sm text-gray-700 bg-gray-50 p-3 border border-gray-200 rounded whitespace-pre-wrap">{td.condicionesPago}</p>
+                        </div>
+                    )}
+                    {(td.montoGarantiaCumplimiento || td.montoGarantiaVicios || td.garantiasTexto) && (
+                        <div>
+                            <h4 className="text-md font-semibold text-gray-600 mb-1">Garantías:</h4>
+                            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm mb-2">
+                                {td.montoGarantiaCumplimiento && <DetailItem label="Cumplimiento" value={formatCurrency(td.montoGarantiaCumplimiento, td.moneda ?? contrato.moneda)} className='mb-0' />}
+                                {td.montoGarantiaVicios && <DetailItem label="Vicios Ocultos" value={formatCurrency(td.montoGarantiaVicios, td.moneda ?? contrato.moneda)} className='mb-0' />}
+                            </dl>
+                            {td.garantiasTexto && <p className="text-sm text-gray-700 bg-gray-50 p-3 border border-gray-200 rounded whitespace-pre-wrap">{td.garantiasTexto}</p>}
+                        </div>
+                    )}
+                </DetailSection>
+            )}
 
-             {/* --- Sección 6: Proveedor --- */}
-             <DetailSection title="Proveedor" icon={<FaUserTie size={18}/>}>
-                 {/* ContractProviderInfo ya tiene sus propios estilos */}
-                 <ContractProviderInfo proveedor={contrato.proveedor} />
-             </DetailSection>
+            {/* --- Sección 6: Proveedor --- */}
+            <DetailSection title="Proveedor" icon={<FaUserTie size={18} />}>
+                {/* ContractProviderInfo ya tiene sus propios estilos */}
+                <ContractProviderInfo proveedor={contrato.proveedor} />
+            </DetailSection>
 
-             {/* --- Sección 7: Cierre y Metadatos --- */}
-             <DetailSection title="Detalles Finales" icon={<FaFileInvoiceDollar size={18}/>} className="border-t pt-4 mt-4">
-                 <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm">
+            {/* --- Sección 7: Cierre y Metadatos --- */}
+            <DetailSection title="Detalles Finales" icon={<FaFileInvoiceDollar size={18} />} className="border-t pt-4 mt-4">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm">
                     <DetailItem label="Fecha Elaboración/Firma" value={formatDate(td.fechaFirma ?? contrato.fecha_firma)} />
                     <DetailItem label="Número de Hojas" value={td.numeroHojas} />
-                 </dl>
+                </dl>
             </DetailSection>
 
         </div> // Cierre del contenedor principal

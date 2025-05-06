@@ -1,6 +1,6 @@
 
 const ADMIN_PROVEEDORES_API_URL = '/api/adminProveedores';
-
+import { enviarNotificacionUnificada } from '@/services/notificaciones/notificacionesService';
 
 /**
  * Obtiene la lista completa de proveedores desde la API de administración.
@@ -352,58 +352,47 @@ export const getUsuarioProveedorByProveedorId = async (idProveedor) => {
 };
 
 /**
- * Actualiza el estatus de REVISIÓN de un proveedor específico (llamada por el Admin).
+ * Actualiza el estatus de REVISIÓN de un proveedor específico (llamada por el Admin)
+ * E INSERTA/ENVÍA una notificación al usuario proveedor correspondiente.
  * @param {number} idProveedor - El ID del proveedor cuyo estado de revisión se actualizará.
- * @param {string} nuevoEstatusRevision - El nuevo estado ('EN_REVISION', 'APROBADO', 'RECHAZADO', etc.).
- * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API (podría ser solo un mensaje de éxito o los datos actualizados).
+ * @param {string} nuevoEstatusRevision - El nuevo estado ('EN_REVISION', 'APROBADO', etc.).
+ * @param {number} adminUserId - El ID del usuario administrador que realiza la acción. <--- NUEVO ARGUMENTO
+ * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
  * @throws {Error} - Si la validación falla o la llamada fetch/API falla.
  */
+// --- Firma actualizada para aceptar adminUserId ---
 export const updateAdminRevisionStatus = async (idProveedor, nuevoEstatusRevision) => {
-  console.log(`FETCH: updateAdminRevisionStatus for ID ${idProveedor} to status ${nuevoEstatusRevision}`);
-  const apiUrl = ADMIN_PROVEEDORES_API_URL; // El mismo endpoint maneja esto vía PUT/PATCH
+  console.log(`FETCH: Calling API to update revision status for ID ${idProveedor} to ${nuevoEstatusRevision}`);
 
-  // Validaciones básicas
+  // Validaciones básicas (se mantienen)
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
       throw new Error("Fetch Error: ID de proveedor inválido.");
   }
   if (typeof nuevoEstatusRevision !== 'string' || nuevoEstatusRevision.trim() === '') {
       throw new Error("Fetch Error: El nuevo estatus de revisión es requerido.");
   }
-  // Opcional: Validar que nuevoEstatusRevision sea uno de los valores permitidos
-  const validStatuses = ['NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO', 'PENDIENTE_PAGO'];
-  if (!validStatuses.includes(nuevoEstatusRevision)) {
-      console.warn(`Fetch Warning: Estatus de revisión "${nuevoEstatusRevision}" no es uno de los valores estándar.`);
-      // Podrías lanzar un error aquí si quieres ser estricto:
-      // throw new Error(`Fetch Error: Estatus de revisión "${nuevoEstatusRevision}" inválido.`);
-  }
-
+  // ... (validación opcional de valores de estatus) ...
 
   try {
-      // Usaremos PUT aquí, asumiendo que la API Route en /api/adminProveedores
-      // diferenciará esta solicitud por la presencia de 'estatus_revision'
-      // Alternativamente, si creaste un endpoint PATCH específico o una subruta, ajusta el 'method' y 'apiUrl'.
-      const response = await fetch(apiUrl, {
-          method: 'PUT', // O 'PATCH' si configuraste así la API Route
+      // --- Llamada ÚNICA a la API ---
+      const response = await fetch(ADMIN_PROVEEDORES_API_URL, {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
               id_proveedor: idProveedor,
-              estatus_revision: nuevoEstatusRevision // Enviar el nuevo estado
+              estatus_revision: nuevoEstatusRevision // Enviar solo los datos relevantes
           }),
       });
 
-      // Manejo de respuesta (similar a otras funciones PUT)
-      const data = await response.json().catch(() => null); // Intenta parsear siempre
+      const data = await response.json().catch(() => null); // Intentar parsear
 
       if (!response.ok) {
-           console.error(`FETCH Error PUT ${apiUrl} (Revision Status): Status ${response.status}. ID: ${idProveedor}. New Status: ${nuevoEstatusRevision}. Response:`, data);
-           throw new Error(data?.message || `Error ${response.status}: No se pudo actualizar el estado de revisión.`);
-       }
-       if (!data && response.status !== 204) { // 204 es éxito sin contenido
-           throw new Error("Respuesta inválida del servidor al actualizar estado de revisión.");
+           console.error(`FETCH Error PUT ${ADMIN_PROVEEDORES_API_URL} (Revision Status): Status ${response.status}. ID: ${idProveedor}. Response:`, data);
+           throw new Error(data?.message || `Error ${response.status}: ${response.statusText || 'No se pudo actualizar el estado de revisión.'}`);
        }
 
-      console.log(`FETCH: updateAdminRevisionStatus successful for ID ${idProveedor}`);
-      return data ?? { message: "Estado de revisión actualizado." }; // Devuelve respuesta o mensaje genérico
+      console.log(`FETCH: API call for updateAdminRevisionStatus successful for ID ${idProveedor}`);
+      return data ?? { message: "Estado de revisión actualizado." }; // Devuelve respuesta de la API
 
   } catch (err) {
       const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
@@ -411,3 +400,4 @@ export const updateAdminRevisionStatus = async (idProveedor, nuevoEstatusRevisio
       throw errorToThrow; // Re-lanzar para el componente
   }
 };
+

@@ -1,35 +1,31 @@
 // src/components/ProveedoresMenu.tsx (o tu ruta a menu_proveedor.tsx)
+// Este archivo ya contiene la integración de Pusher/Toast
+
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react"; // useCallback añadido por si acaso
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image"; // Import para el logo
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faBars,
-  faTimes,
-  faChevronDown,
-  faUserCircle,
-  // faLock, // Ya no se usa si quitamos modificar contraseña
-  faSignOutAlt,
-  faBoxOpen,
-  faFileContract,
-  faAddressCard, // Aunque no se usa en los links actuales, podría ser útil
-  faListOl,
-  faTachometerAlt,
+  faBars, faTimes, faChevronDown, faUserCircle, faSignOutAlt,
+  faBoxOpen, faFileContract, faListOl, faTachometerAlt
 } from "@fortawesome/free-solid-svg-icons";
 
-import { Toaster } from 'react-hot-toast'; // Importar el contenedor de toasts
-import { usePusherNotifications } from '@/hooks/usePusherNotifications'; // Ajusta la ruta al hook
+// *** Notificaciones y Hook ***
+import { Toaster } from 'react-hot-toast'; // Contenedor de toasts
+import NotificationManager from '@/componentes/NotificationManager'; // Ajusta la ruta
 
-// Import del logo (Asegúrate que la ruta sea correcta desde este archivo)
-import logoSJR from "../public/logo_sanjuan2.png"; // Ajusta la ruta si es necesario
+// Logo (Ajusta ruta)
+import logoSJR from "../public/logo_sanjuan2.png";
 
-// Define la URL de login una sola vez para consistencia
-const LOGIN_URL = "/proveedores/proveedoresusuarios"; // Ajusta si es diferente
+// URL de Login
+const LOGIN_URL = "/proveedores/proveedoresusuarios";
 
 export default function ProveedoresMenu() {
+  const [idUsuario, setIdUsuario] = useState<number | null>(null); // Estado para el ID numérico del usuario proveedor
+  const [idRol, setIdRol] = useState<string | null>(null); // Estado para el rol (si aplica a proveedores)
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSessionOpen, setIsSessionOpen] = useState(false);
@@ -40,84 +36,57 @@ export default function ProveedoresMenu() {
   const [proveedorUserId, setProveedorUserId] = useState<string | null>(null);
   const [proveedorId, setProveedorId] = useState<number | null>(null); // <-- ID del PROVEEDOR para Pusher
 
-  // Ya no se necesitan estados/handlers para el modal de contraseña si se quitó el botón
-  // const [isEditPassModalOpen, setIsPassEditModalOpen] = useState(false);
-  // const [contraseñaEditarId, setContraseñaAEditarId] = useState<number | null>(null);
-  // const openEditPassModal = (id: number) => { /* ... */ };
-  // const closeEditPassModal = () => { /* ... */ };
-
-  // --- useEffect para leer datos de sesión (ACTUALIZADO para leer proveedorId) ---
+  // useEffect para leer datos de sesión (ACTUALIZADO)
   useEffect(() => {
     setIsLoading(true);
     const storedEmail = sessionStorage.getItem("userEmail");
-    const storedProviderUserId = sessionStorage.getItem("proveedorUserId");
-    const storedProviderId = sessionStorage.getItem("proveedorId"); // <-- LEER ID PROVEEDOR
+    const storedProviderUserId = sessionStorage.getItem("proveedorUserId"); // ID del usuario
+    const storedProviderId = sessionStorage.getItem("proveedorId"); // ID del proveedor
+    const storedIdRol = sessionStorage.getItem("userRole"); // Obtener rol si existe para proveedores
 
-    let idProveedorNum: number | null = null;
-    if (storedProviderId) {
-        const parsedId = parseInt(storedProviderId, 10);
-        if (!isNaN(parsedId)) {
-            idProveedorNum = parsedId;
-        } else {
-            console.warn("ProveedoresMenu: proveedorId en sessionStorage no es un número válido:", storedProviderId);
-        }
-    }
+    let idUsuarioNum: number | null = null;
+    if (storedProviderUserId) { // Usa el ID del USUARIO proveedor
+      const parsedId = parseInt(storedProviderUserId, 10);
+      idUsuarioNum = !isNaN(parsedId) ? parsedId : null;
+  }
+  const rolProveedor = storedIdRol || null; // Obtener el rol (probablemente null)
 
-    if (storedEmail && storedProviderUserId) {
-      setUserEmail(storedEmail);
-      setProveedorUserId(storedProviderUserId);
-      setProveedorId(idProveedorNum); // <-- GUARDAR ID PROVEEDOR EN ESTADO
-      console.log("ProveedoresMenu: Sesión encontrada - UserEmail:", storedEmail, "ProveedorUserId:", storedProviderUserId, "ProveedorId:", idProveedorNum);
-    } else {
-      console.warn("ProveedoresMenu: Falta userEmail o proveedorUserId en sessionStorage. Redirigiendo a login.");
-      // No limpiar sessionStorage aquí para no interferir con otros procesos
-      setUserEmail(null);
-      setProveedorUserId(null);
-      setProveedorId(null); // <-- Limpiar ID
-      router.push(LOGIN_URL); // Redirige a la página de login de proveedores
-    }
-    setIsLoading(false);
-  }, [router]); // Dependencia del router para la redirección
+  if (storedEmail && idUsuarioNum !== null) {
+    setUserEmail(storedEmail);
+    setProveedorUserId(storedProviderUserId); // Mantener el string si se usa en otro lado
+    setIdUsuario(idUsuarioNum); // <--- Guarda el ID numérico del usuario
+    setIdRol(rolProveedor);     // <--- Guarda el rol (o null)
+    setProveedorUserId(storedProviderUserId); // Mantener el string si se usa en otro lado
 
-  // --- *** INICIALIZAR EL HOOK DE PUSHER *** ---
-  // Se ejecutará automáticamente cuando 'proveedorId' cambie de null a un número
-  usePusherNotifications({
-      providerId: proveedorId, // Pasa el ID del proveedor obtenido de sessionStorage
-      enabled: !!proveedorId, // Solo habilitar si tenemos un ID válido
-      // channelPrefix: 'proveedor-updates-', // Valor por defecto
-      // eventName: 'cambio_estado_proveedor', // Valor por defecto
-  });
-  // --- *** FIN INICIALIZACIÓN PUSHER *** ---
+    console.log("ProveedoresMenu: Sesión válida. UserID:", idUsuarioNum, "UserRole:", rolProveedor);
+  } else {
+    console.warn("ProveedoresMenu: Faltan datos de sesión (Email o UserID). Redirigiendo.");
+    setUserEmail(null); setProveedorUserId(null); setIdUsuario(null); setIdRol(null); setProveedorId(null);
+    router.push(LOGIN_URL);
+  }
+  setIsLoading(false);
+}, [router]);
 
-  // --- Handler Logout (ACTUALIZADO para limpiar proveedorId) ---
-  const handleLogout = useCallback(() => { // Envuelto en useCallback
+  // --- QUITAR usePusherNotifications de aquí ---
+
+  // handleLogout (ACTUALIZADO)
+  const handleLogout = useCallback(() => {
     console.log("ProveedoresMenu: Cerrando sesión...");
-    sessionStorage.removeItem("userEmail");
-    sessionStorage.removeItem("proveedorUserId");
-    sessionStorage.removeItem("proveedorId"); // <-- LIMPIAR ID
-    sessionStorage.removeItem("proveedorTipo");
-    sessionStorage.clear(); // Limpia todo por si acaso
+    sessionStorage.clear();
+    setUserEmail(null); setProveedorUserId(null); setIdUsuario(null); setIdRol(null); setProveedorId(null);
+    setIsOpen(false); setIsSessionOpen(false);
+    router.push(LOGIN_URL);
+  }, [router]);
 
-    // Limpiar estado local
-    setUserEmail(null);
-    setProveedorUserId(null);
-    setProveedorId(null); // <-- LIMPIAR ESTADO
-    setIsOpen(false);
-    setIsSessionOpen(false);
-
-    console.log(`ProveedoresMenu: Redirigiendo a ${LOGIN_URL}`);
-    router.push(LOGIN_URL); // Redirigir al login
-  }, [router]); // Depende de router
 
   // --- Renderizado ---
   if (isLoading) {
     return (
-      // Placeholder de carga
       <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50 animate-pulse">
+        {/* ... Placeholder de carga ... */}
         <div className="flex items-center justify-between">
           <span className="p-2"><FontAwesomeIcon icon={faBars} size="lg" /></span>
-           {/* Puedes poner un logo placeholder o el título */}
-           <h1 className="text-xl font-bold">Portal de Proveedores</h1>
+          <h1 className="text-xl font-bold">Portal de Proveedores</h1>
           <div className="w-8"></div>
         </div>
       </nav>
@@ -125,165 +94,81 @@ export default function ProveedoresMenu() {
   }
 
   return (
-    // Fragmento para incluir Toaster y Nav
     <>
-      {/* Contenedor de Toasts (invisible hasta que aparece un toast) */}
+      {/* Contenedor de Toasts: Necesario para que react-hot-toast funcione */}
       <Toaster
         position="top-right"
         reverseOrder={false}
-        gutter={8} // Espacio entre toasts
-        containerClassName="" // Clases para el contenedor
-        containerStyle={{}} // Estilos inline para el contenedor
         toastOptions={{
-          // Estilos por defecto
-          className: 'border border-gray-200 shadow-lg rounded-lg p-4', // Estilo base
-          duration: 6000, // Duración más larga por defecto
-          style: {
-            background: '#ffffff', // Fondo blanco
-            color: '#374151', // Texto gris oscuro
-          },
-          // Estilos específicos por tipo
-          success: {
-            duration: 4000,
-            style: {
-              background: '#F0FDF4', // Fondo verde muy claro
-              color: '#166534', // Texto verde oscuro
-              borderColor: '#BBF7D0', // Borde verde claro
-            },
-            iconTheme: {
-              primary: '#22C55E', // Icono verde
-              secondary: '#FFFFFF',
-            },
-          },
-          error: {
-            duration: 8000, // Más tiempo para errores
-             style: {
-              background: '#FEF2F2', // Fondo rojo muy claro
-              color: '#991B1B', // Texto rojo oscuro
-              borderColor: '#FECACA', // Borde rojo claro
-            },
-             iconTheme: {
-              primary: '#EF4444', // Icono rojo
-              secondary: '#FFFFFF',
-            },
-          },
-          // Estilo para toast.info o por defecto si no es success/error
-           loading: {
-             iconTheme: { primary: '#3B82F6', secondary: '#EFF6FF' } // Icono azul
-           },
+          className: 'border border-gray-200 shadow-lg rounded-lg p-4 text-sm',
+          duration: 8000, // Duración más larga para notificaciones
+          style: { background: '#ffffff', color: '#374151' },
+          // ... otros estilos opcionales ...
         }}
       />
 
       {/* Barra de Navegación */}
-      <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50 shadow-md"> {/* Añadida sombra */}
+      <nav className="bg-custom-color text-white w-full p-4 fixed top-0 z-50 shadow-md">
         <div className="flex items-center justify-between">
           {/* Botón Hamburguesa */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300"
-            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-          >
+          <button onClick={() => setIsOpen(!isOpen)} className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300" aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}>
             <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
           </button>
-
+          <NotificationManager
+                    userId={idUsuario} // Pasar el ID numérico del usuario proveedor
+                    idRol={idRol}      // Pasar el rol si aplica a proveedores
+                />
           {/* Logo */}
-          <Link href="/proveedores/dashboard"> {/* Enlace al dashboard */}
-            {/* Usar 'span' si Link no acepta directamente 'div' o 'Image' en algunas versiones */}
+          <Link href="/proveedores/dashboard">
             <span className="flex items-center space-x-3 rtl:space-x-reverse cursor-pointer">
-              <Image src={logoSJR.src} alt="Logo San Juan del Río" width={120} height={35} priority /> {/* Ajusta tamaño */}
+              <Image src={logoSJR.src} alt="Logo San Juan del Río" width={120} height={35} priority />
             </span>
           </Link>
-
-          {/* Título (opcional, el logo ya ocupa espacio) */}
-          {/* <h1 className="text-xl font-bold hidden md:block">Portal de Proveedores</h1> */}
-
-          {/* Placeholder o espacio si es necesario para centrar */}
-          <div className="w-8"></div> {/* Mantiene el logo centrado */}
+          {/* Placeholder */}
+          <div className="w-8"></div>
         </div>
 
-        {/* Menú Lateral Desplegable */}
+        {/* Menú Lateral */}
         <ul
           className={`${isOpen ? "translate-x-0" : "-translate-x-full"}
-            transform transition-transform duration-300 ease-in-out fixed top-0 left-0 h-full w-64 p-4 overflow-y-auto z-40 shadow-xl`} // Añadida sombra más pronunciada
-          style={{ backgroundColor: "#0a1640" }} // Tu color personalizado
+            transform transition-transform duration-300 ease-in-out fixed top-0 left-0 h-full w-64 p-4 overflow-y-auto z-40 shadow-xl`}
+          style={{ backgroundColor: "#0a1640" }}
         >
-          {/* Botón para cerrar el menú */}
+          {/* Botón Cerrar */}
           <li className="mb-4">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md w-full text-left"
-              aria-label="Cerrar menú"
-            >
-              <FontAwesomeIcon icon={faTimes} />
+            <button onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md w-full text-left" aria-label="Cerrar menú">
+              <FontAwesomeIcon icon={faTimes} className="w-5" />
               <span className="ml-2">Cerrar Menú</span>
             </button>
           </li>
 
-          {/* --- Enlaces Específicos de Proveedores --- */}
-          <li className="mb-1">
-            <Link href="/proveedores/dashboard" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
-              <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 w-5" /> Panel Principal {/* Añadido w-5 */}
-            </Link>
-          </li>
-          <li className="mb-1">
-            <Link href="/proveedores/articulos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
-              <FontAwesomeIcon icon={faBoxOpen} className="mr-2 w-5" /> Artículos {/* Añadido w-5 */}
-            </Link>
-          </li>
-          <li className="mb-1">
-            <Link href="/proveedores/partidas" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
-              <FontAwesomeIcon icon={faListOl} className="mr-2 w-5" /> Mis Partidas {/* Icono cambiado y w-5 */}
-            </Link>
-          </li>
-          <li className="mb-1">
-            <Link href="/proveedores/contratos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
-              <FontAwesomeIcon icon={faFileContract} className="mr-2 w-5" /> Contratos {/* Añadido w-5 */}
-            </Link>
-          </li>
+          {/* Enlaces */}
+          <li className="mb-1"><Link href="/proveedores/dashboard" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faTachometerAlt} className="mr-2 w-5" /> Panel Principal</Link></li>
+          <li className="mb-1"><Link href="/proveedores/articulos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faBoxOpen} className="mr-2 w-5" /> Artículos</Link></li>
+          <li className="mb-1"><Link href="/proveedores/partidas" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faListOl} className="mr-2 w-5" /> Mis Partidas</Link></li>
+          <li className="mb-1"><Link href="/proveedores/contratos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faFileContract} className="mr-2 w-5" /> Contratos</Link></li>
 
-          {/* --- Separador --- */}
           <hr className="my-4 border-gray-600" />
 
-          {/* --- Menú de Sesión del Usuario --- */}
+          {/* Menú de Sesión */}
           {userEmail && proveedorUserId && (
             <li className="mb-1">
-              <button
-                onClick={() => setIsSessionOpen(!isSessionOpen)}
-                className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"
-              >
-                <div className="flex items-center truncate" title={userEmail}>
-                  <FontAwesomeIcon icon={faUserCircle} className="mr-2 flex-shrink-0 w-5" /> {/* Añadido w-5 */}
-                  <span className="truncate">{userEmail}</span>
-                </div>
-                <FontAwesomeIcon
-                  icon={faChevronDown}
-                  className={`ml-2 transition-transform duration-200 flex-shrink-0 ${isSessionOpen ? 'rotate-180' : ''}`}
-                />
+              <button onClick={() => setIsSessionOpen(!isSessionOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
+                <div className="flex items-center truncate" title={userEmail}><FontAwesomeIcon icon={faUserCircle} className="mr-2 flex-shrink-0 w-5" /><span className="truncate">{userEmail}</span></div>
+                <FontAwesomeIcon icon={faChevronDown} className={`ml-2 transition-transform duration-200 flex-shrink-0 ${isSessionOpen ? 'rotate-180' : ''}`} />
               </button>
-              {/* Submenú de Sesión */}
               {isSessionOpen && (
                 <ul className="ml-4 mt-1 space-y-1 bg-gray-700 rounded-md p-2">
-                  {/* Botón Cerrar Sesión */}
-                  <li className="mb-1">
-                    <button
-                      className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md w-full text-left"
-                      onClick={handleLogout}
-                    >
-                      <FontAwesomeIcon icon={faSignOutAlt} className="mr-2 w-5" /> Cerrar sesión {/* Añadido w-5 */}
-                    </button>
-                  </li>
-                  {/* Aquí iría el botón de Modificar Contraseña si lo reintroduces */}
+                  <li className="mb-1"><button className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md w-full text-left" onClick={handleLogout}><FontAwesomeIcon icon={faSignOutAlt} className="mr-2 w-5" /> Cerrar sesión</button></li>
+                  {/* Botón Modificar Contraseña eliminado */}
                 </ul>
               )}
             </li>
           )}
         </ul>
-
-        {/* Contenedor para Modales (ya no se usa en este código, pero se deja por si se añade algo) */}
-        <div className="text-black">
-          {/* Aquí iría el modal de Modificar Contraseña si se reintroduce */}
-        </div>
+        {/* Contenedor Modales (Vacío ahora) */}
+        <div className="text-black"></div>
       </nav>
-    </> // Cierre del Fragmento
+    </>
   );
 }
