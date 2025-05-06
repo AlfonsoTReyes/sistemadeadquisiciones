@@ -23,8 +23,8 @@ import ModificarRostro from "./usuarios/formularios/rostro";
 
 // Hook y Toaster
 import { Toaster, toast } from 'react-hot-toast';
-import { usePusherNotifications } from '@/hooks/usePusherNotifications'; // Ajusta la ruta al hook
 
+import NotificationManager from '@/componentes/NotificationManager'; // Ajusta la ruta al nuevo componente
 // Define la URL de login una sola vez para consistencia
 const LOGIN_URL = "/login"; // O la ruta de tu login principal
 
@@ -125,12 +125,6 @@ export default function Menu() {
     router.push(LOGIN_URL);
   }, [router]);
 
-  // --- *** INICIALIZAR EL HOOK DE PUSHER PARA ADMIN *** ---
-  usePusherNotifications({
-      channelName: 'admin-notifications', // Canal Fijo para Admin
-      eventName: 'cambio_estado_proveedor', // Evento a escuchar (ajusta si es otro)
-      enabled: !!idUsuario && !isLoadingSession, // Habilitar solo si hay ID y la sesión ya cargó
-  });
   // --- *** FIN INICIALIZACIÓN PUSHER *** ---
 
   // Renderizado condicional mientras carga la sesión
@@ -178,7 +172,13 @@ export default function Menu() {
               <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
             </button>
             {idRol && <Notificaciones idrol={idRol} />}
+            {/* *** RENDERIZAR NotificationManager *** */}
+            <NotificationManager
+                userId={idUsuario ? parseInt(idUsuario, 10) : null}
+                idRol={idRol}
+            />
           </div>
+
 
           {/* Título Centrado */}
           <h1 className="text-xl font-bold text-center flex-1 mx-4">Sistema de Adquisiciones</h1>
