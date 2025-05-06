@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { createFirma } from '../../../peticiones_api/peticionSolicitudes';
+import { createFirma } from '@/app/peticiones_api/peticionSolicitudes';
 
 interface ModalFirmaEnvioProps {
   idSolicitud: number;

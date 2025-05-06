@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { updateSolicitud, getSolicitudById } from "../../../peticiones_api/peticionSolicitudes";
-import { getUserById } from "../../../peticiones_api/fetchUsuarios";
+import { updateSolicitud, getSolicitudById } from "@/app/peticiones_api/peticionSolicitudes";
+import { getUserById } from "@/app/peticiones_api/fetchUsuarios";
 
 interface ModificarSolicitudProps {
   onClose: () => void;
