@@ -1,11 +1,11 @@
+// next.config.mjs - CORRECTED
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb', // Puedes ajustar a '20mb' o más si lo necesitas
-    },
-  },
+  // Add other valid Next.js configurations here if you have them
+  // For example:
+  // reactStrictMode: true,
+  // images: { domains: ['example.com'] },
 };
 
 export default nextConfig;

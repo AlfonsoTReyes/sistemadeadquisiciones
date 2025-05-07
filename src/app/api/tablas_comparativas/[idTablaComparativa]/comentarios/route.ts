@@ -1,33 +1,39 @@
-// src/app/api/tablas-comparativas/[idTablaComparativa]/comentarios/route.ts
+// src/app/api/tablas_comparativas/[idTablaComparativa]/comentarios/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { agregarComentario } from '@/services/tablasComparativasService'; // ¡IMPLEMENTAR ESTA FUNCIÓN!
+import { agregarComentario } from '@/services/tablasComparativasService';
 import { AgregarComentarioInput } from '@/types/tablaComparativa';
-// import { ZodError } from 'zod';
 
-interface RouteParams {
-    params: { idTablaComparativa: string };
-}
+// interface RouteParams { // Not used with pathname workaround
+//     params: { idTablaComparativa: string };
+// }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
-    const { idTablaComparativa } = params;
+export async function POST(
+    request: NextRequest
+    // { params }: RouteParams // Temporarily remove/ignore context
+) {
+    // WORKAROUND: Extract idTablaComparativa from pathname
+    const pathnameParts = request.nextUrl.pathname.split('/');
+    // Expected: /api/tablas_comparativas/[idTablaComparativa]/comentarios
+    // Indices:    0   1           2               3                4
+    const idTablaComparativa = pathnameParts[3]; // Adjust if base path is different
+
+    if (!idTablaComparativa) {
+        return NextResponse.json({ message: 'Could not extract idTablaComparativa from URL' }, { status: 400 });
+    }
+
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/comentarios:`;
     console.log(logPrefix);
 
-    // 1. Validar ID de Tabla
     const idTabla = parseInt(idTablaComparativa, 10);
     if (isNaN(idTabla)) {
         return NextResponse.json({ message: 'ID de tabla comparativa inválido.' }, { status: 400 });
     }
 
-    // 2. ¡AÑADIR AUTENTICACIÓN AQUÍ! Obtener idUsuario de la sesión
-
     try {
-        // 3. Obtener y Validar Cuerpo
         const body = await request.json();
         console.log(`${logPrefix} Request body:`, body);
 
-        // --- Validación (¡Usar Zod!) ---
-        const inputData = body as AgregarComentarioInput; // Cast temporal
+        const inputData = body as AgregarComentarioInput;
         if (!inputData || typeof inputData !== 'object') {
             return NextResponse.json({ message: 'Cuerpo de solicitud inválido.' }, { status: 400 });
         }
@@ -43,18 +49,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         if (!inputData.texto_comentario || typeof inputData.texto_comentario !== 'string' || !inputData.texto_comentario.trim()) {
             return NextResponse.json({ message: 'El texto del comentario es requerido.' }, { status: 400 });
         }
-        // --- Fin Validación ---
 
-        // 4. Llamar al Servicio
         const nuevoComentario = await agregarComentario(inputData);
-
-        // 5. Devolver Respuesta Exitosa
         return NextResponse.json(nuevoComentario, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: any) { // Consider 'unknown' and type checking
         console.error(`${logPrefix} Error:`, error);
-        // if (error instanceof ZodError) { ... }
-        if (error.message.includes('no encontrado')) { // Ej: idTabla o idUsuario no existen
+        if (error.message?.includes('no encontrado')) {
             return NextResponse.json({ message: error.message }, { status: 404 });
         }
         return NextResponse.json(
