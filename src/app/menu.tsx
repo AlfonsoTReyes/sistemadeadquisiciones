@@ -268,6 +268,31 @@ export default function Menu() {
             </li>
           )}
 
+          {permissions.includes('menu_ver_adqusiciones_administrativo_eventos') && (
+            <li className="mb-1">
+              <button onClick={() => setIsAdquisicionesOpen(!isAdquisicionesOpen)} className="flex items-center justify-between w-full text-white hover:bg-[#faa21b] px-4 py-2 rounded-md">
+                <div className="flex items-center"><FontAwesomeIcon icon={faWarehouse} className="mr-2 w-5" /> ADQUISICIONES EVENTOS</div>
+                <FontAwesomeIcon icon={faChevronDown} className={`ml-2 transition-transform duration-200 ${isAdquisicionesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isAdquisicionesOpen && (
+                <ul className="ml-4 mt-1 space-y-1 bg-gray-700 rounded-md p-2">
+                    {permissions.includes('menu_ver_solicitudes_pendientes') && ( <li className="mb-1"><Link href="/solicitantes/solicitudes" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Solicitudes</Link></li>)}
+                    {permissions.includes('menu_ver_comite') && ( <li className="mb-1"><Link href="/comite" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faGavel} className="mr-2 w-5" /> Comité</Link></li>)}
+                    {permissions.includes('menu_ver_contratos') && ( <li className="mb-1"><Link href="/adminProveedores/contratos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faFileContract} className="mr-2 w-5" /> Contratos</Link></li>)}
+                    {permissions.includes('menu_ver_cotizaciones') && ( <li className="mb-1"><Link href="/cotizaciones" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Cotizaciones</Link></li>)}
+                    {permissions.includes('menu_ver_pre_suficiencias') && ( <li className="mb-1"><Link href="/pre_suficiencia" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Sol. Pre-Suficiencia</Link></li>)}
+                    {permissions.includes('menu_ver_solicitudes_suficiencias') && ( <li className="mb-1"><Link href="/suficiencia" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Sol. Suficiencia</Link></li>)}
+                    {permissions.includes('menu_ver_solicitudes_suficiencias') && ( <li className="mb-1"><Link href="/tablas_comparativas" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Tablas Comparativas*</Link></li>)}
+                    {permissions.includes('menu_ver_solicitudes_suficiencias') && ( <li className="mb-1"><Link href="/adminProveedores/altaProveedor" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Admin. Proveedores*</Link></li>)}
+                    {permissions.includes('menu_ver_solicitudes_suficiencias') && ( <li className="mb-1"><Link href="/catalogoProveedores" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Padron Proveedores *</Link></li>)}
+                    {permissions.includes('menu_ver_solicitudes_suficiencias') && ( <li className="mb-1"><Link href="/pagosDashboard/pagos" onClick={() => setIsOpen(false)} className="flex items-center text-white hover:bg-[#faa21b] px-4 py-2 rounded-md"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 w-5" /> Gestion de Pagos *</Link></li>)}
+
+                    {/* Los links de Admin Proveedores y Pagos ya están en sus secciones */}
+                </ul>
+              )}
+            </li>
+          )}
+
           {/* Sección COMITE */}
           {permissions.includes('menu_ver_comite') && (
             <li className="mb-1">
