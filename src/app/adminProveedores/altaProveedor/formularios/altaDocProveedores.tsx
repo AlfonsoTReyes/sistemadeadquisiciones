@@ -6,7 +6,7 @@ import {
   fetchDocumentosPorProveedor,
   uploadDocumentoProveedor,
   deleteDocumentoProveedor,
-} from "./fetchDocumentosProveedores"; // Ajusta la ruta si es necesario
+} from "@/app/proveedores/documentos/formularios/fetchDocumentosProveedores"; // Ajusta la ruta si es necesario
 //import { getUserById } from "../../../peticiones_api/fetchUsuarios"; // Para obtener el ID del usuario
 
 // Interfaz para un documento existente

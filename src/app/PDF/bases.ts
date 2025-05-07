@@ -111,7 +111,7 @@ const addFormattedText = (doc: jsPDF, text: string, x: number, y: number, option
             const parts = line.split(/(\*\*.*?\*\*)/g).filter(part => part); // Divide por **texto**
 
             // --- Justificación simple (experimental) ---
-            let isJustify = align === 'justify' && parts.length > 1; // Solo justifica si hay espacios para distribuir
+            const isJustify = align === 'justify' && parts.length > 1; // Solo justifica si hay espacios para distribuir
             let totalNonSpaceWidth = 0;
             let spaceCount = 0;
             if (isJustify) {

@@ -197,7 +197,7 @@ const drawEconomicOfferTable = (
     doc.setFontSize(fontSize);
     doc.setLineWidth(0.5); // Grosor de línea para las celdas
 
-    let tableStartY = currentY;
+    const tableStartY = currentY;
 
     tableData.forEach((row, rowIndex) => {
         const rowY = tableStartY + rowIndex * rowHeight;

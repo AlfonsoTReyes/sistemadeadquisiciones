@@ -432,7 +432,7 @@ export const obtenerDocumentoPorId = async (id_doc_solicitud: number) => {
     throw error;
   }
 };
-/*
+
 export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) => {
   try {
     const result = await sql`
@@ -445,7 +445,7 @@ export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) 
     throw error;
   }
 };
-*/
+
 export const getSuficienciasBySolicitudID = async (idSolicitud: number) => {
   try {
     const result = await sql`

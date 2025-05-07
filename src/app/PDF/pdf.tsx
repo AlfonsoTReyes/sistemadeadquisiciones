@@ -84,7 +84,7 @@ const handleGeneratePDF = async (idOrden: number) => {
             margin: { top: 10, bottom: 10 },
         });
 
-        let startYForSecondTable = doc.lastAutoTable.finalY + 5;
+        const startYForSecondTable = doc.lastAutoTable.finalY + 5;
 
         const vehiculoInfo = [
             `PARA LA UNIDAD ${placaVehiculo} MARCA ${marca} MODELO ${modelo} DE LA ${secretaria}`
