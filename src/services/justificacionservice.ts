@@ -37,7 +37,7 @@ export const updateJustificacionEstatus = async (
         estatus = ${nuevoEstatus},
         updated_at = NOW()
       WHERE id_justificacion = ${idJustificacion} 
-      RETURNING *;
+      RETURNING *, id_solicitud;
     `;
 
     return result.rows[0];

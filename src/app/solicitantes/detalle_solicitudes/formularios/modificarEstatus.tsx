@@ -23,11 +23,13 @@ const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
   // 🔥 Función para actualizar el estatus
   const actualizarEstatus = async () => {
     setIsUpdating(true);
+    const userId = sessionStorage.getItem("userId");
+
 
     const estatusData = {
         idDoc,
         tipoOrigen,
-        nuevoEstatus,
+        nuevoEstatus,userId,
       };
 
     try {

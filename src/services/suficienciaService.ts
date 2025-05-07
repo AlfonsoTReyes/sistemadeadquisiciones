@@ -169,7 +169,7 @@ export const updateSuficienciaEstatus = async (
         estatus = ${estatus},
         updated_at = NOW()
       WHERE id_suficiencia = ${id}
-      RETURNING *;
+      RETURNING *, id_solicitud;
     `;
     return result.rows[0];
   } catch (error) {

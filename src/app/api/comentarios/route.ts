@@ -8,7 +8,10 @@ import {
   createComentario,
   updateComentario,
   deleteComentario,
+  getComentariosById
 } from "../../../services/comentarioservice";
+import { getSolicitudById } from "../../../services/solicitudeservice";
+import { enviarNotificacion, enviarNotificacionUsuario } from "../../../services/notificaciooneservice";
 
 // 📚 Obtener comentarios por solicitud, justificación o documento
 export async function GET(req: NextRequest) {
@@ -36,34 +39,75 @@ export async function GET(req: NextRequest) {
 
 // 📌 Crear un nuevo comentario
 export async function POST(req: NextRequest) {
-    try {
-      const { id_origen, tipo_origen, comentario, respuesta_a, id_usuario, id_solicitud } =
-        await req.json();
-  
-      if (!id_usuario) {
-        return NextResponse.json(
-          { message: "El ID del usuario es obligatorio." },
-          { status: 400 }
-        );
-      }
-  
-      const nuevoComentario = await createComentario({
-        id_origen,
-        tipo_origen,
-        comentario,
-        respuesta_a,
-        id_usuario,
-        id_solicitud
-      });
-  
-      return NextResponse.json(nuevoComentario, { status: 201 });
-    } catch (error) {
-      console.error("Error al crear comentario:", error);
+  try {
+    const {
+      id_origen,
+      tipo_origen,
+      comentario,
+      respuesta_a,
+      id_usuario,
+      id_solicitud
+    } = await req.json();
+
+    if (!id_usuario) {
       return NextResponse.json(
-        { message: "Error al crear comentario.", error },
-        { status: 500 }
+        { message: "El ID del usuario es obligatorio." },
+        { status: 400 }
       );
     }
+
+    // 🔍 Obtener la solicitud para identificar al usuario creador
+    const solicitud = await getSolicitudById(id_solicitud);
+
+    // ✅ Crear el comentario en la base de datos
+    const nuevoComentario = await createComentario({
+      id_origen,
+      tipo_origen,
+      comentario,
+      respuesta_a,
+      id_usuario,
+      id_solicitud
+    });
+
+    // 🔎 Determinar el usuario destino:
+    let usuarioDestino;
+
+    if (respuesta_a) {
+      // Si hay un `respuesta_a`, obtenemos el comentario y sacamos el id_usuario
+      const comentarioRespondido = await getComentariosById(respuesta_a);
+      usuarioDestino = comentarioRespondido ? comentarioRespondido.id_usuario : null;
+    } else {
+      // Si no hay `respuesta_a`, el usuario destino es el creador de la solicitud
+      usuarioDestino = solicitud.id_usuario;
+    }
+
+    if (!usuarioDestino) {
+      console.error("❌ No se pudo determinar el usuario destino para la notificación.");
+      return NextResponse.json(
+        { message: "No se pudo determinar el usuario destino para la notificación." },
+        { status: 400 }
+      );
+    }
+
+    // 🚀 Enviar notificación al usuario correspondiente
+    await enviarNotificacionUsuario({
+      titulo: `Nuevo comentario en la solicitud ${solicitud.folio} en el documento de ${tipo_origen}`,
+      mensaje: `Se ha agregado un comentario "${nuevoComentario}".`,
+      tipo: 'Comentario',
+      id_usuario_origen: id_usuario,
+      id_usuario_destino: usuarioDestino,
+      destino_tipo: 'usuario',
+    });
+
+    return NextResponse.json(nuevoComentario, { status: 201 });
+
+  } catch (error) {
+    console.error("Error al crear comentario:", error);
+    return NextResponse.json(
+      { message: "Error al crear comentario.", error },
+      { status: 500 }
+    );
+  }
 }
 
 // ✏️ Actualizar un comentario existente

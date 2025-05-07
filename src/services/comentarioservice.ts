@@ -15,6 +15,20 @@ export const getComentarios = async () => {
     }
 };
 
+export const getComentariosById = async (id_comentario: string) => {
+    try {
+        const result = await sql`
+        SELECT *
+        FROM comentarios_documentos
+        WHERE id_comentario=${id_comentario};
+        `;
+        return result.rows[0];
+    } catch (error) {
+        console.error("Error al obtener comentarios:", error);
+        throw error;
+    }
+};
+
 // 📚 Obtener comentarios por solicitud/documento/justificación
 export const getComentariosbySolicitudDocumento = async (id_origen: number, tipo_origen: string) => {
     try {

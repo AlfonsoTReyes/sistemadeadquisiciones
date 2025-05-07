@@ -35,7 +35,7 @@ export const getSolicitudesAdmin = async () => {
       LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
       LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
       WHERE sa.estatus IN ('Enviado para revisión', 'En revisión', 'Aprobada', 'Cancelada', 'En pausa')
-      AND sa.tipo_adquisicion != 3;;
+      AND sa.tipo_adquisicion != '3';
     `;
     return result.rows;
   } catch (error) {
