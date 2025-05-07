@@ -232,16 +232,6 @@ const TablaSolicitudes: React.FC<{
         Orden del día
       </Link>
     )}
-    <br />
-    {permisos.includes('ver_detalles_comite_solicitud_adq') && (
-      <Link
-        className="text-dark-500 hover:underline"
-        href="./detalle_solicitudes"
-        onClick={() => handleDetalleClick(solicitud.id_solicitud)}
-      >
-        Detalle de comité
-      </Link>
-    )}
   </>
 )}
 

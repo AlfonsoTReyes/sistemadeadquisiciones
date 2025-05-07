@@ -7,6 +7,8 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { unlink } from "fs/promises";
 import cloudinary from '../../../lib/cloudinary';
+import { enviarNotificacion, enviarNotificacionUsuario } from "../../../services/notificaciooneservice";
+import { getSolicitudById } from "../../../services/solicitudeservice";
 
 
 // GET: obtener todas o una suficiencia
@@ -77,10 +79,23 @@ export async function POST(req: NextRequest) {
     });
 
     // ✅ **Actualizar estatus**
-    await updateSuficienciaEstatusAtendido(
+    const resp =await updateSuficienciaEstatusAtendido(
       Number(id_solicitud),
       "Atendido"
     );
+    console.log("aaaa", resp.id_solicitud);
+    const solicitud = await getSolicitudById(Number(resp.id_solicitud));
+    console.log(solicitud);
+
+
+    await enviarNotificacionUsuario({
+      titulo: `Respuesta de la presuficiencia/suficiencia anexada a la solicitud ${solicitud.folio}`,
+      mensaje: `Se ha anexado una nueva respuesta a la presuficiencia/suficiencia en la solicitud con folio ${solicitud.folio}.`,
+      tipo: "Informativo",
+      id_usuario_origen: Number(userId),
+      id_usuario_destino: solicitud.id_usuario,
+      destino_tipo: "usuario",
+    });
 
     // 🔄 **Respuesta exitosa**
     return NextResponse.json({ message: "Documento guardado correctamente", resultado }, { status: 200 });

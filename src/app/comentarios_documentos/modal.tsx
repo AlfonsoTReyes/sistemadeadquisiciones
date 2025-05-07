@@ -82,12 +82,6 @@ const ModalComentarios: React.FC<ModalComentariosProps> = ({
       idSol
     );
 
-    console.log(      idOrigen,
-      tipoOrigen,
-      nuevoComentario,
-      respuestaA,
-      idUsuario,
-      idSol);
     if (!nuevoComentarioEnviado) {
       alert("Error al enviar comentario.");
       return;

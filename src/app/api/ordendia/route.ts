@@ -13,6 +13,8 @@ import {
   obtenerActaPorOrden, 
 } from "../../../services/actaservice";
 import { updateSolicitudEstatus } from "../../../services/solicitudeservice";
+import { enviarNotificacionUsuario } from "../../../services/notificaciooneservice";
+
 
 // GET: obtener todas o una por solicitud
 export async function GET(req: NextRequest) {
@@ -101,7 +103,8 @@ export async function POST(req: NextRequest) {
       hora,
       puntos_tratar,
       participantes_base,
-      usuarios_invitados
+      usuarios_invitados,
+      userId
     } = await req.json();
 
     if (!id_solicitud || !asunto_general || !no_oficio || !hora || !puntos_tratar || !participantes_base || !usuarios_invitados) {
@@ -127,6 +130,15 @@ export async function POST(req: NextRequest) {
         id_usuario,
         tipo_usuario: 'base'
       });
+
+      await enviarNotificacionUsuario({
+        titulo: `Invitación para Orden del Día ${asunto_general}`,
+        mensaje: `Orden del Día ${no_oficio} con el asunto "${asunto_general} a la hora: ${hora}".`,
+        tipo: 'Invitación',
+        id_usuario_origen: userId, // Aquí puedes cambiar el ID del origen si es necesario
+        id_usuario_destino: id_usuario,
+        destino_tipo: 'usuario',
+      });
     }
 
     // 🟢 Registrar usuarios invitados
@@ -135,6 +147,15 @@ export async function POST(req: NextRequest) {
         id_orden_dia,
         id_usuario,
         tipo_usuario: 'invitado'
+      });
+
+      await enviarNotificacionUsuario({
+        titulo: `Invitación para Orden del Día ${asunto_general}`,
+        mensaje: `Orden del Día ${no_oficio} con el asunto "${asunto_general} a la hora: ${hora}".`,
+        tipo: 'Invitación',
+        id_usuario_origen:userId, // Aquí puedes cambiar el ID del origen si es necesario
+        id_usuario_destino: id_usuario,
+        destino_tipo: 'usuario',
       });
     }
 

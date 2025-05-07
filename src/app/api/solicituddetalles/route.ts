@@ -9,7 +9,7 @@ import { updateSuficienciaEstatus } from "../../../services/suficienciaService";
 import { 
   getSolicitudById 
 } from "../../../services/solicitudeservice";
-import { enviarNotificacionUsuario } from "../../../services/notificaciooneservice";
+import { enviarNotificacionUsuario, enviarNotificacion } from "../../../services/notificaciooneservice";
 
 
 
@@ -59,7 +59,6 @@ export async function PUT(req: NextRequest) {
         break;
 
       case "justificacion":
-        console.log(idDoc,tipoOrigen, nuevoEstatus);
         resultado = await updateJustificacionEstatus(idDoc, nuevoEstatus);
         const solicitudJustificacion = await getSolicitudById(resultado.id_solicitud);
         usuarioDestino = solicitudJustificacion.id_usuario;
@@ -71,6 +70,20 @@ export async function PUT(req: NextRequest) {
         const solicitudAdquisicion = await getSolicitudById(resultado.id_solicitud);
         usuarioDestino = solicitudAdquisicion.id_usuario;
         folio = solicitudAdquisicion.folio;
+
+        // 🚀 Notificación por roles específicos si el estatus es "Enviado para atender"
+        if (nuevoEstatus === "Enviado para atender") {
+          const rolesDestino = [1, 5];
+
+          await enviarNotificacion({
+            titulo: `Solicitud de presuficiencia/suficiencia enviada para atender`,
+            mensaje: `La solicitud con folio ${folio} ha sido enviada para atender.`,
+            tipo: "Informativo",
+            id_usuario_origen: usuarioDestino,
+            id_rol_destino: rolesDestino,
+            destino_tipo: "rol",
+          });
+        }
         break;
 
       case "documento":
