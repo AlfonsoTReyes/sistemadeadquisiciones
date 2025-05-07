@@ -37,7 +37,7 @@ const ModalActualizarUsuarioProveedor: React.FC<ModalUsuarioProps> = ({
     apellido_p: userData.apellido_p || '', // Asegúrate que los nombres coincidan con tu interfaz
     apellido_m: userData.apellido_m || '',
     correo: userData.correo || '',
-    estatus: userData.estatus || 'activo', // Default si no viene
+    estatus: userData.estatus === true ? 'activo' : 'inactivo',
     contraseña: '', // Default si no viene
   });
   const [internalError, setInternalError] = useState(''); // Para validaciones internas
@@ -50,7 +50,7 @@ const ModalActualizarUsuarioProveedor: React.FC<ModalUsuarioProps> = ({
         apellido_p: userData.apellido_p || '',
         apellido_m: userData.apellido_m || '',
         correo: userData.correo || '',
-        estatus: userData.estatus || 'activo',
+        estatus: userData.estatus === true ? 'activo' : 'inactivo',
         contraseña: '',
     });
     setInternalError(''); // Limpiar errores internos si cambian los datos
