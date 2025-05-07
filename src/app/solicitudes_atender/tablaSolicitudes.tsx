@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import ModificarSolicitud from "./formularios/modificar";
 import Link from 'next/link';
 //import ModalConfirmacion from "@/app//detalle_solicitudes/formularios/modificarEstatus";
