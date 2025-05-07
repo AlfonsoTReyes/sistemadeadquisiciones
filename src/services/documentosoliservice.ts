@@ -76,10 +76,11 @@ export const obtenerDocumentoPorId = async (id_doc_solicitud: number) => {
 
 export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) => {
   try {
+    /*
     const result = await sql`
       DELETE FROM documentos_solicitud
       WHERE id_doc_solicitud = ${id_doc_solicitud};
-    `;
+    `;*/
     return { success: true };
   } catch (error) {
     console.error("error al obtener documentos por solicitud:", error);

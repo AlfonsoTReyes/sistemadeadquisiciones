@@ -1,6 +1,6 @@
 // --- componentes/proveedores/dashboard/tablaDocProveedores.tsx ---
 'use client';
-import React, { useState, useEffect, useCallback } from 'react'; // Añadir hooks necesarios
+import React, { useState, useCallback } from 'react'; // Añadir hooks necesarios
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilePdf, faFileImage, faFileAlt, faChevronDown, faChevronUp, faSpinner, faCommentDots, faUserShield } from '@fortawesome/free-solid-svg-icons'; // Añadir iconos
 // Importar fetch para OBTENER comentarios

@@ -1,6 +1,6 @@
 import { sql } from '@vercel/postgres';
 
-const connectionString = process.env.POSTGRES_URL;
+//const connectionString = process.env.POSTGRES_URL;
 
 export const getPermiso = async () => {
   try {

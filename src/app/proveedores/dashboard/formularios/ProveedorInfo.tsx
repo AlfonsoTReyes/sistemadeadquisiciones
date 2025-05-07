@@ -1,26 +1,23 @@
-// --- START OF FILE src/components/proveedores/dashboard/ProveedorInfo.tsx ---
+// src/app/proveedores/dashboard/formularios/ProveedorInfo.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link'; // <-- Asegúrate que Link esté importado
-// Asumiendo que la función fetch correcta está en fetchdashboard
+// import Link from 'next/link'; // <-- REMOVED: Link was defined but never used.
+
 import { updateProveedor, solicitarRevision } from './fetchdashboard';
 import ModalActualizarProveedor from './modalActualizarProveedor';
 import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor';
-import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores';
+// import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores'; // Function was unused
 
-// --- Interfaces (RepresentanteLegalOutput, ProveedorData, ProveedorInfoProps) - Sin cambios ---
-// --- 1. INTERFAZ PARA REPRESENTANTE (Output de la API/Servicio) ---
+// --- Interfaces ---
 interface RepresentanteLegalOutput {
-    id_morales: number; // PK de la fila en proveedores_morales
+    id_morales: number;
     nombre_representante?: string | null;
     apellido_p_representante?: string | null;
     apellido_m_representante?: string | null;
-    estatus_revision?: string | null; // Añadido
-    representantes?: RepresentanteLegalOutput[]; // Añadido
-    // Otros campos del representante si existen en la tabla/respuesta
+    estatus_revision?: string | null;
+    representantes?: RepresentanteLegalOutput[];
 }
 
-// --- 2. INTERFAZ PARA DATOS DEL PROVEEDOR (Props - ADAPTADA) ---
 interface ProveedorData {
     id_proveedor: number;
     rfc: string;
@@ -39,35 +36,37 @@ interface ProveedorData {
     numero_registro_camara?: string | null;
     numero_registro_imss?: string | null;
     estatus?: boolean;
-    estatus_revision?: string | null; // 'NO_SOLICITADO', 'PENDIENTE_REVISION', 'EN_REVISION', 'APROBADO', 'RECHAZADO'
+    estatus_revision?: string | null;
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-
-    // Campos Físicas (sin cambios)
     nombre_fisica?: string | null;
     apellido_p_fisica?: string | null;
     apellido_m_fisica?: string | null;
     curp?: string | null;
-
-    // Campos Morales (Adaptados)
-    razon_social?: string | null; // Se mantiene
-
-    representantes?: RepresentanteLegalOutput[]; // Array opcional
-
-    [key: string]: any; // Otros campos
+    razon_social?: string | null;
+    representantes?: RepresentanteLegalOutput[];
+    [key: string]: unknown; // CORREGIDO: any -> unknown
 }
 
-// 3. Interfaz para las Props (Sin cambios)
 interface ProveedorInfoProps {
     providerData: ProveedorData | null;
-    loading: boolean; // Loading general de la página
-    error: string | null; // Error general de la página
+    loading: boolean;
+    error: string | null;
     onManageDocumentsClick: () => void;
-    onDataRefreshNeeded?: () => void; // Función opcional para pedir al padre que recargue
+    onDataRefreshNeeded?: () => void;
 }
 
-// --- Componente Helper InfoFieldDisplay - Sin cambios ---
+// Define a more specific type for the data coming from the update modal
+interface UpdateModalPayload extends Partial<Omit<ProveedorData, 'id_proveedor' | 'tipo_proveedor'>> {
+    id_proveedor: number;
+    tipo_proveedor: 'moral' | 'fisica'; // Assuming 'desconocido' is not a valid type for update
+    // Include other fields that are definitely part of the modal's submission, e.g.,
+    // rfc: string; // if rfc is always submitted and required by the modal/update function
+    // ... other fields
+}
+
+
 const InfoFieldDisplay: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
     <p className="text-sm text-gray-700 mb-1 break-words">
         <span className="font-semibold text-gray-800">{label}:</span>
@@ -75,7 +74,6 @@ const InfoFieldDisplay: React.FC<{ label: string; value: React.ReactNode }> = ({
     </p>
 );
 
-// --- Componente Principal ---
 const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
     providerData: initialProviderData,
     loading: loadingPage,
@@ -83,20 +81,18 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
     onManageDocumentsClick,
     onDataRefreshNeeded
 }) => {
-    // --- Estados y useEffect (sin cambios) ---
     const [providerData, setProviderData] = useState<ProveedorData | null>(initialProviderData);
     const [modalAbierto, setModalAbierto] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updateError, setUpdateError] = useState<string | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [pdfError, setPdfError] = useState<string | null>(null);
+    const [pdfError, setPdfError] = useState<string | null>(null); // pdfError state
     const [isRequestingReview, setIsRequestingReview] = useState(false);
     const [requestReviewError, setRequestReviewError] = useState<string | null>(null);
     const [requestReviewSuccess, setRequestReviewSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         setProviderData(initialProviderData);
-        // Resetear otros estados al cambiar initialProviderData
         setUpdateError(null);
         setPdfError(null);
         setIsRequestingReview(false);
@@ -104,63 +100,76 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
         setRequestReviewSuccess(null);
     }, [initialProviderData]);
 
-    // --- Handlers (Modal, Guardar, PDF, Solicitar Revisión) - Sin cambios en su lógica interna ---
-   const handleOpenModal = () => {
+    const handleOpenModal = () => {
         if (providerData) { setUpdateError(null); setModalAbierto(true); }
         else { alert("No hay datos para editar."); }
     };
     const handleCloseModal = () => { setModalAbierto(false); };
-    // --- Handler Guardar Perfil (MODIFICADO) ---
-    const handleSaveUpdate = async (updatedDataFromModal: any) => {
-        if (!providerData)
-        if (!updatedDataFromModal?.id_proveedor || !updatedDataFromModal.tipoProveedor)
+
+    const handleSaveUpdate = async (updatedDataFromModal: UpdateModalPayload) => { // CORREGIDO: any -> UpdateModalPayload
+        // The check for !providerData was here, but it seems redundant if the modal can only be opened with providerData.
+        // The checks for id_proveedor and tipoProveedor are good.
+        if (!updatedDataFromModal?.id_proveedor || !updatedDataFromModal.tipo_proveedor) {
+            setUpdateError("Datos incompletos del modal para la actualización.");
+            return;
+        }
         setIsUpdating(true); setUpdateError(null);
         try {
-            const updatedProvider = await updateProveedor(updatedDataFromModal);
-            setProviderData(updatedProvider); // Actualiza estado local
+            // Assuming updateProveedor expects a type compatible with UpdateModalPayload
+            const updatedProvider = await updateProveedor(updatedDataFromModal as any); // Cast to any if updateProveedor expects a slightly different shape. Ideally, align types.
+            setProviderData(updatedProvider);
             alert("¡Perfil actualizado con éxito!");
             handleCloseModal();
 
-            // **LLAMAR AL CALLBACK DEL PADRE EN LUGAR DE RELOAD**
             if (onDataRefreshNeeded) {
                 console.log("ProveedorInfo: Solicitando refresh de datos al padre...");
-                onDataRefreshNeeded(); // <--- LLAMAR A LA PROP
+                onDataRefreshNeeded();
             } else {
                 console.warn("ProveedorInfo: onDataRefreshNeeded no proporcionado. Considera recargar la página como fallback.");
             }
 
-        } catch (err: any) { setUpdateError(err.message || "Error desconocido."); }
+        } catch (errUnknown: unknown) { // CORREGIDO: any -> unknown
+            if (errUnknown instanceof Error) {
+                setUpdateError(errUnknown.message || "Error desconocido.");
+            } else {
+                setUpdateError("Ocurrió un error desconocido al actualizar.");
+            }
+        }
         finally { setIsUpdating(false); }
     };
-    // --- FIN Handler Guardar Perfil ---
 
-
-    // Handlers PDF - Sin cambios
     const handleGeneratePdfClick = async () => {
-        if (!providerData) { setPdfError("No hay datos."); return; }
+        if (!providerData) { setPdfError("No hay datos para generar el PDF."); return; }
         setIsGeneratingPdf(true); setPdfError(null);
         try {
-            await generateProveedorPdfClientSide(providerData); // Pasa los datos completos
-        } catch (err: any) { setPdfError(err.message || "Error generando PDF Solicitud."); }
+            await generateProveedorPdfClientSide(providerData);
+        } catch (errUnknown: unknown) { // CORREGIDO: any -> unknown
+            if (errUnknown instanceof Error) {
+                setPdfError(errUnknown.message || "Error generando PDF Solicitud.");
+            } else {
+                setPdfError("Error desconocido generando PDF Solicitud.");
+            }
+        }
         finally { setIsGeneratingPdf(false); }
     };
 
+    /* // REMOVED: handleRevalidadProveedores was defined but never used.
     const handleRevalidadProveedores = async () => {
         if (!providerData) { setPdfError("No hay datos."); return; }
         setIsGeneratingPdf(true); setPdfError(null);
         try {
-            await revalidacionProveedores(providerData); // Pasa los datos completos
+            await revalidacionProveedores(providerData);
         } catch (err: any) { setPdfError(err.message || "Error generando PDF Revalidación."); }
         finally { setIsGeneratingPdf(false); }
     };
-    // --- **NUEVO HANDLER: Solicitar Revisión** ---
+    */
+
     const handleSolicitarRevisionClick = async () => {
         if (!providerData || !providerData.id_proveedor) {
             alert("Error: No se pueden cargar los datos del proveedor.");
             return;
         }
 
-        // Confirmación
         if (!window.confirm("¿Está seguro de que ha completado su perfil y subido todos los documentos requeridos?\nAl confirmar, su información será enviada a revisión.")) {
             return;
         }
@@ -169,37 +178,36 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
         try {
             const result = await solicitarRevision(providerData.id_proveedor);
             if (result?.estatus_revision) {
-                // Actualiza estado local para feedback inmediato
                 setProviderData(prev => prev ? { ...prev, estatus_revision: result.estatus_revision } : null);
                 setRequestReviewSuccess("Solicitud enviada.");
                 setTimeout(() => setRequestReviewSuccess(null), 5000);
-                // Opcional: También pedir al padre que refresque por si acaso
-                // if (onDataRefreshNeeded) onDataRefreshNeeded();
             } else {
-                // Si la respuesta es inesperada, pide al padre que refresque
                 console.warn("Respuesta inesperada de solicitarRevision, solicitando refresh.");
                 if (onDataRefreshNeeded) onDataRefreshNeeded();
-                else window.location.reload(); // Fallback
+                // else window.location.reload(); // Consider if reload is the best fallback
             }
-        } catch (err: any) { setRequestReviewError(err.message || "Error al solicitar."); }
+        } catch (errUnknown: unknown) { // CORREGIDO: any -> unknown
+            if (errUnknown instanceof Error) {
+                setRequestReviewError(errUnknown.message || "Error al solicitar.");
+            } else {
+                setRequestReviewError("Error desconocido al solicitar la revisión.");
+            }
+        }
         finally { setIsRequestingReview(false); }
     };
 
-
-    // --- Renderizado Condicional Inicial (Loading, Error, No Data) - Sin cambios ---
     if (loadingPage) {
         return <div className="text-center p-10 text-gray-600">Cargando datos del proveedor...</div>;
     }
 
     if (pageError) {
-        return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-lg mx-auto text-center" role="alert">{error}</div>;
+        return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-lg mx-auto text-center" role="alert">{pageError}</div>;
     }
 
     if (!providerData) {
         return <div className="text-center p-10 text-gray-500">No se encontraron datos del proveedor.</div>;
     }
 
-    // --- Renderizado de Datos (ACTUALIZADO para incluir lógica del botón de pago) ---
     const { tipo_proveedor, representantes, estatus_revision } = providerData;
     const isMoral = tipo_proveedor === 'moral';
     const isFisica = tipo_proveedor === 'fisica';
@@ -211,29 +219,27 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
         <div className="bg-white shadow-xl rounded-lg p-6 md:p-8 max-w-4xl mx-auto">
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b pb-3">Información del Proveedor</h1>
 
-            {/* --- Mostrar Estatus de Revisión (con el nuevo estado PENDIENTE_PAGO) --- */}
             <div className={`mb-6 p-3 rounded-md border text-center
               ${estatus_revision === 'APROBADO' ? 'bg-green-50 border-green-300 text-green-800' :
                 estatus_revision === 'RECHAZADO' ? 'bg-red-50 border-red-300 text-red-800' :
                 estatus_revision === 'PENDIENTE_REVISION' || estatus_revision === 'EN_REVISION' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' :
-                estatus_revision === 'PENDIENTE_PAGO' ? 'bg-orange-50 border-orange-300 text-orange-800' : // <-- Estilo para PENDIENTE_PAGO
+                estatus_revision === 'PENDIENTE_PAGO' ? 'bg-orange-50 border-orange-300 text-orange-800' :
                 'bg-gray-100 border-gray-300 text-gray-600'}`}>
                 <p className="font-medium text-sm">
-                    Estado de Proceso de Solciitud: <span className="font-bold">{textoEstatusRevision}</span>
+                    Estado de Proceso de Solicitud: <span className="font-bold">{textoEstatusRevision}</span>
                 </p>
-                {/* Mensajes contextuales existentes */}
                 {estatus_revision === 'RECHAZADO' && <p className="text-xs mt-1">Revise sus documentos o perfil y vuelva a solicitar la revisión.</p>}
                 {estatus_revision === 'PENDIENTE_REVISION' && <p className="text-xs mt-1">Su solicitud está en espera de ser atendida por un administrador.</p>}
                 {estatus_revision === 'EN_REVISION' && <p className="text-xs mt-1">Un administrador está revisando su información.</p>}
                 {estatus_revision === 'PENDIENTE_PAGO' && <p className="text-xs mt-1">Su documentación ha sido aprobada. Por favor, realice el pago correspondiente para completar su registro/revalidación Y SUBIRLO AL APARTADO DE DOCUMENTOS.</p>}
             </div>
-            {/* --- FIN ESTATUS REVISIÓN --- */}
 
-            {/* Mensajes específicos de la acción de solicitar revisión */}
             {requestReviewError && <p className="text-sm text-red-600 my-2 text-center">{requestReviewError}</p>}
             {requestReviewSuccess && <p className="text-sm text-green-600 my-2 text-center">{requestReviewSuccess}</p>}
+            {pdfError && <p className="text-sm text-red-600 my-2 text-center">Error PDF: {pdfError}</p>} {/* Display pdfError */}
+            {updateError && <p className="text-sm text-red-600 my-2 text-center">Error de Actualización: {updateError}</p>}
 
-            {/* --- Secciones de Información (Datos Generales, Dirección, Específicos, Registros) - Sin cambios --- */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 mb-6 border-b pb-4">
                 <InfoFieldDisplay label="RFC" value={providerData.rfc} />
                 <InfoFieldDisplay label="Tipo" value={isMoral ? 'Persona Moral' : isFisica ? 'Persona Física' : 'Desconocido'} />
@@ -242,10 +248,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 <InfoFieldDisplay label="Actividad Económica (SAT)" value={providerData.actividad_sat} />
                 <InfoFieldDisplay label="Teléfono Principal" value={providerData.telefono_uno} />
                 <InfoFieldDisplay label="Teléfono Secundario" value={providerData.telefono_dos} />
-                <InfoFieldDisplay label="Página Web" value={providerData.pagina_web ? <a href={providerData.pagina_web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{providerData.pagina_web}</a> : undefined} />
-                {/* 
-                <InfoFieldDisplay label="Estatus" value={<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${providerData.estatus ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{providerData.estatus ? 'Activo' : 'Inactivo'}</span>} />
-                */}
+                <InfoFieldDisplay label="Página Web" value={providerData.pagina_web ? <a href={providerData.pagina_web.startsWith('http') ? providerData.pagina_web : `http://${providerData.pagina_web}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{providerData.pagina_web}</a> : undefined} />
                 <InfoFieldDisplay label="Proveedor para Eventos" value={providerData.proveedor_eventos ? 'Sí' : 'No'} />
             </div>
             <div className="mb-6 border-b pb-4">
@@ -258,9 +261,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 </h2>
                 {isMoral && (
                     <>
-                        {/* Razón Social se muestra siempre */}
                         <InfoFieldDisplay label="Razón Social" value={providerData.razon_social} />
-
                         <div className="mt-4">
                             <h4 className="text-md font-medium text-gray-600 mb-2">Representantes Legales:</h4>
                             {representantes && representantes.length > 0 ? (
@@ -279,7 +280,6 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 )}
                 {isFisica && (
                     <>
-                        {/* Mostrar Nombre Completo y CURP como antes */}
                         <InfoFieldDisplay label="Nombre Completo" value={`${providerData.nombre_fisica || ''} ${providerData.apellido_p_fisica || ''} ${providerData.apellido_m_fisica || ''}`.trim()} />
                         <InfoFieldDisplay label="CURP" value={providerData.curp} />
                     </>
@@ -291,20 +291,16 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                     <InfoFieldDisplay label="Cámara Comercial" value={providerData.camara_comercial} />
                     <InfoFieldDisplay label="No. Reg. Cámara" value={providerData.numero_registro_camara} />
                     <InfoFieldDisplay label="No. Reg. IMSS" value={providerData.numero_registro_imss} />
-                    {/*<InfoFieldDisplay label="Fecha Solicitud" value={providerData.fecha_solicitud ? new Date(providerData.fecha_solicitud).toLocaleDateString() : undefined} />
-                  */}
                     <InfoFieldDisplay label="Última Actualización" value={providerData.updated_at ? new Date(providerData.updated_at).toLocaleString() : undefined} />
                 </div>
             </div>
 
-            {/* --- Botones de Acción (CON EL NUEVO BOTÓN DE PAGO) --- */}
             <div className="flex flex-wrap justify-end gap-3 mt-6 pt-6 border-t">
-{/*
+                {/* Botón de pago (si es necesario, descomentar y ajustar lógica/ruta)
                 {mostrarBotonPago && (
-                    <Link href="/pago" passHref>
+                    <Link href="/ruta-al-pago" passHref> // Ajustar ruta
                         <button
                             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50"
-                            // Deshabilitar si otras acciones están en progreso
                             disabled={isUpdating || isGeneratingPdf || isRequestingReview}
                             title="Realizar el pago del trámite de proveedor"
                         >
@@ -312,14 +308,11 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                         </button>
                     </Link>
                 )}
-*/}
-{/* *** FIN Botón Ir a Pagar *** */}
-
-                {/* Botones existentes */}
+                */}
                 <button
                     onClick={handleOpenModal}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50"
-                    disabled={isUpdating || isGeneratingPdf || isRequestingReview} // Deshabilitar si pago pendiente? Quizás no.
+                    disabled={isUpdating || isGeneratingPdf || isRequestingReview}
                 >
                     Modificar Información
                 </button>
@@ -330,8 +323,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 >
                     {isGeneratingPdf ? 'Generando Solicitud...' : 'Generar Solicitud PDF'}
                 </button>
-                {/* Botón Solicitar Revisión (se oculta si está pendiente de pago) */}
-                {!mostrarBotonPago && ( // Ocultar si se muestra el botón de pago
+                {!mostrarBotonPago && (
                     <button
                         onClick={handleSolicitarRevisionClick}
                         className={`bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -350,7 +342,6 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                 </button>
             </div>
 
-            {/* --- Renderizado del Modal (Sin cambios) --- */}
             {modalAbierto && providerData && (
                 <ModalActualizarProveedor
                     isOpen={modalAbierto}
@@ -366,4 +357,3 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
 };
 
 export default ProveedorInfo;
-// --- END OF FILE ---

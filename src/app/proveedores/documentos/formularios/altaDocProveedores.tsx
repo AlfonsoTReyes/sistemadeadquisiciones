@@ -202,7 +202,7 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
     idProveedor,
     tipoProveedor,
     esProveedorEventos = false, // Default a false si no se pasa la prop
-    onClose
+    //onClose
 }) => {
   // Estados existentes
   const [documentos, setDocumentos] = useState<DocumentoProveedor[]>([]);

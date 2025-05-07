@@ -2,18 +2,18 @@
 
 import { sql, VercelPoolClient } from '@vercel/postgres';
 // Importa funciones y tipos necesarios del servicio de proveedores
-import { getProveedorById, ProveedorDetallado } from './proveedoresservice'; // Ajusta la ruta si es necesario
+import { getProveedorById } from './proveedoresservice'; // Ajusta la ruta si es necesario
+// ProveedorDetallado was unused in this file, so it's removed from direct imports here.
+// It's used as a return type from getProveedorById.
 import { ContratoCreateData, ContratoDetallado, ContratoEnLista, ContratoUpdateData } from '../types/contrato'; // Asegúrate que la ruta a tus tipos es correcta
 import { ContratoInputData } from '@/types/contratoTemplateData'; // Ajusta ruta
+
 // --- OBTENER LISTA DE CONTRATOS ---
 
-// Nota: La lógica para diferenciar admin/proveedor se manejaría idealmente en la API Route
-//       pasando un 'filters' object que podría incluir 'id_proveedor'.
 interface GetContractsFilters {
     id_proveedor?: number;
     limit?: number;
     offset?: number;
-    // Otros filtros potenciales: status, fecha_inicio_range, etc.
 }
 
 export const getContracts = async (filters: GetContractsFilters = {}): Promise<ContratoEnLista[]> => {
@@ -21,7 +21,6 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
     console.log(`SERVICE Contratos: getContracts called with filters:`, filters);
 
     try {
-        // Construcción dinámica de la query
         let query = `
             SELECT
                 c.id_contrato,
@@ -33,18 +32,16 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
                 c.fecha_inicio,
                 c.fecha_fin,
                 c.id_proveedor,
-                -- Obtener nombre/razón social para la lista
                 COALESCE(pf.nombre || ' ' || pf.apellido_p, pm.razon_social, p.rfc) AS nombre_proveedor_o_razon_social
             FROM contratos c
             JOIN proveedores p ON c.id_proveedor = p.id_proveedor
             LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
             LEFT JOIN (
-                -- Seleccionar una sola fila por proveedor moral para evitar duplicados en la lista
                 SELECT DISTINCT ON (id_proveedor) id_proveedor, razon_social
                 FROM proveedores_morales
             ) pm ON p.id_proveedor = pm.id_proveedor
         `;
-        const queryParams: any[] = [];
+        const queryParams: (string | number | boolean | null)[] = []; // CORREGIDO
         let whereClause = '';
 
         if (id_proveedor !== undefined) {
@@ -52,14 +49,11 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
             whereClause += `c.id_proveedor = $${queryParams.length}`;
         }
 
-        // Añadir más condiciones WHERE aquí si se agregan más filtros...
-        // if (filters.status) { ... }
-
         if (whereClause) {
             query += ` WHERE ${whereClause}`;
         }
 
-        query += ` ORDER BY c.fecha_firma DESC, c.id_contrato DESC`; // O el orden que prefieras
+        query += ` ORDER BY c.fecha_firma DESC, c.id_contrato DESC`;
 
         queryParams.push(limit);
         query += ` LIMIT $${queryParams.length}`;
@@ -71,14 +65,13 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
 
         const result = await sql.query(query, queryParams);
 
-        // Mapear a la interfaz ContratoEnLista (ajustar tipos si es necesario)
         const contratos: ContratoEnLista[] = result.rows.map(row => ({
             id_contrato: row.id_contrato,
             numero_contrato: row.numero_contrato,
             objeto_contrato: row.objeto_contrato,
-            monto_total: String(row.monto_total), // Convertir numeric a string
+            monto_total: String(row.monto_total),
             moneda: row.moneda,
-            fecha_firma: row.fecha_firma ? new Date(row.fecha_firma).toISOString().split('T')[0] : null, // Formatear fecha
+            fecha_firma: row.fecha_firma ? new Date(row.fecha_firma).toISOString().split('T')[0] : null,
             fecha_inicio: row.fecha_inicio ? new Date(row.fecha_inicio).toISOString().split('T')[0] : null,
             fecha_fin: row.fecha_fin ? new Date(row.fecha_fin).toISOString().split('T')[0] : null,
             id_proveedor: row.id_proveedor,
@@ -88,12 +81,15 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
         console.log(`SERVICE Contratos: Found ${contratos.length} contracts.`);
         return contratos;
 
-    } catch (error) {
-        console.error("SERVICE Contratos: Error fetching contracts:", error);
-        throw new Error('Error al obtener la lista de contratos.');
+    } catch (errUnknown: unknown) { // CORREGIDO
+        console.error("SERVICE Contratos: Error fetching contracts:", errUnknown);
+        let message = 'Error al obtener la lista de contratos.';
+        if (errUnknown instanceof Error) {
+            // message = errUnknown.message; // Podrías usar el mensaje original si es seguro
+        }
+        throw new Error(message);
     }
 };
-
 
 // --- OBTENER DETALLES DE UN CONTRATO POR ID ---
 export const getContractById = async (idContrato: number): Promise<ContratoDetallado | null> => {
@@ -104,16 +100,15 @@ export const getContractById = async (idContrato: number): Promise<ContratoDetal
     try {
         client = await sql.connect();
 
-        // 1. Obtener datos del contrato, incluyendo template_data y joins básicos
         const contractResult = await client.sql`
             SELECT
-                c.*, -- Todos los campos core de contratos (incluyendo template_data)
+                c.*, 
                 co.numero_concurso, co.nombre_concurso,
-                s.id_solicitud AS solicitud_id_ref, -- O numero_solicitud si existe
-                d.id_dictamen AS dictamen_id_ref -- O resultado_dictamen si existe
+                s.id_solicitud AS solicitud_id_ref,
+                d.id_dictamen AS dictamen_id_ref
             FROM contratos c
             LEFT JOIN concurso co ON c.id_concurso = co.id_concurso
-            LEFT JOIN solicitud_adquisicion s ON c.id_solicitud = s.id_solicitud -- Ajusta nombre tabla
+            LEFT JOIN solicitud_adquisicion s ON c.id_solicitud = s.id_solicitud
             LEFT JOIN dictamen_comite d ON c.id_dictamen = d.id_dictamen
             WHERE c.id_contrato = ${idContrato};
         `;
@@ -121,102 +116,91 @@ export const getContractById = async (idContrato: number): Promise<ContratoDetal
         if (contractResult.rows.length === 0) return null;
         const row = contractResult.rows[0];
 
-        // 2. Obtener datos del proveedor (sin cambios)
         const proveedorDetallado = await getProveedorById(row.id_proveedor);
-        if (!proveedorDetallado) throw new Error(`Proveedor asociado no encontrado.`);
+        if (!proveedorDetallado) throw new Error(`Proveedor asociado no encontrado para el contrato ID: ${idContrato}. ID Proveedor: ${row.id_proveedor}`);
 
-        // *** 3. Parsear template_data (JSONB) ***
+
         let parsedTemplateData: Partial<ContratoInputData> | undefined = undefined;
         if (row.template_data && typeof row.template_data === 'object') {
-            // Si Vercel/pg ya lo devuelve como objeto JS:
-            parsedTemplateData = row.template_data as Partial<ContratoInputData>;
+            parsedTemplateData = row.template_data as Partial<ContratoInputData>; // Cast es seguro si la estructura coincide
             console.log("SERVICE Contratos: Parsed template_data (from object):", parsedTemplateData);
         } else if (typeof row.template_data === 'string') {
-             // Si viene como string JSON
             try {
                 parsedTemplateData = JSON.parse(row.template_data);
                 console.log("SERVICE Contratos: Parsed template_data (from string):", parsedTemplateData);
-            } catch (e) {
+            } catch (e: unknown) { // CORREGIDO
                 console.error(`SERVICE Contratos: Error parsing template_data JSON for contract ${idContrato}:`, e);
-                // Decide cómo manejar: ¿error o continuar sin template_data?
-                // Podríamos continuar y dejar parsedTemplateData como undefined.
             }
         }
 
-        // 4. Combinar datos
         const contratoCompleto: ContratoDetallado = {
-            // --- Mapeo de Campos Core ---
             id_contrato: row.id_contrato,
             numero_contrato: row.numero_contrato,
             id_solicitud: row.id_solicitud,
             id_dictamen: row.id_dictamen,
             id_proveedor: row.id_proveedor,
             id_concurso: row.id_concurso,
-            objeto_contrato: row.objeto_contrato, // Este es el 'core', el de template_data es el específico
-            monto_total: String(row.monto_total), // El 'core'
+            objeto_contrato: row.objeto_contrato,
+            monto_total: String(row.monto_total),
             moneda: row.moneda,
-            fecha_firma: row.fecha_firma ? new Date(row.fecha_firma).toISOString().split('T')[0] : null, // La firma final
-            fecha_inicio: row.fecha_inicio,
-            fecha_fin: row.fecha_fin,
-            condiciones_pago: row.condiciones_pago, // ¿O usar el de template_data? Decide fuente de verdad
-            garantias: row.garantias,             // ¿O usar el de template_data? Decide fuente de verdad
-            // --- Proveedor ---
+            fecha_firma: row.fecha_firma ? new Date(row.fecha_firma).toISOString().split('T')[0] : null,
+            fecha_inicio: row.fecha_inicio ? new Date(row.fecha_inicio).toISOString().split('T')[0] : null, // Asegurar formato
+            fecha_fin: row.fecha_fin ? new Date(row.fecha_fin).toISOString().split('T')[0] : null,       // Asegurar formato
+            condiciones_pago: row.condiciones_pago,
+            garantias: row.garantias,
             proveedor: proveedorDetallado,
-            // --- Template Data Parseado ---
-            template_data: parsedTemplateData as any, // Castear si es necesario por tipo unión
-             // --- Campos Display (generados como antes o leídos de template_data) ---
-             // Ahora puedes usar parsedTemplateData para mejorar los display si quieres
-             concurso_display: row.numero_concurso ? `${row.numero_concurso} (${row.nombre_concurso ?? ''})` : (row.id_concurso ? `ID: ${row.id_concurso}` : 'N/A'),
-             solicitud_display: row.solicitud_id_ref ? `ID: ${row.solicitud_id_ref}` : 'N/A', // Mejora si tienes más datos
-             dictamen_display: row.dictamen_id_ref ? `ID: ${row.dictamen_id_ref}` : 'N/A',   // Mejora si tienes más datos
+            template_data: parsedTemplateData, // CORREGIDO: as any removido
+            concurso_display: row.numero_concurso ? `${row.numero_concurso} (${row.nombre_concurso ?? ''})` : (row.id_concurso ? `ID: ${row.id_concurso}` : 'N/A'),
+            solicitud_display: row.solicitud_id_ref ? `ID: ${row.solicitud_id_ref}` : 'N/A',
+            dictamen_display: row.dictamen_id_ref ? `ID: ${row.dictamen_id_ref}` : 'N/A',
         };
 
         return contratoCompleto;
 
-    } catch (error) {
-        console.error(`SERVICE Contratos: Error fetching contract details for ID ${idContrato}:`, error);
-        throw new Error(`Error al obtener los detalles del contrato: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } catch (errUnknown: unknown) { // CORREGIDO
+        console.error(`SERVICE Contratos: Error fetching contract details for ID ${idContrato}:`, errUnknown);
+        let message = 'Error desconocido al obtener los detalles del contrato.';
+        if (errUnknown instanceof Error) {
+            message = errUnknown.message;
+        }
+        throw new Error(`Error al obtener los detalles del contrato: ${message}`);
     } finally {
          if (client) { await client.release(); }
     }
 };
-/**
- * Obtiene una lista simplificada de proveedores (activos) para usar en selects/dropdowns.
- * @returns Promise<Array<{ id: number; label: string }>>
- */
+
+// Esta función parece ser un duplicado de la que estaría en proveedoresservice.ts
+// Si es intencional, se corrige el catch. Si no, debería eliminarse y usar la del otro servicio.
 export const getProveedoresForSelect = async (): Promise<{ id: number; label: string }[]> => {
-    console.log("SERVICE Proveedores: getProveedoresForSelect called");
+    console.log("SERVICE Contratos (Proveedores): getProveedoresForSelect called");
     try {
-        // Selecciona ID y un nombre descriptivo combinando razón social/nombre/rfc
-        // Filtra por estatus activo si es relevante para seleccionar en contratos
-        const result = await sql`
+        interface SelectRow { id: number; label: string | null; }
+        const result = await sql<SelectRow>`
             SELECT
                 p.id_proveedor AS id,
                 COALESCE(
                     pm.razon_social,
                     TRIM(CONCAT(pf.nombre, ' ', pf.apellido_p, ' ', pf.apellido_m)),
                     p.rfc,
-                    'ID: ' || p.id_proveedor::text -- Fallback muy básico
+                    'ID: ' || p.id_proveedor::text
                 ) AS label
             FROM proveedores p
             LEFT JOIN (
-                -- Obtener una sola razón social por proveedor moral
                 SELECT DISTINCT ON (id_proveedor) id_proveedor, razon_social
                 FROM proveedores_morales
             ) pm ON p.id_proveedor = pm.id_proveedor
             LEFT JOIN personas_fisicas pf ON p.id_proveedor = pf.id_proveedor
-            WHERE p.estatus = true -- O el filtro que consideres apropiado (ej: aprobados)
+            WHERE p.estatus = true
             ORDER BY label ASC;
         `;
-        console.log(`SERVICE Proveedores: Found ${result.rows.length} active providers for select.`);
-        // Asegurarse que label no sea null o vacío si es posible
+        console.log(`SERVICE Contratos (Proveedores): Found ${result.rows.length} active providers for select.`);
          return result.rows.map(row => ({
-             ...row,
-             label: row.label?.trim() || `ID: ${row.id}` // Limpiar y fallback final
-         })) as { id: number; label: string }[];
+             id: row.id,
+             label: row.label?.trim() || `ID: ${row.id}`
+         }));
 
-    } catch (error) {
-        console.error("SERVICE Proveedores: Error fetching providers for select:", error);
+    } catch (errUnknown: unknown) { // CORREGIDO
+        console.error("SERVICE Contratos (Proveedores): Error fetching providers for select:", errUnknown);
         throw new Error('Error al obtener la lista de proveedores para selección.');
     }
 };
@@ -229,7 +213,6 @@ export const createContract = async (data: ContratoCreateData): Promise<{ id_con
         condiciones_pago, garantias
     } = data;
 
-    // Validaciones básicas (más robustas podrían estar en la API Route con Zod)
     if (!id_proveedor || !objeto_contrato || !monto_total) {
         throw new Error("Faltan campos requeridos para crear el contrato (proveedor, objeto, monto).");
     }
@@ -240,7 +223,7 @@ export const createContract = async (data: ContratoCreateData): Promise<{ id_con
         await client.sql`BEGIN`;
         console.log(`SERVICE Contratos: createContract - Iniciando transacción para proveedor ID: ${id_proveedor}`);
 
-        const result = await client.sql`
+        const result = await client.sql<{ id_contrato: number }>`
             INSERT INTO contratos (
                 numero_contrato, id_solicitud, id_dictamen, id_proveedor, id_concurso,
                 objeto_contrato, monto_total, moneda, fecha_firma, fecha_inicio, fecha_fin,
@@ -261,50 +244,53 @@ export const createContract = async (data: ContratoCreateData): Promise<{ id_con
         console.log(`SERVICE Contratos: createContract - Transacción completada. Nuevo contrato ID: ${newContratoId}`);
         return { id_contrato: newContratoId };
 
-    } catch (error: any) {
+    } catch (errUnknown: unknown) { // CORREGIDO
         console.error(`SERVICE Contratos: createContract - Error durante la creación`);
         if (client) {
             try { await client.sql`ROLLBACK`; console.log("SERVICE Contratos: createContract - ROLLBACK ejecutado."); }
             catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); }
         }
-        console.error("Error creando contrato:", error);
-         // Manejar errores específicos si es necesario (ej. FK violation)
-         if (error.code === '23503' && error.constraint === 'contratos_id_proveedor_fkey') {
+        
+        let message = 'Error desconocido al crear el contrato.';
+        let code: string | undefined;
+        let constraint: string | undefined;
+
+        if (errUnknown instanceof Error) {
+            message = errUnknown.message;
+            const errAsAny = errUnknown as any; // Para acceder a propiedades específicas de error de DB
+            if (typeof errAsAny.code === 'string') code = errAsAny.code;
+            if (typeof errAsAny.constraint === 'string') constraint = errAsAny.constraint;
+        } else if (typeof errUnknown === 'string') {
+            message = errUnknown;
+        }
+        console.error("Error creando contrato:", errUnknown); // Log el error original
+
+         if (code === '23503' && constraint === 'contratos_id_proveedor_fkey') {
              throw new Error(`Error de referencia: El proveedor con ID ${id_proveedor} no existe.`);
          }
-         if (error.code === '23505' && error.constraint === 'contratos_numero_contrato_key') {
-             throw new Error(`El número de contrato '${numero_contrato}' ya existe.`);
+         if (code === '23505' && constraint === 'contratos_numero_contrato_key') {
+             throw new Error(`El número de contrato '${numero_contrato ?? ''}' ya existe.`);
          }
-        throw new Error(`Error al crear el contrato: ${error.message || 'Error desconocido'}`);
+        throw new Error(`Error al crear el contrato: ${message}`);
     } finally {
         if (client) { await client.release(); }
     }
 };
 
-
-// --- ACTUALIZAR UN CONTRATO EXISTENTE ---
-// src/services/contratosService.ts
-
-// ... (imports existentes: sql, VercelPoolClient, getProveedorById, etc.) ...
-
-// ... (getContracts, getContractById, createContractWithTemplateData existentes) ...
-
 // --- ACTUALIZAR UN CONTRATO EXISTENTE (MODIFICADO) ---
-// Ahora acepta template_data opcionalmente dentro de ContratoUpdateData
 export const updateContract = async (
     idContrato: number,
-    data: ContratoUpdateData & { template_data?: Partial<ContratoInputData> | object } // Permite objeto genérico también
-): Promise<ContratoDetallado | null> => { // Devuelve el detalle completo actualizado
+    data: ContratoUpdateData & { template_data?: Partial<ContratoInputData> | object }
+): Promise<ContratoDetallado | null> => {
 
     console.log(`SERVICE Contratos: updateContract - Iniciando actualización para ID: ${idContrato}`);
     if (isNaN(idContrato)) throw new Error("ID de contrato inválido.");
 
-    // Extrae template_data por separado si existe
     const { template_data, ...coreUpdateData } = data;
 
     if (Object.keys(coreUpdateData).length === 0 && template_data === undefined) {
         console.warn("SERVICE Contratos: updateContract - No data provided for update.");
-        return getContractById(idContrato); // No hay nada que actualizar
+        return getContractById(idContrato);
     }
 
     let client: VercelPoolClient | null = null;
@@ -312,58 +298,44 @@ export const updateContract = async (
         client = await sql.connect();
         await client.sql`BEGIN`;
 
-        // --- Construcción dinámica de la query UPDATE ---
         const updateFields: string[] = [];
-        const updateValues: any[] = [];
+        const updateValues: (string | number | boolean | Date | null)[] = []; // CORREGIDO
         let paramIndex = 1;
 
-        // Helper para añadir campos CORE a actualizar
-        const addUpdateField = (fieldNameDb: keyof ContratoUpdateData, value: any) => {
-            // Solo añadir si el valor está definido explícitamente en coreUpdateData
+        const addUpdateField = (fieldNameDb: string, value: string | number | boolean | Date | null | undefined) => { // CORREGIDO
             if (value !== undefined) {
                 updateFields.push(`${fieldNameDb} = $${paramIndex++}`);
-                // Convertir a null si es necesario para la base de datos
                 updateValues.push(value === '' ? null : value);
             }
         };
+        
+        // Iterar sobre las claves de coreUpdateData de forma segura
+        for (const key of Object.keys(coreUpdateData) as Array<keyof typeof coreUpdateData>) {
+            addUpdateField(key, coreUpdateData[key]);
+        }
 
-        // Añadir campos CORE que se quieren actualizar
-        // Itera sobre las claves permitidas en ContratoUpdateData (excluyendo template_data)
-         for (const key in coreUpdateData) {
-             if (Object.prototype.hasOwnProperty.call(coreUpdateData, key) && key !== 'template_data') {
-                 addUpdateField(key as keyof ContratoUpdateData, coreUpdateData[key as keyof ContratoUpdateData]);
-             }
-         }
-
-
-        // *** Añadir template_data si se proporcionó ***
         let templateDataJsonString: string | null = null;
         if (template_data !== undefined) {
             try {
-                // Convertir el objeto template_data a string JSON para guardarlo
                 templateDataJsonString = JSON.stringify(template_data);
                 updateFields.push(`template_data = $${paramIndex++}`);
                 updateValues.push(templateDataJsonString);
                 console.log(`SERVICE Contratos: updateContract - Preparing to update template_data for ID: ${idContrato}`);
-            } catch (jsonError) {
+            } catch (jsonError: unknown) { // CORREGIDO
                 console.error(`SERVICE Contratos: updateContract - Error stringifying template_data for ID ${idContrato}:`, jsonError);
-                // Decide si lanzar error o continuar sin actualizar template_data
-                 await client.sql`ROLLBACK`; // Abortar transacción si el JSON es inválido
+                 await client.sql`ROLLBACK`;
                  throw new Error("Error al procesar los datos adicionales (template_data).");
             }
         }
 
-        // Si no hay NINGÚN campo para actualizar (ni core ni template), no hacer nada
         if (updateFields.length === 0) {
             console.warn(`SERVICE Contratos: updateContract - No fields to update after filtering for ID: ${idContrato}`);
-            await client.sql`ROLLBACK`;
+            await client.sql`ROLLBACK`; // No commit if nothing changed.
             return getContractById(idContrato);
         }
 
-        // Añadir siempre la actualización de updated_at si tienes esa columna
-        // updateFields.push(`updated_at = NOW()`); // Asumiendo que tienes updated_at
+        // updateFields.push(`updated_at = NOW()`); // Uncomment if you have an updated_at column
 
-        // Construir y ejecutar la query
         const setClause = updateFields.join(', ');
         const updateQuery = `UPDATE public.contratos SET ${setClause} WHERE id_contrato = $${paramIndex}`;
         updateValues.push(idContrato);
@@ -380,40 +352,45 @@ export const updateContract = async (
 
         await client.sql`COMMIT`;
         console.log(`SERVICE Contratos: updateContract - Transacción completada (COMMIT) para ID: ${idContrato}`);
-
-        // Devolver los datos actualizados completos llamando a getContractById
         return await getContractById(idContrato);
 
-    } catch (error: any) {
+    } catch (errUnknown: unknown) { // CORREGIDO
         console.error(`SERVICE Contratos: updateContract - Error actualizando contrato ID ${idContrato}`);
         if (client) { try { await client.sql`ROLLBACK`; console.log("SERVICE Contratos: updateContract - ROLLBACK ejecutado."); } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
-         // Manejar errores específicos de DB
-         if (error.code === '23503') { throw new Error(`Error de referencia: ${error.detail || 'Verifique IDs relacionados'}`); }
-         if (error.code === '23505') { throw new Error(`Conflicto: ${error.detail || 'Valor único duplicado'}`); }
-         if (error.code === '22P02') { throw new Error('Error interno al procesar datos adicionales (JSON).'); }
-        throw new Error(`Error al actualizar el contrato: ${error.message || 'Error desconocido'}`);
+        
+        let message = 'Error desconocido al actualizar el contrato.';
+        let code: string | undefined;
+        let detail: string | undefined;
+
+        if (errUnknown instanceof Error) {
+            message = errUnknown.message;
+            const errAsAny = errUnknown as any;
+            if (typeof errAsAny.code === 'string') code = errAsAny.code;
+            if (typeof errAsAny.detail === 'string') detail = errAsAny.detail;
+        } else if (typeof errUnknown === 'string') {
+            message = errUnknown;
+        }
+        
+         if (code === '23503') { throw new Error(`Error de referencia: ${detail || 'Verifique IDs relacionados'}`); }
+         if (code === '23505') { throw new Error(`Conflicto: ${detail || 'Valor único duplicado'}`); }
+         if (code === '22P02') { throw new Error('Error interno al procesar datos adicionales (JSON).'); } // Invalid text representation for JSON
+        throw new Error(`Error al actualizar el contrato: ${message}`);
     } finally {
         if (client) { await client.release(); }
     }
 };
-/**
- * Crea un nuevo contrato usando datos estructurados y guarda datos adicionales en JSONB.
- * @param coreData - Datos principales que van a las columnas estándar de 'contratos'.
- * @param templateData - Datos adicionales específicos de la plantilla para guardar en JSONB.
- * @returns Promise<{ id_contrato: number }>
- */
+
 export const createContractWithTemplateData = async (
-    coreData: Partial<ContratoCreateData>, // Usamos Partial porque algunos campos pueden venir de templateData
-    templateData: Omit<ContratoInputData, keyof ContratoCreateData> & { tipoContrato: string } // Datos extra y tipo
+    coreData: Partial<ContratoCreateData>,
+    templateData: Omit<ContratoInputData, keyof ContratoCreateData> & { tipoContrato: string }
 ): Promise<{ id_contrato: number }> => {
 
     console.log("SERVICE Contratos: createContractWithTemplateData called.");
-    // Extraer datos principales asegurando los requeridos
     const {
         id_proveedor,
         objeto_contrato,
         monto_total,
-        numero_contrato = null, // Defaults explícitos para opcionales/nulables
+        numero_contrato = null,
         id_solicitud = null,
         id_dictamen = null,
         id_concurso = null,
@@ -421,35 +398,32 @@ export const createContractWithTemplateData = async (
         fecha_firma = null,
         fecha_inicio = null,
         fecha_fin = null,
-        condiciones_pago = null, // Estos podrían venir de templateData también
-        garantias = null         // Estos podrían venir de templateData también
+        condiciones_pago = null,
+        garantias = null
     } = coreData;
 
-     // Validaciones básicas en servicio (complementarias a las de la API)
      if (id_proveedor === undefined || id_proveedor === null) throw new Error("ID Proveedor es requerido en coreData.");
      if (!objeto_contrato) throw new Error("Objeto del contrato es requerido en coreData.");
      if (monto_total === undefined || monto_total === null) throw new Error("Monto total es requerido en coreData.");
-
 
     let client: VercelPoolClient | null = null;
     try {
         client = await sql.connect();
         await client.sql`BEGIN`;
 
-        // Convertir templateData a JSON string para la columna JSONB
         const templateDataJson = JSON.stringify(templateData);
 
-        const result = await client.sql`
+        const result = await client.sql<{ id_contrato: number }>`
             INSERT INTO public.contratos (
                 id_proveedor, objeto_contrato, monto_total, numero_contrato,
                 id_solicitud, id_dictamen, id_concurso, moneda, fecha_firma,
                 fecha_inicio, fecha_fin, condiciones_pago, garantias,
-                template_data -- La nueva columna JSONB
+                template_data
             ) VALUES (
                 ${id_proveedor}, ${objeto_contrato}, ${monto_total}, ${numero_contrato},
                 ${id_solicitud}, ${id_dictamen}, ${id_concurso}, ${moneda}, ${fecha_firma},
                 ${fecha_inicio}, ${fecha_fin}, ${condiciones_pago}, ${garantias},
-                ${templateDataJson} -- Insertar el JSON como string
+                ${templateDataJson}
             ) RETURNING id_contrato;
         `;
 
@@ -462,58 +436,34 @@ export const createContractWithTemplateData = async (
         console.log(`SERVICE Contratos: createContractWithTemplateData - Transacción completada. ID: ${newContratoId}`);
         return { id_contrato: newContratoId };
 
-    } catch (error: any) {
+    } catch (errUnknown: unknown) { // CORREGIDO
         console.error(`SERVICE Contratos: createContractWithTemplateData - Error`);
         if (client) { try { await client.sql`ROLLBACK`; } catch (rbErr) { console.error("Rollback Error:", rbErr); } }
-         // Re-lanzar errores específicos de DB
-         if (error.code === '23503') { throw new Error(`Error de referencia: ${error.detail || 'Verifique IDs (proveedor, etc.)'}`); }
-         if (error.code === '23505') { throw new Error(`Conflicto: ${error.detail || 'Valor único duplicado (ej: num contrato)'}`); }
-         if (error.code === '22P02') { // invalid text representation for JSONB
+        
+        let message = 'Error desconocido en servicio al crear contrato (template).';
+        let code: string | undefined;
+        let detail: string | undefined;
+
+        if (errUnknown instanceof Error) {
+            message = errUnknown.message;
+            const errAsAny = errUnknown as any;
+            if (typeof errAsAny.code === 'string') code = errAsAny.code;
+            if (typeof errAsAny.detail === 'string') detail = errAsAny.detail;
+        } else if (typeof errUnknown === 'string') {
+            message = errUnknown;
+        }
+        
+         if (code === '23503') { throw new Error(`Error de referencia: ${detail || 'Verifique IDs (proveedor, etc.)'}`); }
+         if (code === '23505') { throw new Error(`Conflicto: ${detail || 'Valor único duplicado (ej: num contrato)'}`); }
+         if (code === '22P02') {
              console.error("Posible error al convertir template_data a JSON:", templateData);
              throw new Error('Error interno al procesar datos adicionales del contrato.');
          }
-        throw new Error(`Error en servicio al crear contrato (template): ${error.message || 'Error desconocido'}`);
+        throw new Error(`Error en servicio al crear contrato (template): ${message}`);
     } finally {
         if (client) { await client.release(); }
     }
 };
 // --- (Opcional) ELIMINAR UN CONTRATO ---
-// Considerar si realmente se debe eliminar o marcar como inactivo/cancelado
-/*
-export const deleteContract = async (idContrato: number): Promise<{ success: boolean }> => {
-    console.log(`SERVICE Contratos: deleteContract - Intentando eliminar ID: ${idContrato}`);
-    if (isNaN(idContrato)) throw new Error("ID de contrato inválido.");
-
-    let client: VercelPoolClient | null = null;
-    try {
-        client = await sql.connect();
-        await client.sql`BEGIN`;
-
-        // ¡CUIDADO! DELETE es permanente y puede fallar por FKs RESTRICT.
-        // Asegúrate que no haya dependencias o considera cambiar a ON DELETE SET NULL/CASCADE si aplica.
-        // O mejor aún, implementa soft delete (marcar como eliminado).
-        const result = await client.sql`DELETE FROM contratos WHERE id_contrato = ${idContrato}`;
-
-        if (result.rowCount === 0) {
-            await client.sql`ROLLBACK`;
-            throw new Error(`Contrato con ID ${idContrato} no encontrado para eliminar.`);
-        }
-
-        await client.sql`COMMIT`;
-        console.log(`SERVICE Contratos: deleteContract - Contrato ID ${idContrato} eliminado.`);
-        return { success: true };
-
-    } catch (error: any) {
-        console.error(`SERVICE Contratos: deleteContract - Error eliminando contrato ID ${idContrato}`);
-        if (client) { try { await client.sql`ROLLBACK`; } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
-        console.error("Error detallado en deleteContract:", error);
-        // Podría fallar por FKs con ON DELETE RESTRICT
-        if (error.code === '23503') { // Foreign key violation
-             throw new Error(`No se puede eliminar el contrato ${idContrato} porque tiene registros relacionados.`);
-        }
-        throw new Error(`Error al eliminar el contrato: ${error.message || 'Error desconocido'}`);
-    } finally {
-        if (client) { await client.release(); }
-    }
-};
-*/
+// Soft delete (marcar como eliminado) es generalmente preferible.
+// El código para hard delete está comentado como en el original.

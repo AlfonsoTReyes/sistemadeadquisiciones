@@ -1,8 +1,8 @@
-// src/app/admin/tablas-comparativas/[idTablaComparativa]/page.tsx
+// src/app/tablas_comparativas/[idTablaComparativa]/page.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation'; // useRouter removed as it was unused
 import Link from 'next/link';
 import {
     TablaComparativaCompleta,
@@ -12,18 +12,17 @@ import {
     AgregarObservacionInput,
     AgregarFirmaInput,
     AgregarComentarioInput,
-    EstadoTablaComparativa // Importar tipo Estado
-} from '@/types/tablaComparativa'; // Ajusta ruta
-// Usaremos solo Proveedor básico para el selector y ProveedorDetallado para el fetch
+    EstadoTablaComparativa
+} from '@/types/tablaComparativa';
 import { Proveedor, ProveedorDetallado } from '@/types/proveedor';
 import { ArticuloCatalogo } from '@/types/catalogoProveedores';
 
 // Componentes
-import { TablaComparativaDisplay } from '@/componentes/tablas_comparativas/TablaComparativaDisplay'; // Corregir ruta
-import { SelectorProveedores } from '@/componentes/tablas_comparativas/SelectorProveedores'; // Corregir ruta
-import { SelectorProductosServicios } from '@/componentes/tablas_comparativas/SelectorProductosServicios'; // Corregir ruta
-import { SeccionObservaciones } from '@/componentes/tablas_comparativas/SeccionObservaciones'; // Corregir ruta
-import { SeccionFirmasComentarios } from '@/componentes/tablas_comparativas/SeccionFirmasComentarios'; // Corregir ruta
+import { TablaComparativaDisplay } from '@/componentes/tablas_comparativas/TablaComparativaDisplay';
+import { SelectorProveedores } from '@/componentes/tablas_comparativas/SelectorProveedores';
+import { SelectorProductosServicios } from '@/componentes/tablas_comparativas/SelectorProductosServicios';
+import { SeccionObservaciones } from '@/componentes/tablas_comparativas/SeccionObservaciones';
+import { SeccionFirmasComentarios } from '@/componentes/tablas_comparativas/SeccionFirmasComentarios';
 
 // Fetchers Principales
 import {
@@ -31,18 +30,18 @@ import {
     actualizarTablaComparativaFetch,
 } from '@/fetch/tablasComparativasFetch';
 
-// Fetchers para Operaciones Anidadas (¡ASEGÚRATE QUE ESTOS EXISTAN Y FUNCIONEN!)
+// Fetchers para Operaciones Anidadas
 import {
-    fetchProveedorDetalladoParaSnapshot, // ¡IMPLEMENTAR API ROUTE!
-    agregarProveedorATablaFetch,         // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    eliminarProveedorDeTablaFetch,       // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    agregarItemAProveedorFetch,          // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    eliminarItemFetch,                   // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    agregarObservacionFetch,             // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    eliminarObservacionFetch,            // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    agregarFirmaFetch,                   // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-    agregarComentarioFetch,              // ¡IMPLEMENTAR API ROUTE Y SERVICIO!
-} from '@/fetch/tablasComparativasFetch'; // Ajusta ruta
+    fetchProveedorDetalladoParaSnapshot,
+    agregarProveedorATablaFetch,
+    eliminarProveedorDeTablaFetch,
+    agregarItemAProveedorFetch,
+    eliminarItemFetch,
+    agregarObservacionFetch,
+    eliminarObservacionFetch,
+    agregarFirmaFetch,
+    agregarComentarioFetch,
+} from '@/fetch/tablasComparativasFetch';
 
 // Helper para obtener ID de usuario
 const getUserIdFromSession = (): number | null => {
@@ -59,13 +58,13 @@ const getUserIdFromSession = (): number | null => {
 
 // Helper para construir domicilio
 const construirDomicilio = (p: ProveedorDetallado): string | null => {
-    const parts = [p.calle, p.numero, p.colonia, p.codigo_postal, p.municipio, p.estado].filter(Boolean); // Filtra nulos o vacíos
+    const parts = [p.calle, p.numero, p.colonia, p.codigo_postal, p.municipio, p.estado].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : null;
 }
 
 export default function DetalleTablaComparativaPage() {
     const params = useParams();
-    const router = useRouter();
+    // const router = useRouter(); // Comentado porque no se usa
     const idTablaComparativa = parseInt(params.idTablaComparativa as string, 10);
 
     const [tablaData, setTablaData] = useState<TablaComparativaCompleta | null>(null);
@@ -75,16 +74,14 @@ export default function DetalleTablaComparativaPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [idUsuarioActual, setIdUsuarioActual] = useState<number | null>(null);
 
-    // Efecto para obtener ID de usuario
     useEffect(() => {
         const userId = getUserIdFromSession();
         setIdUsuarioActual(userId);
-        if (!userId && !isLoading) { // Si ya terminó de cargar y no hay user ID
+        if (!userId && !isLoading) {
             setError("Usuario no autenticado. No se pueden realizar acciones.");
         }
-    }, [isLoading]); // Re-evaluar si cambia isLoading (después de la carga inicial)
+    }, [isLoading]);
 
-    // Cargar datos de la tabla
     const cargarTabla = useCallback(async () => {
         if (isNaN(idTablaComparativa)) {
             setError("ID de tabla inválido."); setIsLoading(false); return;
@@ -93,9 +90,13 @@ export default function DetalleTablaComparativaPage() {
         try {
             const data = await fetchTablaComparativaDetalle(idTablaComparativa);
             setTablaData(data);
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error al cargar detalle tabla:", err);
-            setError(err.message || 'Ocurrió un error al cargar los datos.');
+            if (err instanceof Error) {
+                setError(err.message || 'Ocurrió un error al cargar los datos.');
+            } else {
+                setError('Ocurrió un error desconocido al cargar los datos.');
+            }
             setTablaData(null);
         } finally {
             setIsLoading(false);
@@ -106,7 +107,6 @@ export default function DetalleTablaComparativaPage() {
         cargarTabla();
     }, [cargarTabla]);
 
-    // --- Handler Guardar Cabecera ---
     const handleGuardarHeader = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!tablaData || isSubmitting) return;
@@ -115,80 +115,82 @@ export default function DetalleTablaComparativaPage() {
         const dataToUpdate: ActualizarTablaInput = {
             nombre: formData.get('nombre') as string,
             descripcion: formData.get('descripcion') as string || null,
-            estado: formData.get('estado') as EstadoTablaComparativa, // Usar el tipo
+            estado: formData.get('estado') as EstadoTablaComparativa,
         };
         try {
             if (!dataToUpdate.nombre?.trim()) throw new Error("El nombre no puede estar vacío.");
             await actualizarTablaComparativaFetch(idTablaComparativa, dataToUpdate);
-            // Optimista: Actualizar estado local
             setTablaData(prev => prev ? { ...prev, ...dataToUpdate } : null);
             setIsEditingHeader(false);
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error actualizando cabecera:", err);
-            setError(err.message || "No se pudo actualizar la información.");
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo actualizar la información.");
+            } else {
+                setError("No se pudo actualizar la información debido a un error desconocido.");
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Handler Agregar Proveedor ---
     const handleAddProveedor = async (proveedorSeleccionado: Proveedor) => {
-        // Usamos el tipo Proveedor básico que devuelve el selector
         if (!tablaData || isSubmitting) return;
         setIsSubmitting(true); setError(null);
         try {
-            // 1. Obtener detalles completos
             console.log(`Obteniendo detalles completos para proveedor ID: ${proveedorSeleccionado.id_proveedor}`);
             const proveedorCompleto = await fetchProveedorDetalladoParaSnapshot(proveedorSeleccionado.id_proveedor);
             console.log("Detalles completos obtenidos:", proveedorCompleto);
             if (!proveedorCompleto?.rfc) throw new Error("Datos detallados del proveedor no encontrados o incompletos.");
 
-            // 2. Construir snapshot (usando null para campos faltantes)
             const proveedorSnapshotData: AgregarProveedorInput = {
                 id_tabla_comparativa: tablaData.id,
                 id_proveedor: proveedorCompleto.id_proveedor,
-                nombre_empresa_snapshot: proveedorCompleto.nombre_o_razon_social || 'Nombre Desconocido', // Fallback
+                nombre_empresa_snapshot: proveedorCompleto.nombre_o_razon_social || 'Nombre Desconocido',
                 rfc_snapshot: proveedorCompleto.rfc,
                 giro_comercial_snapshot: proveedorCompleto.giro_comercial || null,
-                atencion_de_snapshot: null, // <-- CAMPO FALTANTE
+                // atencion_de_snapshot: null, // ELIMINADO (no en AgregarProveedorInput)
                 domicilio_snapshot: construirDomicilio(proveedorCompleto),
                 telefono_snapshot: proveedorCompleto.telefono_uno || null,
                 correo_electronico_snapshot: proveedorCompleto.correo || null,
                 pagina_web_snapshot: proveedorCompleto.pagina_web || null,
-                condiciones_pago_snapshot: null, // <-- CAMPO FALTANTE
-                tiempo_entrega_snapshot: null, // <-- CAMPO FALTANTE
+                // condiciones_pago_snapshot: null, // ELIMINADO (no en AgregarProveedorInput)
+                // tiempo_entrega_snapshot: null, // ELIMINADO (no en AgregarProveedorInput)
             };
 
-            // 3. Llamar al fetch para agregar
             console.log("Enviando datos para agregar proveedor:", proveedorSnapshotData);
             await agregarProveedorATablaFetch(tablaData.id, proveedorSnapshotData);
-
-            // 4. Recargar datos
             await cargarTabla();
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error agregando proveedor:", err);
-            setError(err.message || "No se pudo agregar el proveedor.");
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo agregar el proveedor.");
+            } else {
+                setError("No se pudo agregar el proveedor debido a un error desconocido.");
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Handler Eliminar Proveedor ---
     const handleRemoveProveedor = async (idTablaComparativaProveedor: number) => {
         if (!tablaData || isSubmitting || !confirm('¿Eliminar este proveedor y todos sus ítems/observaciones de la tabla?')) return;
         setIsSubmitting(true); setError(null);
         try {
             await eliminarProveedorDeTablaFetch(tablaData.id, idTablaComparativaProveedor);
             await cargarTabla();
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error eliminando proveedor:", err);
-            setError(err.message || "No se pudo eliminar el proveedor.");
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo eliminar el proveedor.");
+            } else {
+                setError("No se pudo eliminar el proveedor debido a un error desconocido.");
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Handler Agregar Item ---
     const handleAddItem = async (idTablaComparativaProveedor: number, itemOrigen: ArticuloCatalogo) => {
         if (!tablaData || isSubmitting) return;
         const cantidadStr = prompt(`Cantidad para "${itemOrigen.descripcion}":`, '1');
@@ -203,45 +205,57 @@ export default function DetalleTablaComparativaPage() {
                 id_articulo_origen: itemOrigen.id_articulo,
                 codigo_partida_origen: itemOrigen.codigo_partida,
                 descripcion_item: itemOrigen.descripcion,
-                caracteristicas_tecnicas: null, // Permitir edición posterior
+                caracteristicas_tecnicas: null,
                 udm: itemOrigen.unidad_medida,
                 cantidad: cantidad,
-                precio_unitario: itemOrigen.precio_unitario, // Permitir edición posterior
+                precio_unitario: itemOrigen.precio_unitario,
             };
             await agregarItemAProveedorFetch(tablaData.id, idTablaComparativaProveedor, data);
             await cargarTabla();
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error agregando item:", err);
-            setError(err.message || "No se pudo agregar el ítem.");
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo agregar el ítem.");
+            } else {
+                setError("No se pudo agregar el ítem debido a un error desconocido.");
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Handler Eliminar Item ---
     const handleRemoveItem = async (idItem: number) => {
         if (!tablaData || isSubmitting || !confirm('¿Eliminar este ítem?')) return;
         setIsSubmitting(true); setError(null);
         try {
             await eliminarItemFetch(tablaData.id, idItem);
             await cargarTabla();
-        } catch (err: any) {
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
             console.error("Error eliminando item:", err);
-            setError(err.message || "No se pudo eliminar el ítem.");
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo eliminar el ítem.");
+            } else {
+                setError("No se pudo eliminar el ítem debido a un error desconocido.");
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // --- Handlers Callbacks (Observaciones, Firmas, Comentarios) ---
     const handleAddObservacionCallback = async (data: AgregarObservacionInput) => {
         if (!tablaData || isSubmitting) throw new Error("Operación no permitida ahora.");
         setIsSubmitting(true); setError(null);
         try {
             await agregarObservacionFetch(tablaData.id, data);
             await cargarTabla();
-        } catch (err: any) {
-            setError(err.message || "No se pudo agregar la observación."); throw err;
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo agregar la observación.");
+                throw err; // Re-throw para que el componente hijo pueda manejarlo si es necesario
+            } else {
+                setError("No se pudo agregar la observación debido a un error desconocido.");
+                throw new Error("Error desconocido al agregar observación");
+            }
         } finally { setIsSubmitting(false); }
     };
 
@@ -251,48 +265,62 @@ export default function DetalleTablaComparativaPage() {
         try {
             await eliminarObservacionFetch(tablaData.id, idObservacion);
             await cargarTabla();
-        } catch (err: any) {
-            setError(err.message || "No se pudo eliminar la observación."); throw err;
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo eliminar la observación.");
+                throw err;
+            } else {
+                setError("No se pudo eliminar la observación debido a un error desconocido.");
+                throw new Error("Error desconocido al eliminar observación");
+            }
         } finally { setIsSubmitting(false); }
     };
 
     const handleAddFirmaCallback = async (data: AgregarFirmaInput) => {
         if (!tablaData || isSubmitting || !idUsuarioActual) throw new Error("Usuario no autenticado o acción no permitida.");
         setIsSubmitting(true); setError(null);
-        data.id_usuario = idUsuarioActual; // Asegurar ID usuario
+        data.id_usuario = idUsuarioActual;
         try {
             await agregarFirmaFetch(tablaData.id, data);
             await cargarTabla();
-        } catch (err: any) {
-            setError(err.message || "No se pudo agregar la firma."); throw err;
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo agregar la firma.");
+                throw err;
+            } else {
+                setError("No se pudo agregar la firma debido a un error desconocido.");
+                throw new Error("Error desconocido al agregar firma");
+            }
         } finally { setIsSubmitting(false); }
     };
 
     const handleAddComentarioCallback = async (data: AgregarComentarioInput) => {
         if (!tablaData || isSubmitting || !idUsuarioActual) throw new Error("Usuario no autenticado o acción no permitida.");
         setIsSubmitting(true); setError(null);
-        data.id_usuario = idUsuarioActual; // Asegurar ID usuario
+        data.id_usuario = idUsuarioActual;
         try {
             await agregarComentarioFetch(tablaData.id, data);
             await cargarTabla();
-        } catch (err: any) {
-            setError(err.message || "No se pudo agregar el comentario."); throw err;
+        } catch (err: unknown) { // CORREGIDO: any -> unknown
+            if (err instanceof Error) {
+                setError(err.message || "No se pudo agregar el comentario.");
+                throw err;
+            } else {
+                setError("No se pudo agregar el comentario debido a un error desconocido.");
+                throw new Error("Error desconocido al agregar comentario");
+            }
         } finally { setIsSubmitting(false); }
     };
 
-    // --- Renderizado ---
     if (isLoading) return <p className="container mx-auto p-4">Cargando datos de la tabla...</p>;
     if (error && !tablaData) return <p className="container mx-auto p-4 text-red-500 bg-red-100 border border-red-400 rounded p-3">Error: {error}</p>;
     if (!tablaData) return <p className="container mx-auto p-4">No se encontró la tabla comparativa.</p>;
-    // Si no hay ID de usuario después de cargar, mostrar error persistente
     if (!idUsuarioActual) return <p className="container mx-auto p-4 text-red-500 bg-red-100 border border-red-400 rounded p-3">Error: Usuario no identificado. No se pueden realizar acciones.</p>;
-
 
     const proveedorIdsActuales = tablaData.proveedores.map(p => p.id_proveedor);
 
     return (
         <div className="container mx-auto p-4 space-y-6">
-            {/* Cabecera y Botones */}
             <div className="flex justify-between items-center">
                 <Link href="/tablas_comparativas" className="text-blue-600 hover:underline">
                     ← Volver a la lista
@@ -306,25 +334,20 @@ export default function DetalleTablaComparativaPage() {
                 </button>
             </div>
 
-            {/* Indicador Global y Errores */}
             {isSubmitting && <div className="text-center p-2"><span className="italic text-blue-600">Procesando...</span></div>}
             {error && !isSubmitting && <p className="text-red-500 bg-red-100 p-2 rounded text-sm mb-4">Error: {error}</p>}
 
-            {/* Form Edición Header / Display Info */}
             {isEditingHeader ? (
                 <form onSubmit={handleGuardarHeader} className="p-4 border rounded bg-gray-100 space-y-3">
                     <h2 className="text-lg font-semibold">Editando Información General</h2>
-                    {/* Nombre */}
                     <div>
                         <label htmlFor="nombre" className="block text-sm font-medium">Nombre</label>
                         <input type="text" name="nombre" id="nombre" defaultValue={tablaData.nombre} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting} />
                     </div>
-                    {/* Descripción */}
                     <div>
                         <label htmlFor="descripcion" className="block text-sm font-medium">Descripción</label>
                         <textarea name="descripcion" id="descripcion" defaultValue={tablaData.descripcion || ''} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" disabled={isSubmitting}></textarea>
                     </div>
-                    {/* Estado */}
                     <div>
                         <label htmlFor="estado" className="block text-sm font-medium">Estado</label>
                         <select name="estado" id="estado" defaultValue={tablaData.estado} className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 rounded-md text-sm" disabled={isSubmitting}>
@@ -334,7 +357,6 @@ export default function DetalleTablaComparativaPage() {
                             <option value="rechazada">Rechazada</option>
                         </select>
                     </div>
-                    {/* Botones */}
                     <div className="flex space-x-2">
                         <button type="submit" className="px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400" disabled={isSubmitting}>
                             {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
@@ -352,7 +374,6 @@ export default function DetalleTablaComparativaPage() {
                 </div>
             )}
 
-            {/* Sección Añadir Proveedor */}
             <div className="my-6 p-4 border rounded bg-gray-50">
                 <h3 className="text-lg font-semibold mb-2">Añadir Proveedor a la Comparación</h3>
                 <SelectorProveedores
@@ -361,14 +382,11 @@ export default function DetalleTablaComparativaPage() {
                 />
             </div>
 
-            {/* Display Tabla */}
             <TablaComparativaDisplay tabla={tablaData} />
 
-            {/* Secciones Editables por Proveedor */}
             <div className="space-y-4 mt-6">
                 {tablaData.proveedores.map(prov => (
                     <div key={prov.id} className="p-4 border rounded shadow-sm bg-white">
-                        {/* Cabecera Proveedor */}
                         <div className="flex justify-between items-center mb-3 pb-2 border-b">
                             <h3 className="text-lg font-semibold text-gray-800">{prov.nombre_empresa_snapshot}</h3>
                             <button
@@ -381,7 +399,6 @@ export default function DetalleTablaComparativaPage() {
                             </button>
                         </div>
 
-                        {/* Selector de Items */}
                         <div className='mb-4'>
                             <SelectorProductosServicios
                                 idProveedor={prov.id_proveedor}
@@ -390,8 +407,6 @@ export default function DetalleTablaComparativaPage() {
                             />
                         </div>
 
-
-                        {/* Lista de Items Actuales */}
                         <div className="mt-4 mb-4">
                             <h4 className="text-md font-medium mb-2 text-gray-700">Ítems Cotizados</h4>
                             {prov.items.length === 0 ? <p className="text-sm text-gray-500 italic">Sin ítems.</p> : (
@@ -401,10 +416,8 @@ export default function DetalleTablaComparativaPage() {
                                             <div>
                                                 <span className='font-medium'>{item.descripcion_item}</span>
                                                 <span className='text-gray-600'> ({item.cantidad} {item.udm} @ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(item.precio_unitario)})</span>
-                                                {/* // TODO: Mostrar Características Técnicas si existen */}
                                             </div>
                                             <div>
-                                                {/* // TODO: Botón/Modal para Editar Item */}
                                                 <button
                                                     onClick={() => handleRemoveItem(item.id)}
                                                     className="text-xs text-red-500 hover:text-red-700 ml-2 disabled:opacity-50"
@@ -420,11 +433,10 @@ export default function DetalleTablaComparativaPage() {
                             )}
                         </div>
 
-                        {/* Sección de Observaciones */}
                         <SeccionObservaciones
                             observaciones={prov.observaciones}
                             idTablaComparativaProveedor={prov.id}
-                            isEditable={!!idUsuarioActual} // Editable si hay usuario
+                            isEditable={!!idUsuarioActual}
                             onAddObservacion={handleAddObservacionCallback}
                             onDeleteObservacion={handleDeleteObservacionCallback}
                         />
@@ -432,12 +444,11 @@ export default function DetalleTablaComparativaPage() {
                 ))}
             </div>
 
-            {/* Sección Firmas y Comentarios */}
             <SeccionFirmasComentarios
                 firmas={tablaData.firmas}
                 comentarios={tablaData.comentarios}
                 idTablaComparativa={tablaData.id}
-                idUsuarioActual={idUsuarioActual!} // Sabemos que no es null aquí
+                idUsuarioActual={idUsuarioActual!}
                 isEditable={!!idUsuarioActual}
                 onAddFirma={handleAddFirmaCallback}
                 onAddComentario={handleAddComentarioCallback}
