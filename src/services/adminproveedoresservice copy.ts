@@ -771,39 +771,3 @@ export const actualizarEstatusRevision = async (
         throw new Error(`Error al actualizar estado de revisión: ${message}`);
     }
 };
-
-export const getProveedorProfileByIdForAdmin = async (idProveedor: number): Promise<ProveedorCompletoData | null> => {
-    console.log(`SERVICE: getProveedorById/Admin called for ID ${idProveedor}`);
-    try {
-        if (isNaN(idProveedor)) throw new Error("ID inválido.");
-
-        // **VERIFICA ESTA QUERY**: Debe seleccionar todos los campos necesarios de 'm' (proveedores_morales)
-        const result = await sql`
-            SELECT
-              p.*, -- Todos de proveedores
-              m.id_morales, -- ID de la fila/representante
-              m.razon_social,
-              m.nombre_representante,
-              m.apellido_p_representante,
-              m.apellido_m_representante,
-              f.id_fisicas, -- ID de la fila física
-              f.nombre AS nombre_fisica,
-              f.apellido_p AS apellido_p_fisica,
-              f.apellido_m AS apellido_m_fisica,
-              f.curp
-            FROM proveedores p
-            LEFT JOIN proveedores_morales m ON p.id_proveedor = m.id_proveedor -- Este JOIN puede dar múltiples filas 'm'
-            LEFT JOIN personas_fisicas f ON p.id_proveedor = f.id_proveedor
-            WHERE p.id_proveedor = ${idProveedor};
-        `;
-        console.log(`SERVICE: Query ejecutada para ID ${idProveedor}, ${result.rowCount} filas devueltas.`); // Log para ver filas crudas
-        // console.log("Filas crudas:", result.rows); // Descomentar para ver datos crudos
-
-        // Llama a la función que procesa y agrupa
-        return procesarResultadoProveedor(result.rows);
-
-    } catch (error) {
-        console.error(`Error en servicio getProveedorById/Admin ID ${idProveedor}:`, error);
-        throw new Error('Error al obtener datos completos del proveedor.');
-    }
-};

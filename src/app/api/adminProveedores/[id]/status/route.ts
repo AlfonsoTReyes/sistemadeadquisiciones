@@ -3,15 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 // Ensure this path correctly points to your service file
 import { updateProveedorEstatus } from '@/services/adminproveedoresservice';
 
-// The second argument for a dynamic route handler should be typed like this:
-// { params: { segmentName1: string, segmentName2: string, ... } }
-// In your case, the segment is 'id'.
-
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } } // This is the standard and correct way
+    // Type the entire context object for the second argument
+    context: { params: { id: string } }
 ) {
+    // Destructure params from context inside the function
+    const { params } = context;
     const idProveedorStr = params.id;
+
     console.log(`DEBUG API PATCH /api/adminProveedores/${idProveedorStr}/status: Request received.`);
 
     try {
@@ -56,13 +56,3 @@ export async function PATCH(
         );
     }
 }
-
-// Example for GET if you need it:
-// export async function GET(
-//   req: NextRequest,
-//   { params }: { params: { id: string } }
-// ) {
-//   const id = params.id;
-//   // ... your GET logic
-//   return NextResponse.json({ message: `GET request for ID: ${id}` });
-// }

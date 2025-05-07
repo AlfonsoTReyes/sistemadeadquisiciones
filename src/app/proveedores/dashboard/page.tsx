@@ -141,6 +141,7 @@ export default function PageProveedorDashboard() {
           />
         )}
         {/* Button to open modal can be placed here or within ProveedorInfo */}
+        {/*
         {!loading && !error && providerData && (
             <div className="text-center mt-6">
                 <button
@@ -152,7 +153,7 @@ export default function PageProveedorDashboard() {
             </div>
         )}
 
-
+        */}
         {!loading && !error && !providerData && (
           <p className="text-center text-gray-500 py-10">No se encontró información del perfil del proveedor.</p>
         )}
