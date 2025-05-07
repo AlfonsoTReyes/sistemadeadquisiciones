@@ -13,7 +13,7 @@ const ModificarConcurso: React.FC<ModificarConcursoProps> = ({ idConcurso, onClo
     numero_concurso: "",
     nombre_concurso: "",
     tipo_concurso: "",
-    estatus_concurso: "pendiente",
+    estatus_concurso: "Pendiente",
     fecha_creacion: "",
     fecha_fin: "",
   });
@@ -151,9 +151,9 @@ const ModificarConcurso: React.FC<ModificarConcursoProps> = ({ idConcurso, onClo
               value={form.estatus_concurso}
               onChange={(e) => setForm({ ...form, estatus_concurso: e.target.value })}
             >
-              <option value="pendiente">Pendiente</option>
-              <option value="en proceso">En Proceso</option>
-              <option value="finalizado">Finalizado</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="En proceso">En Proceso</option>
+              <option value="Finalizado">Finalizado</option>
             </select>
           </div>
 

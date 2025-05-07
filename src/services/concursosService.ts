@@ -161,7 +161,6 @@ export const modificarConcurso = async (id_concurso: number, concursoActualizado
     await sql`
       UPDATE public.concurso
       SET
-        id_solicitud = ${concursoActualizado.id_solicitud},
         numero_concurso = ${concursoActualizado.numero_concurso},
         nombre_concurso = ${concursoActualizado.nombre_concurso},
         tipo_concurso = ${concursoActualizado.tipo_concurso},

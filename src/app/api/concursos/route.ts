@@ -24,16 +24,21 @@ export async function GET(req: NextRequest) {
     }
 
     if (userSecre && userSistema) {
+      console.log("API");
       const concursos = await getConcursos();
       return NextResponse.json(concursos);
     }
 
     if (id) {
+      console.log("options");
+
       const concurso = await getConcursosById(id);
       return NextResponse.json(concurso);
     }
 
     if(verificar){
+      console.log("API GET /concursoss");
+
       const proveedores = await getProveedoresYPartidas();
       return NextResponse.json(proveedores);
     }

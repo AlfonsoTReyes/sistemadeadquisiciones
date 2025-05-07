@@ -24,6 +24,25 @@ export const getSolicitudes = async (secretaria: number) => {
   }
 };
 
+export const getSolicitudesEvento = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.tipo_adquisicion=3;
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
 export const getSolicitudesAll = async () => {
   try {
 
@@ -82,6 +101,8 @@ export const getSolicitudesAllFiltradasPorEstatus = async (estatus: string) => {
     throw error;
   }
 };
+
+
 
 
 // obtener solicitud por id
