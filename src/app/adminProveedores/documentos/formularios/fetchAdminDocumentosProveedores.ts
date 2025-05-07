@@ -21,9 +21,9 @@ export interface DocumentoProveedor {
 
 export interface ProveedorDetalles {
   id_proveedor: number;
-  nombre_empresa: string; // Ejemplo, ajusta según tu modelo de datos
-  rfc: string;          // Ejemplo
-  nombre_o_razon_social: string;
+  rfc: string;
+  tipo_proveedor: 'moral' | 'fisica' | 'desconocido'; // ← ESTA ES LA CLAVE
+  nombre_o_razon_social: string; // ← ESTA TAMBIÉN DEBE ESTAR
 }
 
 export interface Comentario {
