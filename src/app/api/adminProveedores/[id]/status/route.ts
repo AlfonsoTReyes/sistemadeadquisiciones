@@ -1,12 +1,23 @@
-// src/app/api/admin/proveedores/[id]/status/route.ts
+// src/app/api/adminProveedores/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-// Ajusta la ruta a tu archivo de servicio
+// Ensure this path correctly points to your service file
 import { updateProveedorEstatus } from '@/services/adminproveedoresservice';
 
+// Define an interface for the dynamic route parameters
+interface RouteParams {
+  id: string;
+}
+
+// Define an interface for the context object passed as the second argument
+interface HandlerContext {
+  params: RouteParams;
+}
+
 // Usamos PATCH para actualizaciones parciales como el estatus
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-    const idProveedorStr = params.id;
-    console.log(`DEBUG API PATCH /api/admin/proveedores/${idProveedorStr}/status: Request received.`);
+export async function PATCH(req: NextRequest, context: HandlerContext) {
+    // Access 'id' from context.params
+    const idProveedorStr = context.params.id;
+    console.log(`DEBUG API PATCH /api/adminProveedores/${idProveedorStr}/status: Request received.`);
 
     try {
         // Validar ID
@@ -17,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         // Obtener y validar nuevo estatus del cuerpo
         const body = await req.json();
-        const { estatus } = body;
+        const { estatus } = body; // Assuming 'estatus' is expected in the body
         if (typeof estatus !== 'boolean') {
             return NextResponse.json({ message: 'El valor de "estatus" debe ser booleano (true/false)' }, { status: 400 });
         }
@@ -30,16 +41,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         // Devolver info actualizada
         return NextResponse.json(proveedorActualizado);
 
-    } catch (error: any) {
-        console.error(`ERROR PATCH /api/admin/proveedores/${idProveedorStr}/status:`, error);
-        // Manejar error si el proveedor no se encontró para actualizar
-        if (error.message.includes("no encontrado para actualizar")) {
-            return NextResponse.json({ message: error.message }, { status: 404 });
+    } catch (error: unknown) { // Changed 'any' to 'unknown' for better type safety
+        console.error(`ERROR PATCH /api/adminProveedores/${idProveedorStr}/status:`, error);
+        
+        let errorMessage = 'Error al actualizar el estatus del proveedor.';
+        let statusCode = 500;
+        let errorDetails: string | undefined;
+
+        if (error instanceof Error) {
+            errorMessage = error.message; // Use the specific error message
+            errorDetails = error.message;
+            if (error.message.includes("no encontrado para actualizar")) { // Check if this specific message comes from your service
+                statusCode = 404;
+            }
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+            errorDetails = error;
         }
-        // Error genérico
+        
         return NextResponse.json(
-            { message: error.message || 'Error al actualizar el estatus del proveedor.', error: error.message },
-            { status: 500 }
+            { message: errorMessage, error: errorDetails },
+            { status: statusCode }
         );
     }
 }
+
+// You can also add other HTTP methods (GET, POST, DELETE, etc.) here if needed,
+// following a similar signature pattern for their arguments.
+// For example:
+// export async function GET(req: NextRequest, context: HandlerContext) {
+//   const id = context.params.id;
+//   // ... your GET logic
+//   return NextResponse.json({ message: `GET request for ID: ${id}` });
+// }
