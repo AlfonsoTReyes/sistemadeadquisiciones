@@ -1,8 +1,8 @@
 // src/utils/generateProveedorPdf.ts
 import { jsPDF } from "jspdf";
 // Asegúrate de importar la interfaz desde donde esté definida
-import { ProveedorInfo } from '../proveedores/dashboard/formularios/ProveedorInfo'; // <-- AJUSTA ESTA RUTA a donde definiste ProveedorData
-
+//import { ProveedorInfo } from '../proveedores/dashboard/formularios/ProveedorInfo'; // <-- AJUSTA ESTA RUTA a donde definiste ProveedorData
+import ProveedorInfo from "../proveedores/dashboard/formularios/ProveedorInfo"
 // Función para formatear la fecha (Mes en español)
 const formatDateES = (date: Date): string => {
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
