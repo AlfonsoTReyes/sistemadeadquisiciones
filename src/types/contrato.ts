@@ -4,7 +4,7 @@
 // Asume que tienes una interfaz ProveedorDetallado definida en algún lugar
 // como se discutió en el servicio de proveedores
 import { ProveedorDetallado } from '../services/proveedoresservice'; // Ajusta la ruta si es necesario
-import { ContratoInputData, SuficienciaInput, AreaRequirenteInput } from './contratoTemplateData'; // Ajusta ruta
+import { ContratoInputData } from './contratoTemplateData'; // Ajusta ruta
 /**
  * Interfaz base que representa la estructura directa de la tabla 'contratos'.
  * Usada como base para otras interfaces.

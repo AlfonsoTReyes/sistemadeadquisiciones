@@ -1,3 +1,5 @@
+// ./src/types/proveedor.ts
+
 // Interfaz básica para selectores o listas simples
 export interface Proveedor {
     id_proveedor: number;
@@ -6,6 +8,7 @@ export interface Proveedor {
     // Podrías añadir tipo_proveedor si fuera útil para el selector, pero no es estrictamente necesario aquí
     // tipo_proveedor?: 'fisica' | 'moral';
 }
+
 export interface ProveedorDetallado {
     id_proveedor: number;
     rfc?: string;
@@ -44,8 +47,10 @@ export interface ProveedorDetallado {
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
     representantes?: RepresentanteLegalOutput[]; // Usamos una interfaz Output
 
-     [key: string]: any;
+    // Corregido: Reemplazado 'any' con 'unknown' para mayor seguridad de tipos
+    [key: string]: unknown;
 }
+
 interface RepresentanteLegalOutput {
     id_morales: number; // PK de la fila en proveedores_morales
     nombre_representante?: string | null;

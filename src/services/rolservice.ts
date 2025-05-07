@@ -3,7 +3,7 @@
 //Importa esta libreria para interactuar con la tabla roles en una base de datos PostgreSQL.
 import { sql } from '@vercel/postgres'; 
 
-const connectionString = process.env.POSTGRES_URL;
+//const connectionString = process.env.POSTGRES_URL;
 
 //Recupera todos los registros de la tabla roles.
 export const getRol = async () => {

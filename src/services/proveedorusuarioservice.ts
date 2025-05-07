@@ -1,3 +1,4 @@
+// ./src/services/proveedorusuarioservice.ts
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs'; // Import bcrypt for hashing
 
@@ -34,9 +35,15 @@ export const getProveedorUserByUsername = async (username: string): Promise<Prov
             return null;
         }
         return result.rows[0];
-    } catch (error) {
+    } catch (error: unknown) { // Changed from any to unknown
         console.error("Error fetching provider user by username:", error);
-        throw new Error('Error al buscar el usuario proveedor.');
+        // It's good practice to re-throw a generic error or a more specific one
+        // if you don't handle it further here.
+        const message = 'Error al buscar el usuario proveedor.';
+        if (error instanceof Error) {
+            // You could potentially log error.message or use it if it's safe
+        }
+        throw new Error(message);
     }
 };
 
@@ -71,17 +78,33 @@ export const createProveedorUser = async (userData: {
         `;
 
         return result.rows[0] as ProveedorUsuario;
-    } catch (error: any) {
-        console.error("Error creating provider user:", error);
-        if (error.code === '23505') {
-             if (error.constraint === 'usuarios_proveedores_usuario_key') {
-                 throw new Error(`El nombre de usuario '${usuario}' ya existe.`);
-             }
-             if (error.constraint === 'usuarios_proveedores_correo_key') {
-                  throw new Error(`El correo electrónico '${correo}' ya está registrado.`);
-             }
+    } catch (errUnknown: unknown) { // Changed from any to unknown
+        console.error("Error creating provider user:", errUnknown);
+        let message = 'Error desconocido al registrar el usuario proveedor.';
+        let code: string | undefined;
+        let constraint: string | undefined;
+
+        if (errUnknown instanceof Error) {
+            message = errUnknown.message; // Use the original error message if available
+            // Access code and constraint via type assertion if necessary for DB errors
+            const errAsAny = errUnknown as any;
+            if (typeof errAsAny.code === 'string') code = errAsAny.code;
+            if (typeof errAsAny.constraint === 'string') constraint = errAsAny.constraint;
+        } else if (typeof errUnknown === 'string') {
+            message = errUnknown;
         }
-        throw new Error('Error al registrar el usuario proveedor.');
+
+
+        if (code === '23505') { // PostgreSQL unique violation
+            if (constraint === 'usuarios_proveedores_usuario_key') {
+                throw new Error(`El nombre de usuario '${usuario}' ya existe.`);
+            }
+            if (constraint === 'usuarios_proveedores_correo_key') {
+                throw new Error(`El correo electrónico '${correo}' ya está registrado.`);
+            }
+        }
+        // If not a specific known error, throw a more generic one or the original one
+        throw new Error(message || 'Error al registrar el usuario proveedor.');
     }
 };
 
@@ -90,9 +113,13 @@ export const checkProveedorUsernameExists = async (username: string): Promise<bo
     try {
         const result = await sql`SELECT 1 FROM usuarios_proveedores WHERE usuario = ${username} LIMIT 1;`;
         return result.rows.length > 0;
-    } catch (error) {
-         console.error("Error checking provider username:", error);
-         throw new Error('Error al verificar el nombre de usuario.');
+    } catch (error: unknown) { // Changed from any to unknown
+        console.error("Error checking provider username:", error);
+        const message = 'Error al verificar el nombre de usuario.';
+        if (error instanceof Error) {
+            // Potentially use error.message
+        }
+        throw new Error(message);
     }
 };
 
@@ -100,8 +127,12 @@ export const checkProveedorEmailExists = async (correo: string): Promise<boolean
     try {
         const result = await sql`SELECT 1 FROM usuarios_proveedores WHERE correo = ${correo} LIMIT 1;`;
         return result.rows.length > 0;
-    } catch (error) {
-         console.error("Error checking provider email:", error);
-         throw new Error('Error al verificar el correo electrónico.');
+    } catch (error: unknown) { // Changed from any to unknown
+        console.error("Error checking provider email:", error);
+        const message = 'Error al verificar el correo electrónico.';
+        if (error instanceof Error) {
+            // Potentially use error.message
+        }
+        throw new Error(message);
     }
 };

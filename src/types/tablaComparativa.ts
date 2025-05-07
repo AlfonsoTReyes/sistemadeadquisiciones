@@ -41,13 +41,10 @@ export interface TablaComparativaProveedorSnapshot {
     nombre_empresa_snapshot: string;
     rfc_snapshot: string;
     giro_comercial_snapshot: string | null;
-    // atencion_de_snapshot: string | null; // <-- ELIMINADO
     domicilio_snapshot: string | null;
     telefono_snapshot: string | null;
     correo_electronico_snapshot: string | null;
     pagina_web_snapshot: string | null;
-    // condiciones_pago_snapshot: string | null; // <-- ELIMINADO
-    // tiempo_entrega_snapshot: string | null; // <-- ELIMINADO
     subtotal_proveedor: number;
     iva_proveedor: number;
     total_proveedor: number;
@@ -142,37 +139,31 @@ export interface TablaComparativaCompleta extends TablaComparativa {
  */
 export interface CrearTablaComparativaInput {
     nombre: string;
-    descripcion?: string | null; // Descripción es opcional al crear
-    id_usuario_creador: number | null; // Puede ser nulo si no se requiere rastrear creador
+    descripcion?: string | null;
+    id_usuario_creador: number | null;
 }
 
 /**
  * Datos que se pueden actualizar en una tabla comparativa existente.
- * Usamos Partial para indicar que todos los campos son opcionales.
  */
 export type ActualizarTablaInput = Partial<Pick<TablaComparativa, 'nombre' | 'descripcion' | 'estado'>>;
 
 /**
  * Datos necesarios para agregar un proveedor existente a una tabla.
  * Requiere todos los campos snapshot ya que se "congelan" en este punto.
+ * Corregido: Convertido a type alias para evitar @typescript-eslint/no-empty-object-type
  */
-export interface AgregarProveedorInput extends Omit<TablaComparativaProveedorSnapshot,
+export type AgregarProveedorInput = Omit<TablaComparativaProveedorSnapshot,
     'id' | 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'
-    // Ya no necesitamos omitir los campos eliminados aquí si los quitamos de TablaComparativaProveedorSnapshot
-> {
-    // Hereda id_tabla_comparativa, id_proveedor y los *_snapshot restantes
-}
+>;
 
 /**
  * Datos necesarios para agregar un nuevo ítem a un proveedor en la tabla.
- * El subtotal se calculará en el servicio.
  */
 export interface AgregarItemInput extends Omit<TablaComparativaItem, 'id' | 'subtotal_item'> {
-    // Hereda todos los campos excepto id y subtotal_item
-    // id_articulo_origen y codigo_partida_origen son opcionales
     id_articulo_origen?: number | null;
     codigo_partida_origen?: string | null;
-    caracteristicas_tecnicas?: CaracteristicaTecnica[] | null; // Opcional al agregar
+    caracteristicas_tecnicas?: CaracteristicaTecnica[] | null;
 }
 
 /**
@@ -180,16 +171,13 @@ export interface AgregarItemInput extends Omit<TablaComparativaItem, 'id' | 'sub
  */
 export type ActualizarItemInput = Partial<Pick<TablaComparativaItem,
     'descripcion_item' | 'caracteristicas_tecnicas' | 'udm' | 'cantidad' | 'precio_unitario'
-    // Normalmente no se actualizan las referencias de origen:
-    // | 'id_articulo_origen' | 'codigo_partida_origen'
 >>;
 
 /**
  * Datos necesarios para agregar una nueva observación/validación.
  */
 export interface AgregarObservacionInput extends Omit<TablaComparativaObservacion, 'id'> {
-    // Hereda todos los campos excepto id
-    comentario_adicional?: string | null; // Opcional al agregar
+    comentario_adicional?: string | null;
 }
 
 /**
@@ -203,8 +191,7 @@ export type ActualizarObservacionInput = Partial<Pick<TablaComparativaObservacio
  * Datos necesarios para agregar una nueva firma.
  */
 export interface AgregarFirmaInput extends Omit<TablaComparativaFirma, 'id' | 'fecha_firma' | 'nombre_usuario'> {
-    // Hereda id_tabla_comparativa, id_usuario, tipo_firma
-    comentario_firma?: string | null; // Opcional al agregar
+    comentario_firma?: string | null;
 }
 
 /**
@@ -217,53 +204,59 @@ export interface AgregarComentarioInput extends Omit<TablaComparativaComentario,
 
 // ======================================================================
 // Tipos Intermedios para Filas de Base de Datos (`DbRow`)
-// Útiles para manejar conversiones de tipos (ej. NUMERIC a string)
-// que ocurren al leer desde node-postgres/@vercel/postgres.
 // ======================================================================
 
 /**
  * Representa la fila cruda de tabla_comparativa_proveedores como podría
  * ser leída desde la base de datos (ej. totales como string).
+ * Corregido: Convertido a type alias con intersección.
  */
-export interface ProveedorSnapshotDbRow extends Omit<TablaComparativaProveedorSnapshot, 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'> {
+export type ProveedorSnapshotDbRow = Omit<TablaComparativaProveedorSnapshot, 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'> & {
     subtotal_proveedor: string;
     iva_proveedor: string;
     total_proveedor: string;
-    // Los campos eliminados ya no existen aquí tampoco
-}
+};
+
 /**
  * Representa la fila cruda de tabla_comparativa_items.
+ * Corregido: Convertido a type alias con intersección y `any` reemplazado.
  */
-export interface ItemDbRow extends Omit<TablaComparativaItem, 'cantidad' | 'precio_unitario' | 'subtotal_item' | 'caracteristicas_tecnicas' | 'id_articulo_origen'> {
-    cantidad: string;           // NUMERIC a menudo viene como string
-    precio_unitario: string;    // NUMERIC a menudo viene como string
-    subtotal_item: string;      // NUMERIC a menudo viene como string
-    caracteristicas_tecnicas: any; // JSONB puede venir como string u objeto parseado, 'any' es flexible aquí
-    id_articulo_origen: number | string | null; // FK puede venir como string o number
-}
+export type ItemDbRow = Omit<TablaComparativaItem, 'cantidad' | 'precio_unitario' | 'subtotal_item' | 'caracteristicas_tecnicas' | 'id_articulo_origen'> & {
+    cantidad: string;
+    precio_unitario: string;
+    subtotal_item: string;
+    // JSONB puede venir como string (sin parsear) o ya parseado como el array de objetos esperado, o ser null.
+    caracteristicas_tecnicas: string | CaracteristicaTecnica[] | null;
+    id_articulo_origen: number | string | null;
+};
 
 /**
  * Representa la fila cruda de tabla_comparativa_observaciones.
- * (A menudo no requiere conversión significativa, pero se define por consistencia)
+ * Corregido: Convertido a type alias. Asume que 'cumple' puede venir como string desde la DB.
+ * Si 'cumple' siempre es boolean desde la DB, se podría usar:
+ * export type ObservacionDbRow = TablaComparativaObservacion;
  */
-export interface ObservacionDbRow extends TablaComparativaObservacion {
+export type ObservacionDbRow = Omit<TablaComparativaObservacion, 'cumple'> & {
     // Podría necesitar conversión si 'cumple' (BOOLEAN) no viene como boolean
-}
+    cumple: boolean | string; // Ajustar si el driver de DB siempre devuelve boolean
+};
 
 /**
  * Representa la fila cruda de tabla_comparativa_firmas.
+ * Corregido: Convertido a type alias con intersección.
  */
-export interface FirmaDbRow extends Omit<TablaComparativaFirma, 'fecha_firma' | 'id_usuario'> {
-    fecha_firma: string;        // TIMESTAMPTZ puede venir como string
-    id_usuario: number | string;// FK puede venir como string o number
-}
+export type FirmaDbRow = Omit<TablaComparativaFirma, 'fecha_firma' | 'id_usuario'> & {
+    fecha_firma: string;
+    id_usuario: number | string;
+};
 
 /**
  * Representa la fila cruda de tabla_comparativa_comentarios.
+ * Corregido: Convertido a type alias con intersección.
  */
-export interface ComentarioDbRow extends Omit<TablaComparativaComentario, 'fecha_comentario' | 'id_usuario'> {
-    fecha_comentario: string;    // TIMESTAMPTZ puede venir como string
-    id_usuario: number | string; // FK puede venir como string o number
-}
+export type ComentarioDbRow = Omit<TablaComparativaComentario, 'fecha_comentario' | 'id_usuario'> & {
+    fecha_comentario: string;
+    id_usuario: number | string;
+};
 
 // Podrías añadir otros tipos auxiliares si fueran necesarios.

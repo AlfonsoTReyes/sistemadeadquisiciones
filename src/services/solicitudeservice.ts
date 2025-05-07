@@ -2,7 +2,7 @@
 
 import { sql } from "@vercel/postgres";
 
-const connectionString = process.env.POSTGRES_URL;
+//const connectionString = process.env.POSTGRES_URL;
 
 // obtener todas las solicitudes
 export const getSolicitudes = async (secretaria: number) => {
@@ -237,7 +237,7 @@ export const updateSolicitudEstatusFirma = async (
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
-
+/*
     const resultj = await sql`
       UPDATE justificacion_solicitud
       SET 
@@ -256,7 +256,7 @@ export const updateSolicitudEstatusFirma = async (
       RETURNING *;
     `;
 
-  
+  */
 
     return result.rows[0];
   } catch (error) {

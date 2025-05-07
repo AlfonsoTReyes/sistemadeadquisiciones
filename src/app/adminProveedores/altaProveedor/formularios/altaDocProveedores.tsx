@@ -293,7 +293,6 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
     setErrorGlobal(null);
     setSuccessMessage(null);
   };
-
   const handleUploadSubmitOtro = async (e: React.FormEvent) => {
      e.preventDefault();
      setErrorGlobal(null);

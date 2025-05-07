@@ -29,7 +29,7 @@ export const getUsuarios = async () => {
         dependencias d ON u.id_dependencia = d.id_dependencia;
 
     `;
-    return result.rows; 
+    return result.rows;
   } catch (error) {
     console.log(error);
 
@@ -47,9 +47,10 @@ export const createUsuario = async (nombre: string, apellidos: string, email: st
     VALUES (${nombre}, ${apellidos}, ${email}, ${password}, ${rol}, ${nomina}, ${secretaria}, ${dependencia}, ${puesto}, ${sistemas}, true, NOW()) 
     RETURNING *;
   `;
+/*
 
-  // Construcción segura del mensaje de bitácora
-  const mensajeBitacora = `Se dio de alta un nuevo usuario: 
+    // Construcción segura del mensaje de bitácora
+    const mensajeBitacora = `Se dio de alta un nuevo usuario: 
     Nombre: ${nombre}, 
     Apellidos: ${apellidos}, 
     Nómina: ${nomina}, 
@@ -57,14 +58,13 @@ export const createUsuario = async (nombre: string, apellidos: string, email: st
     Secretaria: ${secretaria}, 
     Sistema: ${sistemas}, 
     Rol: ${rol}`;
-
-// Consulta SQL con valores seguros
-  const bitacora = await sql`
+    // Consulta SQL con valores seguros
+    const bitacora = await sql`
   INSERT INTO bitacora_sistema(
 	tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
 	VALUES (${'usuarios'}, ${'alta'}, ${emailUsuario}, ${mensajeBitacora}, now(), now() );
   `;
-
+*/
     return result.rows[0]; //Devuelve el registro recién creado.
   } catch (error) {
     throw error; //Lanza errores capturados para manejo externo.
@@ -123,7 +123,7 @@ export const updateUsuario = async (id: number, usuarioData: { nombre: string, a
       RETURNING *; 
     `;
 
-
+/*
     const bitacora = await sql`
     INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
     VALUES (
@@ -133,7 +133,7 @@ export const updateUsuario = async (id: number, usuarioData: { nombre: string, a
         ${`Se actualizo nombre = ${nombre}, apellidos= ${apellidos}, email = ${email}, id_rol = ${rol}, nomina = ${nomina}, id_secretaria = ${secretaria}, id_dependencia = ${dependencia}, puesto=${puesto}, sistema=${sistema} con el id ${result.rows[0].id_usuario}`},
         NOW(),
         NOW()
-    )`;
+    )`; */
     return result.rows[0]; // Devuelve el usuario actualizado
   } catch (error) {
     throw error; //Lanza errores capturados para manejo externo.
@@ -152,7 +152,7 @@ export const updateRostro = async (id: number, rostro: string, emailUsuario: str
       where id_usuario = ${id}
       RETURNING *;
     `;
-
+/*
     const bitacora = await sql`
     INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion,  created_at, updated_at)
     VALUES (
@@ -162,8 +162,9 @@ export const updateRostro = async (id: number, rostro: string, emailUsuario: str
         ${`Se actualizo rostro = ${rostro},
         NOW(),
         NOW()`
-        }
+      }
     )`;
+*/
     return result.rows[0]; //Devuelve el registro recién creado.
   } catch (error) {
     throw error; //Lanza errores capturados para manejo externo.
@@ -171,7 +172,7 @@ export const updateRostro = async (id: number, rostro: string, emailUsuario: str
 };
 
 //Función para ACTUALIZAR/MODIFICAR la contraseña de un Usuario específico.
-export const updateContraseña= async (id: number, usuarioData: { password: string, emailUsuario: string }) => {
+export const updateContraseña = async (id: number, usuarioData: { password: string, emailUsuario: string }) => {
   try {
     //Extrae la propiedad password del objeto usuarioData para su uso directo en la consulta SQL.
     const { password, emailUsuario } = usuarioData;
@@ -183,17 +184,18 @@ export const updateContraseña= async (id: number, usuarioData: { password: stri
       WHERE id_usuario = ${id} 
       RETURNING *; 
     `;
-
-    const bitacora = await sql`
-    INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
-    VALUES (
-        ${'usuarios'}, 
-        ${`Actualización de contraseña`}, 
-        ${emailUsuario}, 
-        ${`Se actualizo contraseña: ${password}`},
-        NOW(),
-        NOW()
-    )`;
+    /*
+        const bitacora = await sql`
+        INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, informacion, created_at, updated_at)
+        VALUES (
+            ${'usuarios'}, 
+            ${`Actualización de contraseña`}, 
+            ${emailUsuario}, 
+            ${`Se actualizo contraseña: ${password}`},
+            NOW(),
+            NOW()
+        )`;
+      */
     return result.rows[0]; // Devuelve el usuario actualizado
   } catch (error) {
     console.error("Error en updateUsuario:", error);
@@ -209,11 +211,11 @@ export const deleteUsuario = async (id: number, email: string) => {
     const result = await sql`
       UPDATE usuarios
       SET estatus='false' WHERE id_usuario = ${id}`;
-      
-    
+
+
     //Captura la cantidad de filas afectadas por la operación DELETE
     const filasAfectadas = result.rowCount ?? 0;
-
+/*
     const bitacora = await sql`
     INSERT INTO bitacora_sistema (tabla_afectada, operacion, usuario, datos_nuevos)
     VALUES (
@@ -222,7 +224,7 @@ export const deleteUsuario = async (id: number, email: string) => {
         ${email}, 
         ${`Se elimino el usuario con id : ${id}`}
     )`;
-
+*/
     return filasAfectadas > 0; //Devuelve un valor booleano.
     // {Si filasAfectadas es mayor a 0, indica que se eliminó al menos un registro, por lo que retorna true.}
     // {Si filasAfectadas es igual a 0, significa que no se encontró ningún registro con el id proporcionado, 

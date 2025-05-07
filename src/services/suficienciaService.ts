@@ -432,22 +432,20 @@ export const obtenerDocumentoPorId = async (id_doc_solicitud: number) => {
     throw error;
   }
 };
-
+/*
 export const eliminarDocumentoAdicionalPorId = async (id_doc_solicitud: number) => {
   try {
     const result = await sql`
       DELETE FROM documento_suficiencia
       WHERE id_documento_suficiencia = ${id_doc_solicitud};
     `;
-
-    
     return { success: true };
   } catch (error) {
     console.error("error al obtener documentos por solicitud:", error);
     throw error;
   }
 };
-
+*/
 export const getSuficienciasBySolicitudID = async (idSolicitud: number) => {
   try {
     const result = await sql`
