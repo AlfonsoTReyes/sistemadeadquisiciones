@@ -5,7 +5,7 @@ export interface DocumentoProveedor {
     nombre_original: string;
     ruta_archivo: string;
     id_usuario: number;
-    estatus: string;
+    estatus: string | boolean;
     created_at: string; // O Date
     updated_at: string; // O Date
   }

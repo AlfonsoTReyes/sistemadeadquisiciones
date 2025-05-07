@@ -120,7 +120,7 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({
         setErrorComentarios(null);
         try {
             const fetchedComentarios = await fetchComentariosPorDocumentoAdmin(documento.id_documento_proveedor);
-            setComentarios(fetchedComentarios || []);
+            setComentarios((fetchedComentarios || []) as ComentarioDocProveedor[]);
         } catch (err) {
             console.error("Error cargando comentarios:", err);
             setErrorComentarios((err as Error).message || "Error al cargar comentarios.");
@@ -335,7 +335,7 @@ const VistaDocumentosAdmin: React.FC<VistaDocumentosAdminProps> = ({
         try {
             // Llama a la función fetch específica para obtener documentos
             const docs = await fetchDocumentosPorProveedorAdmin(idProveedor);
-            setDocumentos(docs || []);
+            setDocumentos((docs || []) as DocumentoProveedor[]);
         } catch (err) {
             console.error("Error al cargar documentos para admin:", err);
             setErrorGlobal(`Error al cargar lista de documentos: ${(err as Error).message}`);
