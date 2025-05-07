@@ -91,6 +91,8 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
       return;
     }
     
+    const userId = sessionStorage.getItem("userId");
+
     const fechaEvento = fechasDisponibles.find(f => f.id_evento.toString() === fechaSeleccionada);
     const fechaConHora = horaSeleccionada
       ? `${new Date(fechaEvento?.fecha_inicio || "").toISOString().split("T")[0]}T${horaSeleccionada}`
@@ -106,9 +108,10 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
       participantes_base: usuariosSeleccionados.map(u => u.id_usuario), 
       usuarios_invitados: invitados.map(u => u.id_usuario),
       id_evento: parseInt(fechaSeleccionada),
+      userId,
     };
 
-    console.log(formData);
+
 
     try {
       await createOrdenDia(formData);
@@ -120,21 +123,7 @@ const ModalAdjudicar: React.FC<ModalAdjudicarProps> = ({
     }
   };
 
-  const agregarUsuarioSeleccionado = () => {
-    if (
-      usuarioSeleccionado &&
-      !usuariosSeleccionados.some((u) => u.id_usuario === usuarioSeleccionado.id_usuario)
-    ) {
-      setUsuariosSeleccionados((prev) => [...prev, usuarioSeleccionado]);
-      setUsuarioSeleccionado(null); // opcional: limpiar la selección actual
-    }
-  };
   
-  const eliminarUsuario = (id: number) => {
-    setUsuariosSeleccionados((prev) => prev.filter((u) => u.id_usuario !== id));
-  };
-  
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-md w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">

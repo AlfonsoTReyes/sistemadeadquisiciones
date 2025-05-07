@@ -98,7 +98,8 @@ export const updateDocumentoEstatus = async (
         estatus = ${estatus},
         updated_at = NOW()
       WHERE id_doc_solicitud = ${id}
-      RETURNING *;
+            RETURNING *, id_solicitud;
+
     `;
     return result.rows[0];
   } catch (error) {

@@ -24,6 +24,88 @@ export const getSolicitudes = async (secretaria: number) => {
   }
 };
 
+export const getSolicitudesAdmin = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.estatus IN ('Enviado para revisión', 'En revisión', 'Aprobada', 'Cancelada', 'En pausa')
+      AND sa.tipo_adquisicion != '3';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("Error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+
+export const getSolicitudesAdminOrden = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.estatus IN ('En comite')
+      AND sa.tipo_adquisicion != 3;;
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("Error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+
+export const getSolicitudesAdminEvento = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.estatus IN ('Enviado para revisión', 'En revisión', 'Aprobada', 'Cancelada', 'En pausa')
+      AND sa.tipo_adquisicion='3';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+export const getSolicitudesAdminEventoOrden = async () => {
+  try {
+    const result = await sql`
+      SELECT 
+          sa.*, 
+          s.nombre AS secretaria, 
+          d.nombre AS dependencia
+      FROM solicitud_adquisicion sa
+      LEFT JOIN secretarias s ON sa.id_secretaria = s.id_secretaria
+      LEFT JOIN dependencias d ON sa.id_dependencia = d.id_dependencia
+      WHERE sa.estatus = 'En comite' AND sa.tipo_adquisicion='3';
+    `;
+    return result.rows;
+  } catch (error) {
+    console.error("error al obtener solicitudes:", error);
+    throw error;
+  }
+};
+
+
 export const getSolicitudesEvento = async () => {
   try {
     const result = await sql`
