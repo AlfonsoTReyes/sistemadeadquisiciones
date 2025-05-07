@@ -324,7 +324,7 @@ const GestionDocumentosProveedor: React.FC<GestionDocumentosProveedorProps> = ({
           renderRequiredDocs(REQUIRED_DOCS_FISICA)
         // CORREGIDO:
         ) : !isLoadingDocs ? (
-          <p className="text-red-500">Tipo de proveedor ('{tipoProveedor}') no reconocido.</p>
+          <p className="text-red-500">Tipo de proveedor no reconocido.</p>
         ) : null}
       </div>
 
