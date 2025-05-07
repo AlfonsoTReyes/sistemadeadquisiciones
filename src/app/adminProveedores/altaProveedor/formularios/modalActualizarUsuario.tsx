@@ -9,13 +9,14 @@ interface UsuarioProveedorData {
   apellido_p: string;
   apellido_m: string;
   correo: string;
-  estatus: string; // 'activo', 'inactivo', etc.
+  estatus: boolean; // 'activo', 'inactivo', etc.
   contraseña: string;
 }
 
 interface ModalUsuarioProps {
   userData: UsuarioProveedorData; // Datos iniciales del usuario
   onClose: () => void;
+  isOpen: boolean;
   onSubmit: (payload: any) => Promise<void>; // Función para guardar
   isLoading: boolean; // Estado de carga del guardado
   error: string | null; // Error del guardado

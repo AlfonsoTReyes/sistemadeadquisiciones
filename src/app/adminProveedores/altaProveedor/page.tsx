@@ -248,7 +248,8 @@ export default function AdministradorProveedoresPage() {
                 // apellido_m can remain null here as per the type from interface.ts
                 setEditingUserData({
                     ...dataFromApi,
-                    contraseña: (dataFromApi as any).contraseña || '',
+                    usuario: dataFromApi.usuario ?? '', // ✅ valor por defecto si es null
+                    contraseña: dataFromApi.contraseña ?? '',
                 } as UsuarioProveedorData);
                 setIsEditUserModalOpen(true);
             } else {
@@ -440,10 +441,14 @@ export default function AdministradorProveedoresPage() {
                     onClose={handleCloseEditUserModal}
                     // Transform editingUserData before passing it to the modal
                     userData={{
-                        ...editingUserData, // Spread all properties from editingUserData
-                        // Ensure apellido_m is a string: convert null to empty string
-                        apellido_m: editingUserData.apellido_m === null ? '' : editingUserData.apellido_m,
-                        // 'contraseña' is already part of editingUserData due to the previous fix
+                        id_usuario: editingUserData.id_usuario,
+                        usuario: editingUserData.usuario ?? '',
+                        nombre: editingUserData.nombre ?? '',
+                        apellido_p: editingUserData.apellido_p ?? '',
+                        apellido_m: editingUserData.apellido_m ?? '',
+                        correo: editingUserData.correo ?? '',
+                        estatus: editingUserData.estatus ?? true,
+                        contraseña: editingUserData.contraseña ?? '',
                     }}
                     onSubmit={handleSaveUserUpdate}
                     isLoading={isUpdatingUser}
