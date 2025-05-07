@@ -3,18 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { agregarFirma } from '@/services/tablasComparativasService';
 import { AgregarFirmaInput } from '@/types/tablaComparativa';
 
-// interface RouteParams { // This interface is not needed with the inline type
-//     params: { idTablaComparativa: string };
-// }
-
-// Add this if you are still encountering runtime "params should be awaited" errors
-// export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic'; // Keep this if you added it
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { idTablaComparativa: string } } // Standard Next.js App Router signature
+    // Use a more generic type for the context object initially
+    context: { params?: { [key: string]: string | string[] | undefined } }
 ) {
-    const { idTablaComparativa } = params; // idTablaComparativa is now directly available
+    // Type assertion/check for params and idTablaComparativa
+    if (!context.params || typeof context.params.idTablaComparativa !== 'string') {
+        console.error("API POST Firmas: Invalid or missing idTablaComparativa in params", context.params);
+        return NextResponse.json({ message: 'ID de tabla comparativa no encontrado en la ruta.' }, { status: 400 });
+    }
+    const { idTablaComparativa } = context.params as { idTablaComparativa: string };
+
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/firmas:`;
     console.log(logPrefix);
 
@@ -23,40 +25,28 @@ export async function POST(
         return NextResponse.json({ message: 'ID de tabla comparativa inválido.' }, { status: 400 });
     }
 
-    // TODO: Implement robust authentication here to get idUsuarioDeSesion
-    // const idUsuarioDeSesion = await getUserIdFromSession(request); // Example
-    // if (!idUsuarioDeSesion) {
-    //     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-    // }
+    // TODO: Authentication
+    // const idUsuarioDeSesion = ...
 
     try {
         const body = await request.json();
         console.log(`${logPrefix} Request body:`, body);
 
-        // It's better to construct the inputData for the service carefully
-        // rather than just casting, especially when dealing with auth-sensitive data like id_usuario.
         const inputDataFromClient = body as Partial<AgregarFirmaInput>;
 
-        // Validate and construct the data for the service
         if (!inputDataFromClient || typeof inputDataFromClient !== 'object') {
             return NextResponse.json({ message: 'Cuerpo de solicitud inválido.' }, { status: 400 });
         }
-
-        // The id_usuario should ideally come from the session, not the client's payload for security.
-        // For now, we'll validate what's sent, but this is a security note.
         if (!inputDataFromClient.id_usuario || typeof inputDataFromClient.id_usuario !== 'number') {
-            console.error(`${logPrefix} Error: id_usuario inválido o faltante en el payload del cliente. Implementar obtención desde sesión.`);
             return NextResponse.json({ message: 'ID de usuario inválido o faltante. (Debe obtenerse de la sesión)' }, { status: 400 });
         }
         if (!inputDataFromClient.tipo_firma || typeof inputDataFromClient.tipo_firma !== 'string' || !inputDataFromClient.tipo_firma.trim()) {
             return NextResponse.json({ message: 'El tipo de firma es requerido.' }, { status: 400 });
         }
 
-        // Construct the final data for the service, ensuring id_tabla_comparativa from path
-        // and id_usuario (ideally from session, here from client for now)
         const dataForService: AgregarFirmaInput = {
-            id_tabla_comparativa: idTabla, // Use ID from path
-            id_usuario: inputDataFromClient.id_usuario, // TODO: Replace with user ID from session
+            id_tabla_comparativa: idTabla,
+            id_usuario: inputDataFromClient.id_usuario, // Replace with session user ID
             tipo_firma: inputDataFromClient.tipo_firma,
             comentario_firma: inputDataFromClient.comentario_firma || null,
         };
@@ -64,7 +54,7 @@ export async function POST(
         const nuevaFirma = await agregarFirma(dataForService);
         return NextResponse.json(nuevaFirma, { status: 201 });
 
-    } catch (error: unknown) { // Changed to unknown
+    } catch (error: unknown) {
         console.error(`${logPrefix} Error:`, error);
         let message = 'Error al agregar la firma';
         let errorDetail: string | undefined;
