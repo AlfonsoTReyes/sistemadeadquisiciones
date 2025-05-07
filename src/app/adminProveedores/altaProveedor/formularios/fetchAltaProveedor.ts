@@ -328,45 +328,53 @@ export const getUsuarioProveedorByProveedorId = async (idProveedor: number): Pro
  * @param {string} nuevoEstatusRevision - El nuevo estado ('EN_REVISION', 'APROBADO', etc.).
  * @returns {Promise<any>} - Una promesa que resuelve con la respuesta de la API. (Ajusta 'any')
  */
-export const updateAdminRevisionStatus = async (idProveedor: number, nuevoEstatusRevision: string): Promise<any> => {
-  console.log(`FETCH: Calling API to update revision status for ID ${idProveedor} to ${nuevoEstatusRevision}`);
+export const updateAdminRevisionStatus = async (
+  idProveedor: number,
+  nuevoEstatusRevision: string,
+  adminUserId: number // <--- AÑADIR ESTE PARÁMETRO
+): Promise<any> => {
+  console.log(`FETCH: Calling API to update revision status for ID ${idProveedor} to ${nuevoEstatusRevision} by admin ID ${adminUserId}`);
 
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-    throw new Error("Fetch Error: ID de proveedor inválido.");
+      throw new Error("Fetch Error: ID de proveedor inválido.");
   }
   if (typeof nuevoEstatusRevision !== 'string' || nuevoEstatusRevision.trim() === '') {
-    throw new Error("Fetch Error: El nuevo estatus de revisión es requerido.");
+      throw new Error("Fetch Error: El nuevo estatus de revisión es requerido.");
+  }
+  if (typeof adminUserId !== 'number' || isNaN(adminUserId)) { // <--- AÑADIR VALIDACIÓN PARA EL NUEVO PARÁMETRO
+      throw new Error("Fetch Error: ID de administrador inválido.");
   }
 
   try {
-    const response = await fetch(ADMIN_PROVEEDORES_API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id_proveedor: idProveedor,
-        estatus_revision: nuevoEstatusRevision
-      }),
-    });
+      const response = await fetch(ADMIN_PROVEEDORES_API_URL, { // Asegúrate que este es el endpoint correcto para esta acción
+          method: 'PUT', // O 'PATCH' si es más apropiado para tu API
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              id_proveedor: idProveedor,
+              estatus_revision: nuevoEstatusRevision,
+              id_admin_revisor: adminUserId // <--- INCLUIR EL ID DEL ADMIN EN EL PAYLOAD
+                                          //      (ajusta el nombre del campo según tu API)
+          }),
+      });
 
-    // Intenta parsear JSON incluso si no es ok, para obtener mensajes de error de la API
-    let data: any = null; // Ajusta 'any'
-    try {
-      data = await response.json();
-    } catch {
-      // Si el parseo falla (ej. respuesta vacía o no JSON), data permanece null
-    }
+      let data: any = null;
+      try {
+          data = await response.json();
+      } catch {
+          // Si el parseo falla, data permanece null
+      }
 
-    if (!response.ok) {
-      console.error(`FETCH Error PUT ${ADMIN_PROVEEDORES_API_URL} (Revision Status): Status ${response.status}. ID: ${idProveedor}. Response:`, data);
-      throw new Error(data?.message || `Error ${response.status}: ${response.statusText || 'No se pudo actualizar el estado de revisión.'}`);
-    }
+      if (!response.ok) {
+          console.error(`FETCH Error PUT ${ADMIN_PROVEEDORES_API_URL} (Revision Status): Status ${response.status}. ID: ${idProveedor}. Response:`, data);
+          throw new Error(data?.message || `Error ${response.status}: ${response.statusText || 'No se pudo actualizar el estado de revisión.'}`);
+      }
 
-    console.log(`FETCH: API call for updateAdminRevisionStatus successful for ID ${idProveedor}`);
-    return data ?? { message: "Estado de revisión actualizado." };
+      console.log(`FETCH: API call for updateAdminRevisionStatus successful for ID ${idProveedor}`);
+      return data ?? { message: "Estado de revisión actualizado." };
 
   } catch (err: unknown) {
-    const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-    console.error(`FETCH Exception updateAdminRevisionStatus ID ${idProveedor}:`, errorToThrow);
-    throw errorToThrow;
+      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+      console.error(`FETCH Exception updateAdminRevisionStatus ID ${idProveedor}:`, errorToThrow);
+      throw errorToThrow;
   }
 };
