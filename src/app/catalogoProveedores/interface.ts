@@ -2,12 +2,11 @@
 
 // Artículo como se muestra en el catálogo público
 export interface ArticuloCatalogo {
-    id_producto: number;
-    nombre_producto: string;
+    id_articulo: number;
     descripcion: string;
     unidad_medida: string;
-    precio: number; // Ya debería ser número desde el servicio
-    // Nota: No mostramos stock aquí usualmente
+    precio_unitario: number;
+    codigo_partida: string;
 }
 
 // Partida asociada a un proveedor
