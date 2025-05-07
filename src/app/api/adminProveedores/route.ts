@@ -71,8 +71,8 @@ export async function PUT(req: NextRequest) {
     else if ('id_proveedor' in data && typeof data.id_proveedor === 'number') {
       const idProveedor = data.id_proveedor;
       const isProfileUpdate = 'tipoProveedor' in data;
-      const isStatusUpdateOnly = 'estatus' in data && Object.keys(data).length === 2 && typeof data.estatus === 'boolean';
-      const isRevisionStatusUpdate = 'estatus_revision' in data && Object.keys(data).length === 2 && typeof data.estatus_revision === 'string';
+      const isStatusUpdateOnly = 'estatus' in data && typeof data.estatus === 'boolean';
+      const isRevisionStatusUpdate = 'estatus_revision' in data && typeof data.estatus_revision === 'string';
 
       // --- Subcaso 2a: Perfil Completo ---
       if (isProfileUpdate) {

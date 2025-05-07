@@ -4,7 +4,17 @@ const ADMIN_PROVEEDORES_API_URL = '/api/adminProveedores';
 // URL específica para documentos y comentarios (si la separaste, si no, usa la de arriba)
 const DOCS_API_URL = "/api/adminDocumuentosProveedores"; // Comentada si usas la misma ruta base
 const DOCS_COMMENTS_API_URL = '/api/adminDocumuentosProveedores'; // Asumiendo que se maneja en la misma ruta con query params
-
+interface DocumentoProveedor {
+    id_documento_proveedor: number;
+    id_proveedor: number;
+    tipo_documento: string;
+    nombre_original: string;
+    ruta_archivo: string;
+    id_usuario: number;
+    estatus: string | boolean;
+    created_at: string; // O Date
+    updated_at: string; // O Date
+  }
 /**
  * Obtiene los detalles de UN proveedor específico por su ID principal.
  * Usado para mostrar info en la cabecera de la página de documentos de admin.
@@ -54,15 +64,15 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor) => {
  * @param {number} idProveedor - El ID del proveedor.
  * @returns {Promise<Array<object>>} - Una promesa que resuelve a un array de documentos.
  */
-export const fetchDocumentosPorProveedorAdmin = async (idProveedor) => {
-  // Renombrado para claridad
+export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Promise<DocumentoProveedor[]> => {
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-     const errorMsg = 'Fetch Error: idProveedor inválido para fetchDocumentosPorProveedorAdmin';
-     console.error(errorMsg);
-     throw new Error(errorMsg);
+    const errorMsg = 'Fetch Error: idProveedor inválido para fetchDocumentosPorProveedorAdmin';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
+
   console.log(`FETCH (Admin): fetchDocumentosPorProveedorAdmin ID ${idProveedor}`);
-  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_proveedor=${idProveedor}`; // Usa la URL correcta
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_proveedor=${idProveedor}`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -78,9 +88,23 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor) => {
       throw new Error(errorData?.message || `Error al obtener documentos del proveedor ${idProveedor}: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log(`DEBUG Fetch: fetchDocumentosPorProveedorAdmin successful for ID ${idProveedor}, received ${data.length} docs`);
-    return data;
+    const rawData = await response.json();
+    console.log(`DEBUG Fetch: fetchDocumentosPorProveedorAdmin successful for ID ${idProveedor}, received ${rawData.length} docs`);
+
+    // Transformar para asegurar el tipo
+    const documentos: DocumentoProveedor[] = rawData.map((item: any) => ({
+      id_documento_proveedor: item.id_documento_proveedor,
+      id_proveedor: item.id_proveedor,
+      tipo_documento: item.tipo_documento,
+      nombre_original: item.nombre_original,
+      ruta_archivo: item.ruta_archivo,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      estatus: item.estatus, // puede ser boolean o string según tu interfaz
+      id_usuario: item.id_usuario,
+    }));
+
+    return documentos;
 
   } catch (err) {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
@@ -88,6 +112,7 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor) => {
     throw errorToThrow;
   }
 };
+
 
 /**
  * Actualiza el estatus de un documento específico (llamada desde Admin).

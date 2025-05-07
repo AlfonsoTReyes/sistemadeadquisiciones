@@ -346,6 +346,11 @@ export const updateAdminRevisionStatus = async (
   }
 
   try {
+    console.log("BODY QUE SE ENVÍA A LA API:", JSON.stringify({
+      id_proveedor: idProveedor,
+      estatus_revision: nuevoEstatusRevision,
+      id_admin_revisor: adminUserId
+    }, null, 2));
       const response = await fetch(ADMIN_PROVEEDORES_API_URL, { // Asegúrate que este es el endpoint correcto para esta acción
           method: 'PUT', // O 'PATCH' si es más apropiado para tu API
           headers: { 'Content-Type': 'application/json' },
