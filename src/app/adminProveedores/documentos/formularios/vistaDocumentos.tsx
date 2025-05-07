@@ -124,11 +124,13 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({
                 id_comentario: com.id_comentario,
                 id_documento_proveedor: com.id_documento_proveedor,
                 id_usuario: com.id_usuario,
+                id_usuario_admin: com.id_usuario_admin, // <- AÑADIR ESTA LÍNEA
                 comentario: com.comentario,
                 created_at: com.created_at,
                 nombre_admin: com.nombre_admin,
                 apellidos_admin: com.apellidos_admin
             }));
+
 
             setComentarios(comentariosTransformados);
         } catch (err) {
