@@ -93,7 +93,6 @@ export async function fetchApi<T = any>(
         // --- Manejo de Errores (Respuesta no OK) ---
         if (!response.ok) { // status < 200 || status >= 300
             let errorData: any; // Para almacenar el cuerpo del error
-            let errorMessage: string; // Mensaje final del error
 
             try {
                 // Intentar leer el cuerpo del error (JSON o Texto)
@@ -108,9 +107,9 @@ export async function fetchApi<T = any>(
             }
 
             // Construir un mensaje de error descriptivo
-            errorMessage = (typeof errorData === 'object' && errorData?.message) // ¿Tiene propiedad 'message'?
-                ? errorData.message // Usar mensaje del JSON
-                : (typeof errorData === 'string' ? errorData.substring(0, 200) : `Error ${response.status}`); // Usar texto o código
+            const errorMessage: string = (typeof errorData === 'object' && errorData?.message)
+            ? errorData.message
+            : (typeof errorData === 'string' ? errorData.substring(0, 200) : `Error ${response.status}`);
 
             // Loguear el error detallado en la consola del servidor/cliente
             console.error(`API Error ${response.status} for ${url}:`, errorData);

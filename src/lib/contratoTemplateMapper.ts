@@ -2,7 +2,7 @@
 
 import { ContratoDetallado } from '@/types/contrato';
 import { ContratoInputData, SuficienciaInput, AreaRequirenteInput } from '@/types/contratoTemplateData';
-import numeroALetras from 'numero-a-letras'; // CORREGIDO: Changed to ES6 import
+import * as numeroALetrasModule from 'numero-a-letras'; // Importar todo el módulo
 
 // --- Interfaz TemplateData ---
 interface TemplateData {
