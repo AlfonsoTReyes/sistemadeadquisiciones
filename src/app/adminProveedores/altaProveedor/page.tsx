@@ -418,7 +418,18 @@ export default function AdministradorProveedoresPage() {
                 <ModalActualizarProveedor
                     isOpen={isEditProfileModalOpen}
                     onClose={handleCloseEditProfileModal}
-                    proveedorData={editingProviderData}
+                    // Apply the transformation here:
+                    proveedorData={{
+                        ...editingProviderData, // Spread all properties from editingProviderData
+                        // Transform rfc: if it's null, make it undefined; otherwise, keep its value.
+                        rfc: editingProviderData.rfc === null ? undefined : editingProviderData.rfc,
+                        // Transform estatus similarly:
+                        estatus: editingProviderData.estatus === null ? undefined : editingProviderData.estatus,
+                        // Note: If other fields cause similar errors, they would need transformation too.
+                        // For example, if a field 'someField' was 'string | null' in ProveedorCompletoData
+                        // but 'string | undefined' in ProveedorDataFromAPI, you'd add:
+                        // someField: editingProviderData.someField === null ? undefined : editingProviderData.someField,
+                    }}
                     onSubmit={handleSaveProfileUpdate}
                     isLoading={isUpdatingProfile}
                     error={updateProfileError}
