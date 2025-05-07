@@ -8,21 +8,10 @@ import Menu from '../../menu';
 import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores'; // O TablaAdministradorProveedores según tu export
 
-// Assuming Proveedor type is implicitly defined by what fetchAllProveedores returns,
-// and it lacks 'tipo_proveedor'.
-// For clarity, let's imagine a basic Proveedor type:
-interface Proveedor {
-    id_proveedor: number;
-    rfc: string;
-    nombre_display?: string | null;
-    correo?: string | null;
-    estatus: boolean;
-    estatus_revision?: string | null;
-    // other properties that might exist in Proveedor...
-    // but critically, 'tipo_proveedor' is missing.
-}
+// REMOVE THE LOCAL Proveedor INTERFACE DEFINITION THAT WAS HERE
 
 import { UsuarioProveedorData } from './interface';
+// Import the specific types you need from your types file
 import { ProveedorAdminListData, ProveedorCompletoData } from '@/types/proveedor';
 
 
@@ -69,42 +58,69 @@ export default function AdministradorProveedoresPage() {
     const [adminUserId, setAdminUserId] = useState<number | null>(null);
 
     const cargarProveedores = useCallback(async (showLoadingIndicator = false) => {
-         if (showLoadingIndicator) setLoading(true);
-         setError(null);
-         try {
-             // fetchAllProveedores returns Proveedor[] according to the error.
-             // Let's assume Proveedor is the base type that's missing 'tipo_proveedor'.
-             const dataFromApi: Proveedor[] | undefined = await fetchAllProveedores();
-             const validApiData: Proveedor[] = dataFromApi || [];
+        if (showLoadingIndicator) setLoading(true);
+        setError(null);
+        try {
+            // Assume fetchAllProveedores returns an array of objects (any[] for flexibility here).
+            // Each object might have most properties of ProveedorAdminListData but could be
+            // missing 'tipo_proveedor' or have it in an incompatible format.
+            const dataFromApi: any[] | undefined = await fetchAllProveedores();
+            const validApiData: any[] = dataFromApi || [];
 
-             // Transform Proveedor[] to ProveedorAdminListData[]
-             // by adding the missing 'tipo_proveedor' property.
-             const transformedData: ProveedorAdminListData[] = validApiData.map(proveedor => ({
-                 ...proveedor, // Spread all properties from the original Proveedor object
-                 tipo_proveedor: (proveedor as any).tipo_proveedor || 'NO_ASIGNADO' // Add 'tipo_proveedor'.
-                                                                         // If 'tipo_proveedor' might actually exist on the fetched
-                                                                         // object despite the 'Proveedor' type not declaring it,
-                                                                         // (proveedor as any).tipo_proveedor will attempt to use it.
-                                                                         // Otherwise, it falls back to 'NO_ASIGNADO'.
-                                                                         // If 'tipo_proveedor' is guaranteed to be missing from 'proveedor',
-                                                                         // you can directly assign a default: tipo_proveedor: 'NO_ASIGNADO'.
-             }));
+            const transformedData: ProveedorAdminListData[] = validApiData.map(apiItem => {
+                // Determine the correct 'tipo_proveedor'
+                let tipoProveedorValue: 'moral' | 'fisica' | 'desconocido' = 'desconocido';
+                if (apiItem.tipo_proveedor === 'moral' || apiItem.tipo_proveedor === 'fisica') {
+                    tipoProveedorValue = apiItem.tipo_proveedor;
+                } else if (apiItem.tipo_proveedor) {
+                    // Log a warning if an unexpected value is received
+                    console.warn(`API returned an unexpected tipo_proveedor value ('${apiItem.tipo_proveedor}') for proveedor ID ${apiItem.id_proveedor}. Defaulting to 'desconocido'.`);
+                }
+                // If apiItem.tipo_proveedor is null or undefined, it correctly defaults to 'desconocido'.
 
-             setProveedores(transformedData);
-             const count = transformedData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
-             setPendientesCount(count);
-         } catch (err: any) { 
-            setError(err.message || "Error cargando proveedores."); 
-            setProveedores([]); // useState correctly infers this should be ProveedorAdminListData[]
-            setPendientesCount(0); 
+                // Construct 'nombre_display' based on 'tipo_proveedor' and available name fields if not directly provided
+                let nombreDisplayValue = apiItem.nombre_display;
+                if (typeof nombreDisplayValue !== 'string' || nombreDisplayValue.trim() === '') {
+                    if (tipoProveedorValue === 'moral' && typeof apiItem.razon_social === 'string' && apiItem.razon_social.trim() !== '') {
+                        nombreDisplayValue = apiItem.razon_social;
+                    } else if (tipoProveedorValue === 'fisica' && typeof apiItem.nombre_fisica === 'string' && apiItem.nombre_fisica.trim() !== '') {
+                        nombreDisplayValue = `${apiItem.nombre_fisica} ${apiItem.apellido_p_fisica || ''} ${apiItem.apellido_m_fisica || ''}`.trim();
+                        if (nombreDisplayValue === '') nombreDisplayValue = null;
+                    } else {
+                        nombreDisplayValue = null;
+                    }
+                }
+
+                const proveedorAdminItem: ProveedorAdminListData = {
+                    id_proveedor: Number(apiItem.id_proveedor), // Ensure it's a number
+                    rfc: typeof apiItem.rfc === 'string' ? apiItem.rfc : null,
+                    correo: typeof apiItem.correo === 'string' ? apiItem.correo : null,
+                    estatus: typeof apiItem.estatus === 'boolean' ? apiItem.estatus : null,
+                    estatus_revision: typeof apiItem.estatus_revision === 'string' ? apiItem.estatus_revision : null,
+                    telefono: typeof apiItem.telefono === 'string' ? apiItem.telefono : null,
+                    tipo_proveedor: tipoProveedorValue, // Correctly typed and validated
+                    nombre_display: typeof nombreDisplayValue === 'string' && nombreDisplayValue.trim() !== '' ? nombreDisplayValue : null,
+                    razon_social: typeof apiItem.razon_social === 'string' ? apiItem.razon_social : null,
+                    nombre_fisica: typeof apiItem.nombre_fisica === 'string' ? apiItem.nombre_fisica : null,
+                    apellido_p_fisica: typeof apiItem.apellido_p_fisica === 'string' ? apiItem.apellido_p_fisica : null,
+                    apellido_m_fisica: typeof apiItem.apellido_m_fisica === 'string' ? apiItem.apellido_m_fisica : null,
+                };
+                return proveedorAdminItem;
+            });
+
+            setProveedores(transformedData);
+            const count = transformedData.filter(p => p.estatus_revision === 'PENDIENTE_REVISION').length;
+            setPendientesCount(count);
+        } catch (err: any) {
+            setError(err.message || "Error cargando proveedores.");
+            setProveedores([]);
+            setPendientesCount(0);
+        } finally {
+            if (showLoadingIndicator) setLoading(false);
         }
-         finally { 
-            if (showLoadingIndicator) setLoading(false); 
-        }
-    }, []); // No dependencies needed here if fetchAllProveedores is stable
+    }, []);
 
     useEffect(() => {
-        // setLoading(true); // setLoading is called within cargarProveedores
         cargarProveedores(true);
         const storedAdminId = sessionStorage.getItem("userId");
         if (storedAdminId) {
@@ -122,23 +138,23 @@ export default function AdministradorProveedoresPage() {
     }, [cargarProveedores]);
 
     const handleViewDocuments = (idProveedor: number) => {
-         sessionStorage.setItem('adminSelectedProveedorId', idProveedor.toString());
-         router.push('/adminProveedores/documentos');
+        sessionStorage.setItem('adminSelectedProveedorId', idProveedor.toString());
+        router.push('/adminProveedores/documentos');
     };
 
     const handleChangeStatus = async (idProveedor: number, currentStatus: boolean) => {
         const newStatus = !currentStatus;
         const proveedorSeleccionado = proveedores.find(p => p.id_proveedor === idProveedor);
         const confirmationText = newStatus
-            ? `¿ACTIVAR proveedor ${proveedorSeleccionado?.rfc ?? idProveedor}?`
-            : `¿DESACTIVAR proveedor ${proveedorSeleccionado?.rfc ?? idProveedor}?`;
+            ? `¿ACTIVAR proveedor ${proveedorSeleccionado?.rfc || proveedorSeleccionado?.nombre_display || idProveedor}?`
+            : `¿DESACTIVAR proveedor ${proveedorSeleccionado?.rfc || proveedorSeleccionado?.nombre_display || idProveedor}?`;
 
         if (window.confirm(confirmationText)) {
             setLoadingStatusChange(prev => ({ ...prev, [idProveedor]: true }));
             setError(null);
             try {
                 await updateProveedorStatus(idProveedor, newStatus);
-                await cargarProveedores(); // Reload data
+                await cargarProveedores();
             } catch (err) {
                 setError(`Error al cambiar estado: ${(err as Error).message}`);
             } finally {
@@ -157,7 +173,8 @@ export default function AdministradorProveedoresPage() {
         }
 
         return proveedores.filter(p => {
-            const matchRfc = rfcLower ? p.rfc.toLowerCase().includes(rfcLower) : true;
+            // Guard against null values before calling toLowerCase()
+            const matchRfc = rfcLower ? (p.rfc || '').toLowerCase().includes(rfcLower) : true;
             const matchCorreo = correoLower ? (p.correo || '').toLowerCase().includes(correoLower) : true;
             const matchNombreRazonSocial = nombreRazonSocialLower ? (p.nombre_display || '').toLowerCase().includes(nombreRazonSocialLower) : true;
 
@@ -182,15 +199,14 @@ export default function AdministradorProveedoresPage() {
         setIsFetchingEditData(true);
         setUpdateProfileError(null);
         setEditingProviderData(null);
-        // setIsEditProfileModalOpen(false); // Not needed here, open on success
         try {
             const data = await getProveedorProfileById(idProveedor);
             if (!data) throw new Error(`Perfil no encontrado (ID: ${idProveedor}).`);
-            setEditingProviderData(data as ProveedorCompletoData); // Assume getProveedorProfileById returns data compatible with ProveedorCompletoData
+            setEditingProviderData(data as ProveedorCompletoData);
             setIsEditProfileModalOpen(true);
         } catch (err: any) {
             setError(err.message || 'Error al cargar datos para editar.');
-             setIsEditProfileModalOpen(false); // Ensure modal is closed on error
+            setIsEditProfileModalOpen(false);
         } finally {
             setIsFetchingEditData(false);
         }
@@ -202,8 +218,8 @@ export default function AdministradorProveedoresPage() {
         setUpdateProfileError(null);
     };
 
-    const handleSaveProfileUpdate = async (payloadFromModal: any) => { // Consider typing payloadFromModal properly
-        if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) { // Assuming tipoProveedor maps to tipo_proveedor
+    const handleSaveProfileUpdate = async (payloadFromModal: any) => {
+        if (!payloadFromModal?.id_proveedor || !payloadFromModal.tipoProveedor) {
             setUpdateProfileError("Error interno: Datos incompletos recibidos desde el formulario.");
             return;
         }
@@ -212,7 +228,7 @@ export default function AdministradorProveedoresPage() {
         try {
             await updateProveedorProfile(payloadFromModal);
             handleCloseEditProfileModal();
-            await cargarProveedores(); // Reload data
+            await cargarProveedores();
             alert("Perfil del proveedor actualizado exitosamente.");
         } catch (err: any) {
             setUpdateProfileError(err.message || 'Error desconocido al guardar el perfil.');
@@ -225,19 +241,18 @@ export default function AdministradorProveedoresPage() {
         setIsFetchingEditData(true);
         setUpdateUserError(null);
         setEditingUserData(null);
-        // setIsEditUserModalOpen(false); // Not needed here
         try {
             const data = await getUsuarioProveedorByProveedorId(idProveedor);
             if (data && typeof data.id_usuario === 'number') {
-                setEditingUserData(data as UsuarioProveedorData); // Assume data is compatible
+                setEditingUserData(data as UsuarioProveedorData);
                 setIsEditUserModalOpen(true);
             } else {
                 alert("Este proveedor no tiene un usuario asociado o no se pudieron cargar los datos.");
-                setIsEditUserModalOpen(false); // Ensure modal is closed
+                setIsEditUserModalOpen(false);
             }
         } catch (err: any) {
             setUpdateUserError(err.message || 'Error al cargar datos del usuario.');
-            setIsEditUserModalOpen(false); // Ensure modal is closed on error
+            setIsEditUserModalOpen(false);
         } finally {
             setIsFetchingEditData(false);
         }
@@ -249,7 +264,7 @@ export default function AdministradorProveedoresPage() {
         setUpdateUserError(null);
     };
 
-    const handleSaveUserUpdate = async (payloadFromModal: any) => { // Consider typing payloadFromModal
+    const handleSaveUserUpdate = async (payloadFromModal: any) => {
         if (!payloadFromModal?.id_usuario || typeof payloadFromModal.id_usuario !== 'number') {
             const errorMsg = "Error Interno (Page): El payload recibido del modal no contiene un 'id_usuario' numérico válido.";
             setUpdateUserError(errorMsg);
@@ -261,7 +276,7 @@ export default function AdministradorProveedoresPage() {
             await updateUsuarioProveedor(payloadFromModal);
             handleCloseEditUserModal();
             alert("Usuario del proveedor actualizado exitosamente.");
-            await cargarProveedores(); // Reload data
+            await cargarProveedores();
         } catch (err: any) {
             setUpdateUserError(err.message || "Ocurrió un error desconocido al actualizar el usuario.");
         } finally {
@@ -276,49 +291,33 @@ export default function AdministradorProveedoresPage() {
         }
         setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: true }));
         setError(null);
-        
+
         const proveedorOriginal = proveedores.find(p => p.id_proveedor === idProveedor);
         const estadoPrevio = proveedorOriginal?.estatus_revision;
 
-        // Optimistic update
-        setProveedores(prevProvs => prevProvs.map(p => 
+        setProveedores(prevProvs => prevProvs.map(p =>
             p.id_proveedor === idProveedor ? { ...p, estatus_revision: nuevoEstatus } : p
         ));
-        
-        // Update pending count optimistically
+
         if (estadoPrevio !== nuevoEstatus) {
             let countChange = 0;
-            if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') {
-                countChange = -1;
-            } else if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') {
-                countChange = 1;
-            }
-            if (countChange !== 0) {
-                setPendientesCount(prev => Math.max(0, prev + countChange));
-            }
+            if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') countChange = -1;
+            if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') countChange = 1;
+            if (countChange !== 0) setPendientesCount(prev => Math.max(0, prev + countChange));
         }
 
         try {
             await updateAdminRevisionStatus(idProveedor, nuevoEstatus, adminUserId);
-            // Data is already up-to-date if API call succeeds, no need to call cargarProveedores unless full refresh is desired
-            // await cargarProveedores(); // Optionally, reload all data to ensure consistency
         } catch (err: any) {
             setError(`Error al actualizar estado: ${err.message}`);
-            // Revert optimistic update on error
-            setProveedores(prevProvs => prevProvs.map(p => 
+            setProveedores(prevProvs => prevProvs.map(p =>
                 p.id_proveedor === idProveedor ? { ...p, estatus_revision: estadoPrevio ?? 'NO_SOLICITADO' } : p
             ));
-            // Revert pending count
-            if (estadoPrevio !== nuevoEstatus) {
+            if (estadoPrevio !== nuevoEstatus) { // Revert count change
                 let countChange = 0;
-                 if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') {
-                    countChange = 1; // Add back
-                } else if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') {
-                    countChange = -1; // Remove
-                }
-                if (countChange !== 0) {
-                     setPendientesCount(prev => Math.max(0, prev + countChange));
-                }
+                if (estadoPrevio === 'PENDIENTE_REVISION' && nuevoEstatus !== 'PENDIENTE_REVISION') countChange = 1; // Add back
+                if (estadoPrevio !== 'PENDIENTE_REVISION' && nuevoEstatus === 'PENDIENTE_REVISION') countChange = -1; // Remove added
+                if (countChange !== 0) setPendientesCount(prev => Math.max(0, prev + countChange));
             }
         } finally {
             setIsLoadingRevisionChange(prev => ({ ...prev, [idProveedor]: false }));
@@ -332,12 +331,12 @@ export default function AdministradorProveedoresPage() {
         <div className="flex flex-col min-h-screen">
             <Menu />
             <main className="flex-grow p-4 md:p-8 pt-20 md:pt-24 bg-gray-100">
-                 <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
+                <h1 className="text-3xl text-center font-bold mb-6 text-gray-800 relative">
                     Administración de Proveedores
                     {pendientesCount > 0 && (<span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white absolute top-0 -right-2 transform -translate-y-1/2 translate-x-1/2 ring-2 ring-white" title={`${pendientesCount} pendiente(s)`}>{pendientesCount}</span>)}
                 </h1>
 
-                 <div className="mb-6 p-4 bg-white shadow rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div className="mb-6 p-4 bg-white shadow rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <div>
                         <label htmlFor="filtroRfc" className="block text-sm font-medium text-gray-700 mb-1">Filtrar por RFC:</label>
                         <input type="text" id="filtroRfc" value={filtroRfc} onChange={(e) => setFiltroRfc(e.target.value)} placeholder="Buscar RFC..." className="w-full input-style" />
@@ -389,10 +388,10 @@ export default function AdministradorProveedoresPage() {
                     </div>
                 </div>
 
-                 {error && !loading && (<p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p>)}
-                 {loading && (<p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>)}
+                {error && !loading && (<p className="text-center text-red-600 bg-red-100 p-3 rounded border border-red-400 mb-4">Error: {error}</p>)}
+                {loading && (<p className="text-center text-blue-500 py-5">Cargando lista de proveedores...</p>)}
 
-                 {!loading && !error && (
+                {!loading && !error && (
                     <TablaDocumentos
                         proveedores={proveedoresFiltrados}
                         onViewDocuments={handleViewDocuments}
@@ -405,12 +404,12 @@ export default function AdministradorProveedoresPage() {
                         isFetchingEditData={isFetchingEditData}
                     />
                 )}
-                 {!loading && !error && proveedoresFiltrados.length === 0 && activeFiltersExist && (
+                {!loading && !error && proveedoresFiltrados.length === 0 && activeFiltersExist && (
                     <p className="text-center text-gray-500 mt-6">No se encontraron proveedores con los filtros aplicados.</p>
-                 )}
-                 {!loading && !error && proveedores.length === 0 && !activeFiltersExist && (
+                )}
+                {!loading && !error && proveedores.length === 0 && !activeFiltersExist && (
                     <p className="text-center text-gray-500 mt-6">No hay proveedores registrados.</p>
-                 )}
+                )}
 
             </main>
             <Pie />
@@ -431,8 +430,8 @@ export default function AdministradorProveedoresPage() {
                     onClose={handleCloseEditUserModal}
                     userData={editingUserData}
                     onSubmit={handleSaveUserUpdate}
-                    isLoading={isUpdatingUser} // Pass loading state
-                    error={updateUserError}   // Pass error state
+                    isLoading={isUpdatingUser}
+                    error={updateUserError}
                 />
             )}
 
