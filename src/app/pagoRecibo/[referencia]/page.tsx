@@ -1,52 +1,35 @@
 // app/pagoRecibo/[referencia]/page.tsx
 import { notFound } from 'next/navigation';
-import { ReciboData } from '@/types/pago'; // Ensure this path is correct
-
+import { ReciboData } from '@/types/pago';
+export const dynamic = 'force-dynamic';
 async function fetchRecibo(referencia: string): Promise<ReciboData | null> {
+    // ... (your fetchRecibo function remains the same)
     const internalApiUrl = `/api/pagos/recibo?ref=${encodeURIComponent(referencia)}&format=json`;
     const absoluteApiUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${internalApiUrl}`;
-
     console.log(`Recibo Page: Fetching ${absoluteApiUrl}`);
     try {
-        const res = await fetch(absoluteApiUrl, {
-             cache: 'no-store',
-             headers: { 'Accept': 'application/json' }
-        });
-
-        if (res.status === 404) {
-            console.log(`Recibo Page: API devolvió 404 para ref ${referencia}`);
-            return null;
-        }
+        const res = await fetch(absoluteApiUrl, { cache: 'no-store', headers: { 'Accept': 'application/json' }});
+        if (res.status === 404) return null;
         if (!res.ok) {
-            let errorMsg = `Error ${res.status} (${res.statusText}) al obtener recibo desde ${internalApiUrl}`;
-            try {
-                 const errorData = await res.json();
-                 errorMsg = errorData.message ? `${errorMsg}: ${errorData.message}` : errorMsg;
-            } catch (e) { /* No hacer nada si no es JSON */ }
-            console.error(`Recibo Page: Error en fetchRecibo - ${errorMsg}`);
+            let errorMsg = `Error ${res.status}`;
+            try { const ed = await res.json(); errorMsg = ed.message || errorMsg; } catch {}
             throw new Error(errorMsg);
         }
-        const data: ReciboData = await res.json();
-        return data;
-    } catch (error: unknown) { // Changed to unknown
-        console.error(`Recibo Page: Catch en fetchRecibo para ref ${referencia}:`, error);
+        return await res.json();
+    } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'No se pudo cargar la información del recibo.';
         throw new Error(message);
     }
 }
 
-// Remove or comment out your custom PageProps interface
-// interface PageProps { params: { referencia: string } }
-
 // --- El Server Component ---
-// Let TypeScript infer the type of props, especially params
-export default async function ReciboPage({ params }: { params: { referencia: string } }) {
-    const encodedReferencia = params.referencia;
+// Try with a very generic props type, or even 'any' temporarily for diagnosis
+export default async function ReciboPage(props: any) { // TEMPORARY: Use 'any' for props
+    // Access params with optional chaining and type assertion if using 'any'
+    const encodedReferencia = props.params?.referencia as string | undefined;
 
     if (!encodedReferencia) {
-        // This check might be redundant if 'referencia' is a required dynamic segment,
-        // as Next.js would typically 404 before reaching here if it's missing.
-        // However, it doesn't hurt as a safeguard.
+        console.log("ReciboPage: encodedReferencia is missing from props.params", props.params);
         notFound();
     }
 
@@ -57,10 +40,11 @@ export default async function ReciboPage({ params }: { params: { referencia: str
 
     try {
         reciboData = await fetchRecibo(decodedReferencia);
-    } catch (error: unknown) { // Changed to unknown
+    } catch (error: unknown) {
         fetchError = error instanceof Error ? error.message : "Error desconocido al obtener recibo.";
     }
 
+    // ... (rest of your rendering logic for fetchError, !reciboData, and reciboData)
     if (fetchError) {
         return (
             <div className="container mx-auto p-6 max-w-2xl my-8 border rounded-lg shadow-sm">
@@ -89,14 +73,12 @@ export default async function ReciboPage({ params }: { params: { referencia: str
                  <p className="text-sm text-gray-500">Fecha: {reciboData.fechaHora ? new Date(reciboData.fechaHora).toLocaleString() : 'N/A'}</p>
                  <p className="text-sm text-gray-500">Referencia: <span className="font-mono">{reciboData.pago?.referencia || 'N/A'}</span></p>
             </div>
-            {/* Consider adding more fields from ReciboData here */}
             <div className="mt-6 border-t pt-6">
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">Detalles del Pago</h2>
                 <p><strong>Concepto:</strong> {reciboData.pago?.concepto || 'N/A'}</p>
                 <p><strong>Monto:</strong> {reciboData.pago?.monto !== undefined ? `${reciboData.pago.monto.toFixed(2)} ${reciboData.pago.moneda || 'MXN'}` : 'N/A'}</p>
                 <p><strong>Método de Pago:</strong> {reciboData.pago?.metodoPago || 'N/A'}</p>
                 <p><strong>Estado del Pago:</strong> {reciboData.pago?.estado || 'N/A'}</p>
-                {/* Add more details as needed */}
             </div>
         </div>
     );
