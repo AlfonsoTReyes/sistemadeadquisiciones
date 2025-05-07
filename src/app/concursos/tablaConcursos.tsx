@@ -123,14 +123,6 @@ const [concursoParaFallo, setConcursoParaFallo] = useState<Concurso | null>(null
                 </button>
                 <br />
                 <button
-                 onClick={() => abrirBases(c.id_concurso, c.id_solicitud)}
-                  className="text-red-700"
-                >
-                  Bases
-                </button>
-
-                <br />
-                <button
                   className="text-yellow-700"
                   onClick={() => {
                     sessionStorage.setItem('id_concurso_actual', c.id_concurso.toString());
@@ -138,6 +130,13 @@ const [concursoParaFallo, setConcursoParaFallo] = useState<Concurso | null>(null
                   }}
                 >
                   Calendario de eventos
+                </button>
+                <br />
+                <button
+                 onClick={() => abrirBases(c.id_concurso, c.id_solicitud)}
+                  className="text-red-700"
+                >
+                  Bases
                 </button>
 
                 <br />

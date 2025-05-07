@@ -8,8 +8,8 @@ import { guardarActaSesion, guardarAsistentesActa,
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const usuario = searchParams.get("usuario");
-    const sistema = searchParams.get("sistema");
+    // const usuario = searchParams.get("usuario");
+    // const sistema = searchParams.get("sistema");
     const id = searchParams.get("id");
     const acta = searchParams.get("orden");
 

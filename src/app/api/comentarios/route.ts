@@ -103,7 +103,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const resultado = await deleteComentario(Number(id_comentario));
+    // const resultado = await deleteComentario(Number(id_comentario));
     return NextResponse.json({ message: "Comentario eliminado correctamente." });
   } catch (error) {
     console.error("Error al eliminar comentario:", error);

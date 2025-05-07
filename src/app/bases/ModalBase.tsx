@@ -1,9 +1,12 @@
 // Componente: ModalBases.tsx
 "use client";
 import { useState, useEffect } from "react";
+import clsx from "clsx";
 import AltaBases from "./formularios/alta";
 import ModificarBases from "./formularios/modificar";
 import { getBasesByConcurso, fetchSecretarias } from '../peticiones_api/peticionBases';
+import ModalEstatusConcurso from "./formularios/estatus";
+
 
 interface ModalBasesProps {
   idConcurso: number;
@@ -17,7 +20,23 @@ const ModalBases: React.FC<ModalBasesProps> = ({ idConcurso, idSolicitud, onClos
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [secretarias, setSecretarias] = useState<any[]>([]);
+  const [mostrarModalEstatus, setMostrarModalEstatus] = useState(false);
+  const [nuevoEstatus, setNuevoEstatus] = useState<string>(basesExistentes?.estatus_bases || "");
+  
 
+  const renderEstatus = (estatus: string) => {
+    const statusClass = clsx(
+      "inline-block px-3 py-1 rounded-full text-sm font-semibold",
+      {
+        "bg-green-100 text-green-700": ["Publicado", "Terminado"].includes(estatus),
+        "bg-red-100 text-red-700": ["Pendiente", "Sin publicar", "Borrador"].includes(estatus),
+        "bg-gray-100 text-gray-700": !["Publicado", "Terminado", "Pendiente", "Sin publicar", "Borrador"].includes(estatus),
+      }
+    );
+  
+    return <span className={statusClass}>{estatus}</span>;
+  };
+  
 
   const fetchBases = async () => {
     try {
@@ -112,43 +131,35 @@ const ModalBases: React.FC<ModalBasesProps> = ({ idConcurso, idSolicitud, onClos
             {/* Mostrar datos de bases existentes */}
             <h1 className="text-2xl font-bold mb-4 text-center">Bases Existentes</h1>
 
-            <div className="space-y-2">
-              <p><strong>Número Procedimiento:</strong> {basesExistentes.numero_procedimiento}</p>
-              <p><strong>Título Contratación:</strong> {basesExistentes.titulo_contratacion}</p>
-              <p>
-                <strong>Departamento Convocante:</strong>{" "}
-                {
-                  secretarias.find(sec => sec.id_secretaria === basesExistentes.id_secretaria_convocante)?.nombre || 
-                  "Desconocido"
-                }
-              </p>
-              <p>
-                <strong>Departamento Solicitante:</strong>{" "}
-                {
-                  secretarias.find(sec => sec.id_secretaria === basesExistentes.id_secretaria_solicitante)?.nombre || 
-                  "Desconocido"
-                }
-              </p>
-              <p><strong>Descripción del Programa:</strong> {basesExistentes.descripcion_programa}</p>
-              <p><strong>Ejercicio Fiscal:</strong> {basesExistentes.ejercicio_fiscal}</p>
-              <p><strong>Fuente de Recurso:</strong> {basesExistentes.fuente_recurso}</p>
-              <p><strong>Fecha Elaboración:</strong> {basesExistentes.fecha_elaboracion_bases}</p>
-              <p><strong>Lugar Actos:</strong> {basesExistentes.lugar_actos_predeterminado}</p>
-              <p><strong>Monto Mínimo Contrato:</strong> ${basesExistentes.monto_minimo_contrato?.toLocaleString()}</p>
-              <p><strong>Monto Máximo Contrato:</strong> ${basesExistentes.monto_maximo_contrato?.toLocaleString()}</p>
-              <p><strong>Costo Bases:</strong> {basesExistentes.costo_bases_descripcion} (${basesExistentes.costo_bases_valor_mn})</p>
-              <p><strong>Requiere Inscripción al Padrón:</strong> {basesExistentes.requiere_inscripcion_padron ? 'Sí' : 'No'}</p>
-              <p><strong>Fecha Límite Inscripción:</strong> {basesExistentes.fecha_limite_inscripcion_padron}</p>
-              <p><strong>Idioma Documentación:</strong> {basesExistentes.idioma_documentacion}</p>
-              <p><strong>Vigencia Propuesta:</strong> {basesExistentes.periodo_vigencia_propuesta_dias} días</p>
-              <p><strong>Plazo Máximo de Entrega:</strong> {basesExistentes.plazo_maximo_entrega_dias} días</p>
-              <p><strong>Plazo de Pago:</strong> {basesExistentes.plazo_pago_dias} días</p>
-              <p><strong>Aplica Anticipo:</strong> {basesExistentes.aplica_anticipo ? 'Sí' : 'No'}</p>
-              <p><strong>Permite Subcontratación:</strong> {basesExistentes.permite_subcontratacion ? 'Sí' : 'No'}</p>
-              <p><strong>Contacto Aclaraciones:</strong> {basesExistentes.contacto_aclaraciones_email}</p>
-              <p><strong>Estatus:</strong> {basesExistentes.estatus_bases}</p>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 bg-white p-6 rounded-lg shadow border border-gray-200">
 
+              <div className="col-span-full">
+                <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Información General</h2>
+              </div>
+
+              <div><span className="text-gray-500 font-medium">Número Procedimiento:</span> <p>{basesExistentes.numero_procedimiento}</p></div>
+              <div><span className="text-gray-500 font-medium">Título Contratación:</span> <p>{basesExistentes.titulo_contratacion}</p></div>
+              <div><span className="text-gray-500 font-medium">Departamento Convocante:</span> <p>{secretarias.find(sec => sec.id_secretaria === basesExistentes.id_secretaria_convocante)?.nombre || "Desconocido"}</p></div>
+              <div><span className="text-gray-500 font-medium">Departamento Solicitante:</span> <p>{secretarias.find(sec => sec.id_secretaria === basesExistentes.id_secretaria_solicitante)?.nombre || "Desconocido"}</p></div>
+              <div><span className="text-gray-500 font-medium">Descripción del Programa:</span> <p>{basesExistentes.descripcion_programa}</p></div>
+              <div><span className="text-gray-500 font-medium">Ejercicio Fiscal:</span> <p>{basesExistentes.ejercicio_fiscal}</p></div>
+              <div><span className="text-gray-500 font-medium">Fuente de Recurso:</span> <p>{basesExistentes.fuente_recurso}</p></div>
+              <div><span className="text-gray-500 font-medium">Fecha Elaboración:</span> <p>{basesExistentes.fecha_elaboracion_bases}</p></div>
+              <div><span className="text-gray-500 font-medium">Lugar Actos:</span> <p>{basesExistentes.lugar_actos_predeterminado}</p></div>
+              <div><span className="text-gray-500 font-medium">Monto Mínimo Contrato:</span> <p>${basesExistentes.monto_minimo_contrato?.toLocaleString()}</p></div>
+              <div><span className="text-gray-500 font-medium">Monto Máximo Contrato:</span> <p>${basesExistentes.monto_maximo_contrato?.toLocaleString()}</p></div>
+              <div><span className="text-gray-500 font-medium">Costo Bases:</span> <p>{basesExistentes.costo_bases_descripcion} (${basesExistentes.costo_bases_valor_mn})</p></div>
+              <div><span className="text-gray-500 font-medium">Requiere Inscripción al Padrón:</span> <p>{basesExistentes.requiere_inscripcion_padron ? "Sí" : "No"}</p></div>
+              <div><span className="text-gray-500 font-medium">Fecha Límite Inscripción:</span> <p>{basesExistentes.fecha_limite_inscripcion_padron}</p></div>
+              <div><span className="text-gray-500 font-medium">Idioma Documentación:</span> <p>{basesExistentes.idioma_documentacion}</p></div>
+              <div><span className="text-gray-500 font-medium">Vigencia Propuesta:</span> <p>{basesExistentes.periodo_vigencia_propuesta_dias} días</p></div>
+              <div><span className="text-gray-500 font-medium">Plazo Máximo de Entrega:</span> <p>{basesExistentes.plazo_maximo_entrega_dias} días</p></div>
+              <div><span className="text-gray-500 font-medium">Plazo de Pago:</span> <p>{basesExistentes.plazo_pago_dias} días</p></div>
+              <div><span className="text-gray-500 font-medium">Aplica Anticipo:</span> <p>{basesExistentes.aplica_anticipo ? "Sí" : "No"}</p></div>
+              <div><span className="text-gray-500 font-medium">Permite Subcontratación:</span> <p>{basesExistentes.permite_subcontratacion ? "Sí" : "No"}</p></div>
+              <div><span className="text-gray-500 font-medium">Contacto Aclaraciones:</span> <p>{basesExistentes.contacto_aclaraciones_email}</p></div>
+              <div><span className="text-gray-500 font-medium">Estatus:</span> <p>{renderEstatus(basesExistentes.estatus_bases)}</p></div>
+            </div>
 
             {/* Botones */}
             <div className="flex flex-wrap gap-4 justify-center mt-6">
@@ -160,11 +171,12 @@ const ModalBases: React.FC<ModalBasesProps> = ({ idConcurso, idSolicitud, onClos
               </button>
 
               <button
-                onClick={() => alert("Aquí abrirías el modal para cambiar estatus")}
+                onClick={() => setMostrarModalEstatus(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
               >
                 Cambiar Estatus
               </button>
+
 
               <button
                 
@@ -177,6 +189,15 @@ const ModalBases: React.FC<ModalBasesProps> = ({ idConcurso, idSolicitud, onClos
         )}
 
       </div>
+      {mostrarModalEstatus && (
+        <ModalEstatusConcurso
+          idBases={basesExistentes.id_bases}
+          estatusActual={basesExistentes.estatus_bases}
+          onClose={() => setMostrarModalEstatus(false)}
+          onUpdated={handleActualizarBases}
+        />
+      )}
+
     </div>
   );
 };
