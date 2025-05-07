@@ -56,7 +56,7 @@ const FormularioDocumento: React.FC<Props> = ({ idSuficiencia, onClose, onSucces
   return (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg space-y-4">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Subir Pre suficiencia</h2>
+                <h2 className="text-xl font-bold">Subir documento</h2>
             </div>
 
             <label className="block">

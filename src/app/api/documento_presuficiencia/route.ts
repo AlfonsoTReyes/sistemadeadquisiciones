@@ -6,6 +6,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { unlink } from "fs/promises";
+import cloudinary from '../../../lib/cloudinary';
 
 
 // GET: obtener todas o una suficiencia
@@ -32,11 +33,13 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
+    // 🔹 Obtener los campos del formulario
     const archivo = formData.get("archivo") as File;
     const comentario = formData.get("comentario")?.toString() || "";
     const id_solicitud = formData.get("id_solicitud")?.toString();
     const userId = formData.get("userId")?.toString();
 
+    // 🔍 Validación de campos
     if (!archivo || !id_solicitud || !userId) {
       return NextResponse.json({ message: "Faltan campos obligatorios" }, { status: 400 });
     }
@@ -45,34 +48,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Solo se permiten archivos PDF" }, { status: 400 });
     }
 
+    // ✅ **Subida directa a Cloudinary (usando Data URI)**
     const buffer = Buffer.from(await archivo.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    const dataURI = `data:${archivo.type};base64,${base64}`;
 
-    // Ruta: public/pre-suficiencia/{id_solicitud}
-    const folderPath = path.join(process.cwd(), "public", "pre-suficiencia", id_solicitud);
-    await mkdir(folderPath, { recursive: true });
-
-    const fileName = `presuficiencia_${uuidv4()}_${archivo.name}`;
-    const filePath = path.join(folderPath, fileName);
-    await writeFile(filePath, buffer);
-
-    const ruta_archivo = `pre-suficiencia/${id_solicitud}/${fileName}`;
-
+    // 📌 **Obtener el tipo de suficiencia**
     const tipo = await obtenerTipoSuficiencia(Number(id_solicitud));
 
+    // 🔍 **Determinar la carpeta según el tipo**
+    const folderPath = tipo === "Suficiencia" ? "Suficiencia" : "Pre-suficiencia";
+
+    const uploadResponse = await cloudinary.uploader.upload(dataURI, {
+      folder: `${folderPath}/${id_solicitud}`,
+      public_id: `${tipo}_${Date.now()}`,
+      resource_type: "auto",
+    });
+
+
+    // 🌐 **Guardar en la Base de Datos**
     const resultado = await guardarDocumentoPreSuficiencia({
       id_suficiencia: Number(id_solicitud),
       tipo_documento: tipo,
-      nombre_original: archivo.name,
-      ruta_archivo,
+      nombre_original: uploadResponse.public_id,   // Guardamos el ID público generado
+      ruta_archivo: uploadResponse.secure_url,     // Guardamos la URL de Cloudinary
       estatus: "Atendido",
       id_usuario: Number(userId),
     });
 
-    const resultadoActivo = await updateSuficienciaEstatusAtendido(
+    // ✅ **Actualizar estatus**
+    await updateSuficienciaEstatusAtendido(
       Number(id_solicitud),
       "Atendido"
     );
 
+    // 🔄 **Respuesta exitosa**
     return NextResponse.json({ message: "Documento guardado correctamente", resultado }, { status: 200 });
   } catch (error) {
     console.error("Error al subir documento:", error);
@@ -96,16 +106,18 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: "Documento no encontrado" }, { status: 404 });
     }
 
-    // eliminar archivo físico
-    const filePath = path.join(process.cwd(), "public", documento.ruta_archivo);
-    try {
-      await unlink(filePath);
-    } catch (fsError) {
-      console.warn("No se pudo eliminar el archivo físico:", fsError);
-      // no detenemos el proceso si el archivo ya no existe
+    // Eliminar desde Cloudinary
+    if (documento.nombre_original) {
+      try {
+        await cloudinary.uploader.destroy(documento.nombre_original, {
+          resource_type: "raw"
+        });
+      } catch (cloudError) {
+        console.warn("⚠️ No se pudo eliminar de Cloudinary:", cloudError);
+      }
     }
 
-    // eliminar de la base de datos
+    // Eliminar de la base de datos
     await eliminarDocumentoAdicionalPorId(parseInt(id));
 
     return NextResponse.json({ success: true, message: "Documento eliminado correctamente" });

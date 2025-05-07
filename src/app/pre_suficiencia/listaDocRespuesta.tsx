@@ -101,7 +101,7 @@ const ModalDocumentos: React.FC<Props> = ({ idSuficiencia, onClose }) => {
                         <td className="border px-4 py-2">{doc.comentario}</td>
                         <td className="border px-4 py-2 text-center space-x-2">
                           <a
-                            href={`/${doc.ruta_archivo}`}
+                            href={`${doc.ruta_archivo}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
