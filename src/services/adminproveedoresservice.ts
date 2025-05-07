@@ -219,40 +219,38 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
 };
 
 export const updateProveedorEstatus = async (
-  idProveedor: number,
-  estatus: boolean
-): Promise<{ id_proveedor: number; rfc: string | null; estatus: boolean | null; updated_at: string | null; }> => { // Added return type
-  console.log(`DEBUG Service: Updating status for provider ID ${idProveedor} to ${estatus}`);
-  try {
-      if (isNaN(idProveedor)) {
-          throw new Error("ID de proveedor inválido proporcionado.");
-      }
-
+    idProveedor: number,
+    estatus: boolean
+  ): Promise<{ id_proveedor: number; rfc: string | null; estatus: boolean | null; updated_at: string | null; }> => {
+    console.log(`DEBUG Service: Updating status for provider ID ${idProveedor} to ${estatus}`);
+    
+    try {
       const result = await sql`
-      UPDATE proveedores
-      SET
-        estatus = ${estatus},
-        updated_at = NOW()
-      WHERE id_proveedor = ${idProveedor}
-      RETURNING id_proveedor, rfc, estatus, updated_at;
-    `;
-
+        UPDATE proveedores
+        SET
+          estatus = ${estatus},
+          updated_at = NOW()
+        WHERE id_proveedor = ${idProveedor}
+        RETURNING id_proveedor, rfc, estatus, updated_at;
+      `;
+  
       if (result.rows.length === 0) {
-          throw new Error(`Proveedor con ID ${idProveedor} no encontrado para actualizar.`);
+        throw new Error(`Proveedor con ID ${idProveedor} no encontrado para actualizar.`);
       }
-
+  
       console.log(`DEBUG Service: Status updated successfully for provider ID ${idProveedor}`);
-      return result.rows[0] as { id_proveedor: number; rfc: string | null; estatus: boolean | null; updated_at: string | null; };
-
-  } catch (error: unknown) { // Changed to unknown
-      console.error(`Error updating provider status for ID ${idProveedor}:`, error);
-      let message = 'Error al actualizar el estatus del proveedor.';
+      return result.rows[0];
+  
+    } catch (error: unknown) {
       if (error instanceof Error) {
-          message = error.message || message;
+        console.error(`Error updating provider status for ID ${idProveedor}: ${error.message}\n${error.stack}`);
+        throw new Error(error.message);
       }
-      throw new Error(message);
-  }
-};
+      console.error(`Error desconocido al actualizar proveedor ID ${idProveedor}:`, error);
+      throw new Error('Error al actualizar el estatus del proveedor.');
+    }
+  };
+  
 
 export const getProveedorById = async (id: number): Promise<ProveedorCompletoData | null> => {
     console.log(`SERVICE: getProveedorById called for ID ${id}`);
