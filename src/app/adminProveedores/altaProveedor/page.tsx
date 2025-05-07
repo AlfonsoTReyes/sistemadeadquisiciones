@@ -44,11 +44,10 @@ export default function AdministradorProveedoresPage() {
     const [filtroEstatusGeneral, setFiltroEstatusGeneral] = useState<string>('todos');
     const [filtroEstatusRevision, setFiltroEstatusRevision] = useState<string>('todos');
 
-
+    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null);
     const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
     const [editingProviderData, setEditingProviderData] = useState<ProveedorCompletoData | null>(null);
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-    const [editingUserData, setEditingUserData] = useState<UsuarioProveedorData | null>(null);
     const [isFetchingEditData, setIsFetchingEditData] = useState(false);
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [updateProfileError, setUpdateProfileError] = useState<string | null>(null);
@@ -242,9 +241,15 @@ export default function AdministradorProveedoresPage() {
         setUpdateUserError(null);
         setEditingUserData(null);
         try {
-            const data = await getUsuarioProveedorByProveedorId(idProveedor);
-            if (data && typeof data.id_usuario === 'number') {
-                setEditingUserData(data as UsuarioProveedorData);
+            const dataFromApi = await getUsuarioProveedorByProveedorId(idProveedor); // This likely returns data where apellido_m can be null
+
+            if (dataFromApi && typeof dataFromApi.id_usuario === 'number') {
+                // Set editingUserData, ensuring 'contraseña' is present (from previous fix)
+                // apellido_m can remain null here as per the type from interface.ts
+                setEditingUserData({
+                    ...dataFromApi,
+                    contraseña: (dataFromApi as any).contraseña || '',
+                } as UsuarioProveedorData);
                 setIsEditUserModalOpen(true);
             } else {
                 alert("Este proveedor no tiene un usuario asociado o no se pudieron cargar los datos.");
@@ -257,6 +262,7 @@ export default function AdministradorProveedoresPage() {
             setIsFetchingEditData(false);
         }
     };
+    
 
     const handleCloseEditUserModal = () => {
         setIsEditUserModalOpen(false);
@@ -418,17 +424,10 @@ export default function AdministradorProveedoresPage() {
                 <ModalActualizarProveedor
                     isOpen={isEditProfileModalOpen}
                     onClose={handleCloseEditProfileModal}
-                    // Apply the transformation here:
                     proveedorData={{
-                        ...editingProviderData, // Spread all properties from editingProviderData
-                        // Transform rfc: if it's null, make it undefined; otherwise, keep its value.
+                        ...editingProviderData,
                         rfc: editingProviderData.rfc === null ? undefined : editingProviderData.rfc,
-                        // Transform estatus similarly:
                         estatus: editingProviderData.estatus === null ? undefined : editingProviderData.estatus,
-                        // Note: If other fields cause similar errors, they would need transformation too.
-                        // For example, if a field 'someField' was 'string | null' in ProveedorCompletoData
-                        // but 'string | undefined' in ProveedorDataFromAPI, you'd add:
-                        // someField: editingProviderData.someField === null ? undefined : editingProviderData.someField,
                     }}
                     onSubmit={handleSaveProfileUpdate}
                     isLoading={isUpdatingProfile}
@@ -439,7 +438,13 @@ export default function AdministradorProveedoresPage() {
                 <ModalActualizarUsuarioProveedor
                     isOpen={isEditUserModalOpen}
                     onClose={handleCloseEditUserModal}
-                    userData={editingUserData}
+                    // Transform editingUserData before passing it to the modal
+                    userData={{
+                        ...editingUserData, // Spread all properties from editingUserData
+                        // Ensure apellido_m is a string: convert null to empty string
+                        apellido_m: editingUserData.apellido_m === null ? '' : editingUserData.apellido_m,
+                        // 'contraseña' is already part of editingUserData due to the previous fix
+                    }}
                     onSubmit={handleSaveUserUpdate}
                     isLoading={isUpdatingUser}
                     error={updateUserError}

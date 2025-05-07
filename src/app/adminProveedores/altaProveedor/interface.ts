@@ -65,14 +65,14 @@ export interface ProveedorData {
     // añadir otros campos si los hubiera
 }
   // Interfaz para datos del USUARIO proveedor (mantenida)
-export interface UsuarioProveedorData {
-     id_usuario: number;
-     usuario: string;
-     nombre: string;
-     apellido_p: string;
-     apellido_m: string | null; // Permitir null
-     correo: string;
-     estatus: boolean; // Asumiendo booleano
-     // No incluir contraseña aquí
-     [key: string]: any;
-   }
+  export interface UsuarioProveedorData {
+    id_usuario: number;
+    usuario: string | null;
+    nombre: string | null;
+    apellido_p: string | null;
+    apellido_m: string | null;
+    correo: string | null;
+    estatus: boolean | null;
+    contraseña: string | null; // MODIFIED: Add contraseña as required by the modal
+    [key: string]: any;
+}
