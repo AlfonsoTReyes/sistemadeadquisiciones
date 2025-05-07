@@ -1,7 +1,7 @@
 // src/utils/generateProveedorPdf.ts
 import { jsPDF } from "jspdf";
 // Asegúrate de importar la interfaz desde donde esté definida
-import { ProveedorInfo } from '../proveedores/dashboard/formularios/ProveedorInfo'; // <-- AJUSTA ESTA RUTA a donde definiste ProveedorData
+import { ProveedorDetallado } from '@/types/proveedor'; // <-- AJUSTA ESTA RUTA a donde definiste ProveedorData
 
 // Función para formatear la fecha (Mes en español)
 const formatDateES = (date: Date): string => {
@@ -13,7 +13,7 @@ const formatDateES = (date: Date): string => {
     return `San Juan del Río, Qro., a ${day} de ${month} de ${year}`;
 }
 
-export const generateProveedorPdfClientSide = async (providerData: ProveedorData): Promise<void> => {
+export const generateProveedorPdfClientSide = async (providerData: ProveedorDetallado): Promise<void> => {
     return new Promise((resolve, reject) => {
         try {
             const doc = new jsPDF({
