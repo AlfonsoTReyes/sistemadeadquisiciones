@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import ModificarSolicitud from "./formularios/modificar";
 import Link from 'next/link';
-import ModalConfirmacion from "../detalle_solicitudes/formularios/modificarEstatus";
+//import ModalConfirmacion from "@/app//detalle_solicitudes/formularios/modificarEstatus";
+import ModalConfirmacion from "@/app/solicitantes/detalle_solicitudes/formularios/modificarEstatus";
 import ModalFirmaEnvio from "./formularios/firmar"; // Ajusta la ruta
 
 interface Solicitud {
