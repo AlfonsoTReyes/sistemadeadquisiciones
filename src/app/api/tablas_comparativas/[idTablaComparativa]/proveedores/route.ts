@@ -1,66 +1,92 @@
-// src/app/api/tablas-comparativas/[idTablaComparativa]/proveedores/route.ts
+// src/app/api/tablas_comparativas/[idTablaComparativa]/proveedores/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { agregarProveedorATabla } from '@/services/tablasComparativasService'; // ¡IMPLEMENTAR ESTA FUNCIÓN!
+import { agregarProveedorATabla } from '@/services/tablasComparativasService';
 import { AgregarProveedorInput } from '@/types/tablaComparativa';
-// import { ZodError } from 'zod'; // Si usas Zod para validar
 
-interface RouteParams {
-    params: { idTablaComparativa: string };
-}
+// interface RouteParams { // Not needed for pathname workaround
+//     params: { idTablaComparativa: string };
+// }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
-    const { idTablaComparativa } = params;
+export const dynamic = 'force-dynamic'; // Recommended for canary versions
+
+export async function POST(
+    request: NextRequest
+    // { params }: RouteParams // Temporarily remove context for this workaround
+) {
+    // WORKAROUND: Extract idTablaComparativa from pathname
+    const pathnameParts = request.nextUrl.pathname.split('/');
+    // Expected path: /api/tablas_comparativas/[idTablaComparativa]/proveedores
+    // Array indices:    0   1           2               3                4
+    const idTablaComparativa = pathnameParts[3]; // Adjust index if your base path is different
+
+    if (!idTablaComparativa) {
+        console.error("API POST ProveedoresToTabla: Could not extract idTablaComparativa from pathname.", request.nextUrl.pathname, pathnameParts);
+        return NextResponse.json({ message: 'ID de tabla comparativa no encontrado en la ruta.' }, { status: 400 });
+    }
+
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/proveedores:`;
     console.log(logPrefix);
 
-    // 1. Validar ID de Tabla
     const idTabla = parseInt(idTablaComparativa, 10);
     if (isNaN(idTabla)) {
-        return NextResponse.json({ message: 'ID de tabla comparativa inválido.' }, { status: 400 });
+        return NextResponse.json({ message: 'ID de tabla comparativa inválido (extraído del pathname).' }, { status: 400 });
     }
 
     try {
-        // 2. Obtener y Validar Cuerpo de la Solicitud
         const body = await request.json();
         console.log(`${logPrefix} Request body:`, body);
 
-        // --- Validación (¡Usar Zod aquí!) ---
-        const inputData = body as AgregarProveedorInput; // Cast temporal
+        const inputData = body as AgregarProveedorInput; // Cast for now, Zod is better
+
         if (!inputData || typeof inputData !== 'object') {
             return NextResponse.json({ message: 'Cuerpo de solicitud inválido.' }, { status: 400 });
         }
-        if (inputData.id_tabla_comparativa !== idTabla) {
-            return NextResponse.json({ message: 'El ID de tabla en el cuerpo no coincide con el ID de la ruta.' }, { status: 400 });
+
+        // Critical: Ensure the id_tabla_comparativa in the body matches the one from the path,
+        // or better yet, overwrite it with the one from the path to ensure consistency.
+        if (inputData.id_tabla_comparativa !== undefined && inputData.id_tabla_comparativa !== idTabla) {
+            console.warn(`${logPrefix} Mismatch: ID de tabla en cuerpo (${inputData.id_tabla_comparativa}) vs ruta (${idTabla}). Usando ID de ruta.`);
+            // return NextResponse.json({ message: 'El ID de tabla en el cuerpo no coincide con el ID de la ruta.' }, { status: 400 });
         }
-        if (!inputData.id_proveedor || typeof inputData.id_proveedor !== 'number') {
+        // Ensure the data passed to the service uses the ID from the path parameter
+        const dataForService: AgregarProveedorInput = {
+            ...inputData,
+            id_tabla_comparativa: idTabla, // Override with ID from path
+        };
+
+
+        if (!dataForService.id_proveedor || typeof dataForService.id_proveedor !== 'number') {
             return NextResponse.json({ message: 'ID de proveedor inválido o faltante.' }, { status: 400 });
         }
-        if (!inputData.nombre_empresa_snapshot || !inputData.rfc_snapshot) {
+        if (!dataForService.nombre_empresa_snapshot || !dataForService.rfc_snapshot) {
             return NextResponse.json({ message: 'Nombre y RFC del snapshot son requeridos.' }, { status: 400 });
         }
-        // Añadir más validaciones para los campos snapshot
-        // --- Fin Validación ---
+        // Add more specific validations for other snapshot fields as needed
 
-        // 3. Llamar al Servicio
-        // La función del servicio necesita el objeto completo con los datos snapshot
-        const nuevoProveedorEnTabla = await agregarProveedorATabla(inputData);
+        const nuevoProveedorEnTabla = await agregarProveedorATabla(dataForService);
 
-        // 4. Devolver Respuesta Exitosa
-        return NextResponse.json(nuevoProveedorEnTabla, { status: 201 }); // 201 Created
+        return NextResponse.json(nuevoProveedorEnTabla, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) { // Changed to unknown
         console.error(`${logPrefix} Error:`, error);
-        // if (error instanceof ZodError) {
-        //     return NextResponse.json({ message: 'Datos inválidos.', errors: error.errors }, { status: 400 });
-        // }
-        if (error.message.includes('duplicate key') || error.message.includes('ya existe')) {
-            return NextResponse.json({ message: 'Este proveedor ya ha sido agregado a la tabla.' }, { status: 409 }); // Conflict
-        }
-        if (error.message.includes('no encontrada')) { // Ej: Tabla o Proveedor maestro no existe
-            return NextResponse.json({ message: error.message }, { status: 404 });
+        let message = 'Error al agregar el proveedor a la tabla';
+        let errorDetail: string | undefined;
+
+        if (error instanceof Error) {
+            message = error.message || message;
+            errorDetail = error.message;
+            if (error.message.includes('duplicate key') || error.message.includes('ya existe')) {
+                return NextResponse.json({ message: 'Este proveedor ya ha sido agregado a la tabla.' }, { status: 409 });
+            }
+            if (error.message.includes('no encontrada') || error.message.includes('not found')) {
+                return NextResponse.json({ message: message }, { status: 404 });
+            }
+        } else if (typeof error === 'string') {
+            message = error;
+            errorDetail = error;
         }
         return NextResponse.json(
-            { message: 'Error al agregar el proveedor a la tabla', error: error.message },
+            { message: message, error: errorDetail },
             { status: 500 }
         );
     }
