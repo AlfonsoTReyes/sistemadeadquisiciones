@@ -19,14 +19,11 @@ export interface DocumentoProveedor {
 export interface ComentarioDocProveedor {
   id_comentario: number;
   id_documento_proveedor: number;
-  id_usuario: number; // ID del usuario que comentó (admin)
+  id_usuario: number;
   comentario: string;
-  created_at: Date; // O string, dependiendo de cómo lo devuelva la librería
-  updated_at: Date; // O string
-  // Opcional: Datos del admin que comentó (obtenidos con JOIN)
-  nombre_admin?: string | null;
-  apellidos_admin?: string | null;
-  email_admin?: string | null;
+  created_at: string;
+  nombre_admin?: string;
+  apellidos_admin?: string;
 }
 
 // Interfaz para crear un nuevo comentario

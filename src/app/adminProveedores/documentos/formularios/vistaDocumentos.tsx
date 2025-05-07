@@ -120,7 +120,17 @@ const DocumentoRow: React.FC<DocumentoRowProps> = ({
         setErrorComentarios(null);
         try {
             const fetchedComentarios = await fetchComentariosPorDocumentoAdmin(documento.id_documento_proveedor);
-            setComentarios((fetchedComentarios || []) as ComentarioDocProveedor[]);
+            const comentariosTransformados: ComentarioDocProveedor[] = (fetchedComentarios || []).map((com: any) => ({
+                id_comentario: com.id_comentario,
+                id_documento_proveedor: com.id_documento_proveedor,
+                id_usuario: com.id_usuario,
+                comentario: com.comentario,
+                created_at: com.created_at,
+                nombre_admin: com.nombre_admin,
+                apellidos_admin: com.apellidos_admin
+            }));
+
+            setComentarios(comentariosTransformados);
         } catch (err) {
             console.error("Error cargando comentarios:", err);
             setErrorComentarios((err as Error).message || "Error al cargar comentarios.");
