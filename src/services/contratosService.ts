@@ -83,7 +83,7 @@ export const getContracts = async (filters: GetContractsFilters = {}): Promise<C
 
     } catch (errUnknown: unknown) { // CORREGIDO
         console.error("SERVICE Contratos: Error fetching contracts:", errUnknown);
-        let message = 'Error al obtener la lista de contratos.';
+        const message = 'Error al obtener la lista de contratos.';
         if (errUnknown instanceof Error) {
             // message = errUnknown.message; // Podrías usar el mensaje original si es seguro
         }

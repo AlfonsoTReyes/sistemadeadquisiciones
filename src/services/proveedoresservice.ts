@@ -234,7 +234,7 @@ export const getProveedorById = async (id: number): Promise<ProveedorDetallado |
         return procesarResultadoProveedor(result.rows);
     } catch (error: unknown) { // CORREGIDO
         console.error(`Error fetching proveedor by ID ${id}:`, error);
-        let message = 'Error al obtener datos del proveedor.';
+        const message = 'Error al obtener datos del proveedor.';
         if (error instanceof Error) {
             // message = error.message; // Podrías usar el mensaje original si es seguro
         }
@@ -255,7 +255,7 @@ export const getProveedorByUserId = async (id_usuario_proveedor: number): Promis
         return procesarResultadoProveedor(result.rows);
     } catch (error: unknown) { // CORREGIDO
         console.error(`Error fetching provider profile by user ID ${id_usuario_proveedor}:`, error);
-        let message = 'Error al obtener el perfil del proveedor por usuario.';
+        const message = 'Error al obtener el perfil del proveedor por usuario.';
         if (error instanceof Error) {
             // message = error.message;
         }

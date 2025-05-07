@@ -134,7 +134,7 @@ export async function PUT(req: NextRequest) {
     } catch (error: any) {
         console.error("ROUTE ERROR PUT /api/proveedores:", error);
         let status = 500;
-        let message = error.message || 'Error desconocido al actualizar el proveedor.';
+        const message = error.message || 'Error desconocido al actualizar el proveedor.';
         if (message.includes("requerido") || message.includes("inválido")) status = 400;
         if (message.includes("no encontrado")) status = 404;
         return NextResponse.json({ message: message, error: error.toString() }, { status });
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error("ROUTE ERROR POST /api/proveedores:", error);
         let status = 500;
-        let message = error.message || 'Error desconocido al registrar el proveedor.';
+        const message = error.message || 'Error desconocido al registrar el proveedor.';
         if (message.includes("ya tiene un perfil") || message.includes('registrado')) status = 409;
         if (message.includes("Faltan campos") || message.includes("inválido") || message.includes("requerido")) status = 400;
         if (message.includes("referencia") || error.code === '23503') status = 400;
@@ -210,7 +210,7 @@ export async function PATCH(req: NextRequest) {
     } catch (error: any) {
         console.error("ROUTE ERROR PATCH /api/proveedores (solicitarRevision):", error);
         let status = 500;
-        let message = error.message || 'Error desconocido al solicitar la revisión.';
+        const message = error.message || 'Error desconocido al solicitar la revisión.';
         if (message.includes("no encontrado")) status = 404;
         return NextResponse.json({ message: message }, { status });
     }

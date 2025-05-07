@@ -129,8 +129,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
       console.error("API Route POST /admin/proveedores Error Caught:", error);
-      let status = 500;
-      let message = error.message || 'Error inesperado al crear comentario.';
+      const status = 500;
+      const message = error.message || 'Error inesperado al crear comentario.';
       // ... (manejo de errores específicos) ...
       return NextResponse.json({ message: message }, { status });
   }
@@ -176,7 +176,7 @@ export async function DELETE(req: NextRequest) {
      } catch (error: any) {
         console.error("API Route DELETE /admin/proveedores (Comment) Error:", error);
         let status = 500;
-        let message = error.message || 'Error inesperado al eliminar comentario.';
+        const message = error.message || 'Error inesperado al eliminar comentario.';
         if (message.includes("no encontrado")) status = 404;
         if (message.includes("inválido")) status = 400;
         return NextResponse.json({ message: message }, { status });

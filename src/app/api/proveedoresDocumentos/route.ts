@@ -135,7 +135,8 @@ export async function DELETE(req: NextRequest) {
 
      } catch (error: any) {
         console.error("API Route DELETE /proveedoresDocumentos Error:", error);
-        let status = 500; let message = error.message || 'Error inesperado al eliminar.';
+        let status = 500; 
+        const message = error.message || 'Error inesperado al eliminar.';
         if (message.includes("no encontrado")) status = 404;
         if (message.includes("inválido")) status = 400;
         // Capturar error de FK si el doc tiene comentarios y la FK es RESTRICT

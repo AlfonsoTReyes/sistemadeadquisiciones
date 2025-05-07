@@ -150,8 +150,6 @@ export type ActualizarTablaInput = Partial<Pick<TablaComparativa, 'nombre' | 'de
 
 /**
  * Datos necesarios para agregar un proveedor existente a una tabla.
- * Requiere todos los campos snapshot ya que se "congelan" en este punto.
- * Corregido: Convertido a type alias para evitar @typescript-eslint/no-empty-object-type
  */
 export type AgregarProveedorInput = Omit<TablaComparativaProveedorSnapshot,
     'id' | 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'
@@ -196,10 +194,10 @@ export interface AgregarFirmaInput extends Omit<TablaComparativaFirma, 'id' | 'f
 
 /**
  * Datos necesarios para agregar un nuevo comentario.
+ * CORREGIDO: Convertido a type alias para evitar @typescript-eslint/no-empty-object-type
  */
-export interface AgregarComentarioInput extends Omit<TablaComparativaComentario, 'id' | 'fecha_comentario' | 'nombre_usuario'> {
-    // Hereda id_tabla_comparativa, id_usuario, texto_comentario
-}
+export type AgregarComentarioInput = Omit<TablaComparativaComentario, 'id' | 'fecha_comentario' | 'nombre_usuario'>;
+// Ya no se necesita el comentario "Hereda..." porque el tipo Omit ya lo implica.
 
 
 // ======================================================================
@@ -209,7 +207,6 @@ export interface AgregarComentarioInput extends Omit<TablaComparativaComentario,
 /**
  * Representa la fila cruda de tabla_comparativa_proveedores como podría
  * ser leída desde la base de datos (ej. totales como string).
- * Corregido: Convertido a type alias con intersección.
  */
 export type ProveedorSnapshotDbRow = Omit<TablaComparativaProveedorSnapshot, 'subtotal_proveedor' | 'iva_proveedor' | 'total_proveedor'> & {
     subtotal_proveedor: string;
@@ -219,31 +216,24 @@ export type ProveedorSnapshotDbRow = Omit<TablaComparativaProveedorSnapshot, 'su
 
 /**
  * Representa la fila cruda de tabla_comparativa_items.
- * Corregido: Convertido a type alias con intersección y `any` reemplazado.
  */
 export type ItemDbRow = Omit<TablaComparativaItem, 'cantidad' | 'precio_unitario' | 'subtotal_item' | 'caracteristicas_tecnicas' | 'id_articulo_origen'> & {
     cantidad: string;
     precio_unitario: string;
     subtotal_item: string;
-    // JSONB puede venir como string (sin parsear) o ya parseado como el array de objetos esperado, o ser null.
     caracteristicas_tecnicas: string | CaracteristicaTecnica[] | null;
     id_articulo_origen: number | string | null;
 };
 
 /**
  * Representa la fila cruda de tabla_comparativa_observaciones.
- * Corregido: Convertido a type alias. Asume que 'cumple' puede venir como string desde la DB.
- * Si 'cumple' siempre es boolean desde la DB, se podría usar:
- * export type ObservacionDbRow = TablaComparativaObservacion;
  */
 export type ObservacionDbRow = Omit<TablaComparativaObservacion, 'cumple'> & {
-    // Podría necesitar conversión si 'cumple' (BOOLEAN) no viene como boolean
-    cumple: boolean | string; // Ajustar si el driver de DB siempre devuelve boolean
+    cumple: boolean | string;
 };
 
 /**
  * Representa la fila cruda de tabla_comparativa_firmas.
- * Corregido: Convertido a type alias con intersección.
  */
 export type FirmaDbRow = Omit<TablaComparativaFirma, 'fecha_firma' | 'id_usuario'> & {
     fecha_firma: string;
@@ -252,11 +242,8 @@ export type FirmaDbRow = Omit<TablaComparativaFirma, 'fecha_firma' | 'id_usuario
 
 /**
  * Representa la fila cruda de tabla_comparativa_comentarios.
- * Corregido: Convertido a type alias con intersección.
  */
 export type ComentarioDbRow = Omit<TablaComparativaComentario, 'fecha_comentario' | 'id_usuario'> & {
     fecha_comentario: string;
     id_usuario: number | string;
 };
-
-// Podrías añadir otros tipos auxiliares si fueran necesarios.

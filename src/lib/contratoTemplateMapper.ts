@@ -2,9 +2,9 @@
 
 import { ContratoDetallado } from '@/types/contrato';
 import { ContratoInputData, SuficienciaInput, AreaRequirenteInput } from '@/types/contratoTemplateData';
-// import numeroALetras from 'numero-a-letras';
+import numeroALetras from 'numero-a-letras'; // CORREGIDO: Changed to ES6 import
 
-// --- Interfaz TemplateData (Asegúrate que esta lista sea exhaustiva y coincida con tus DOCX tags) ---
+// --- Interfaz TemplateData ---
 interface TemplateData {
     TIPO_CONTRATO: string;
     NOMBRE_CONTRATO?: string;
@@ -40,29 +40,31 @@ interface TemplateData {
     LICENCIADO_PODER?: string;
     NUMERO_NOTARIA_PODER?: string;
     INE_IDMEX_REP_LEGAL?: string;
-    DESCRIPCION_OBJETO: string; // Cubre U9, U26-U28, U40-U42
+    DESCRIPCION_OBJETO: string;
     FECHA_INICIO_CONTRATO: string;
     FECHA_FIN_CONTRATO: string;
-    MONTO_TOTAL_NUMERO: string; // U30, U45
+    MONTO_TOTAL_NUMERO: string;
     MONTO_TOTAL_LETRAS: string;
-    MONTO_MINIMO_NUMERO?: string; // U44
-    MONTO_MINIMO_LETRAS?: string; // U44
-    MONTO_GARANTIA_CUMPLIMIENTO?: string; // U32, U46
-    MONTO_GARANTIA_VICIOS?: string; // U33, U47
+    MONTO_MINIMO_NUMERO?: string;
+    MONTO_MINIMO_LETRAS?: string;
+    MONTO_GARANTIA_CUMPLIMIENTO?: string;
+    MONTO_GARANTIA_VICIOS?: string;
     TEXTO_GARANTIA?: string;
     CONDICIONES_PAGO?: string;
-    NUMERO_HOJAS: string; // U34, U48
-    FECHA_TERMINACION_DOC: string; // U35, U49
-    // --- Añadidos Fijos ---
+    NUMERO_HOJAS: string;
+    FECHA_TERMINACION_DOC: string;
     SINDICA_MUNICIPAL: string;
     SECRETARIO_ADMIN: string;
-    // ... CUALQUIER OTRO TAG REAL de tus plantillas .docx ...
 }
-// --- Funciones Helper (Asumiendo que existen y funcionan) ---
+
+// --- Funciones Helper ---
 const formatDate = (dateString: string | null | undefined, format: 'long' | 'short' = 'long'): string => {
     if (!dateString) return '_______';
     try {
-        const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00Z');
+        // Ensure the date string is treated as UTC if no timezone info is present
+        const date = new Date(dateString.includes('T') || dateString.includes('Z') ? dateString : dateString + 'T00:00:00Z');
+        if (isNaN(date.getTime())) return 'Fecha inválida'; // Check if date is valid
+
         if (format === 'long') {
             return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
         } else {
@@ -70,21 +72,23 @@ const formatDate = (dateString: string | null | undefined, format: 'long' | 'sho
         }
     } catch (e) { return 'Fecha inválida'; }
 };
-const formatCurrency = (amount: string | number | null | undefined, currency: string | null = 'MXN'): string => {
+
+const formatCurrency = (amount: string | number | null | undefined, _currency: string | null = 'MXN'): string => {
     if (amount === null || amount === undefined || amount === '') return '_______';
-    const numberAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numberAmount = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount; // Handle commas in string amount
     if (isNaN(numberAmount)) return 'Monto inválido';
     return numberAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
 const formatCurrencyToWords = (amount: string | number | null | undefined, currency: string | null = 'MXN'): string => {
      if (amount === null || amount === undefined || amount === '') return '_______';
-     const numberAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+     const numberAmount = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount; // Handle commas
      if (isNaN(numberAmount)) return 'Monto inválido';
      try {
-         const numeroALetras = require('numero-a-letras');
+         // numeroALetras is now imported at the top
          const [integerPart, decimalPart = '00'] = String(numberAmount.toFixed(2)).split('.');
          const currencyName = currency?.toUpperCase() === 'USD' ? 'DÓLARES AMERICANOS' : 'PESOS';
-         const letras = numeroALetras.NumerosALetras(parseInt(integerPart));
+         const letras = numeroALetras(parseInt(integerPart)); // Use the imported function
          return `${letras} ${currencyName} ${decimalPart}/100 M.N.`.toUpperCase();
      } catch (e) { console.error("Error convirtiendo número a letras:", e); return '(Error en conversión)'; }
 };
@@ -92,167 +96,119 @@ const formatCurrencyToWords = (amount: string | number | null | undefined, curre
 
 export function mapContratoToTemplateData(contrato: ContratoDetallado): TemplateData {
     const td = contrato.template_data ?? {};
-    const suf = td.suficiencia as SuficienciaInput | undefined ?? {};
-    const areaReq = td.areaRequirente as AreaRequirenteInput | undefined ?? {};
+    const suf = td.suficiencia as SuficienciaInput | undefined ?? {}; // Cast if necessary
+    const areaReq = td.areaRequirente as AreaRequirenteInput | undefined ?? {}; // Cast if necessary
     const tipoPlantilla = td.tipoContrato;
 
     if (!tipoPlantilla) throw new Error("Tipo de contrato no definido en template_data");
 
     const proveedor = contrato.proveedor;
-    const esMoral = proveedor?.tipo_proveedor === 'moral';
-    const esFisica = proveedor?.tipo_proveedor === 'fisica';
+    // const esMoral = proveedor?.tipo_proveedor === 'moral'; // Not directly used, can be removed if not needed for logic
+    // const esFisica = proveedor?.tipo_proveedor === 'fisica'; // Not directly used
 
-    // --- Preparar datos del proveedor (igual que antes) ---
-    let razonSocialNombre = proveedor?.rfc ?? 'Proveedor no encontrado';
-    let apoderadoNombre = '';
-    let domicilioFiscal = '_________________________';
-    let ineOcrPf = '_____________';
-    let actividadPf = '_________________________';
-    let curpPf = '__________________';
-    let datosActa = { num: '', fecha: '', lic: '', notaria: '', demarcacion: '' };
-    let datosPoder = { num: '', fecha: '', lic: '', notaria: '' };
-    let ineRepLegal = '_________________________';
+    // --- Preparar datos del proveedor ---
+    // CORREGIDO: let -> const
+    const razonSocialNombre = proveedor?.nombre_o_razon_social || proveedor?.rfc || 'Proveedor no encontrado';
+    const apoderadoNombre = proveedor?.representantes && proveedor.representantes.length > 0
+        ? `${proveedor.representantes[0].nombre_representante || ''} ${proveedor.representantes[0].apellido_p_representante || ''} ${proveedor.representantes[0].apellido_m_representante || ''}`.trim()
+        : '_________________________';
+    const domicilioFiscal = proveedor?.domicilio || '_________________________';
+    const ineOcrPf = proveedor?.tipo_proveedor === 'fisica' ? (td.identificacionOficialPf_ocr || '_____________') : 'N/A';
+    const actividadPf = proveedor?.tipo_proveedor === 'fisica' ? (proveedor.actividad_sat || '_________________________') : 'N/A';
+    const curpPf = proveedor?.tipo_proveedor === 'fisica' ? (proveedor.curp || '__________________') : 'N/A';
+    const datosActa = {
+        num: proveedor?.tipo_proveedor === 'moral' ? (td.actaConstitutiva_numeroEscritura || '') : 'N/A',
+        fecha: proveedor?.tipo_proveedor === 'moral' ? formatDate(td.actaConstitutiva_fechaEscritura, 'long') : 'N/A',
+        lic: proveedor?.tipo_proveedor === 'moral' ? (td.actaConstitutiva_notario || '') : 'N/A',
+        notaria: proveedor?.tipo_proveedor === 'moral' ? (td.actaConstitutiva_numeroNotaria || '') : 'N/A',
+        demarcacion: proveedor?.tipo_proveedor === 'moral' ? (td.actaConstitutiva_demarcacionNotarial || '') : 'N/A',
+    };
+    const datosPoder = {
+        num: proveedor?.tipo_proveedor === 'moral' ? (td.poderNotarial_numeroEscritura || '') : 'N/A',
+        fecha: proveedor?.tipo_proveedor === 'moral' ? formatDate(td.poderNotarial_fechaEscritura, 'long') : 'N/A',
+        lic: proveedor?.tipo_proveedor === 'moral' ? (td.poderNotarial_notario || '') : 'N/A',
+        notaria: proveedor?.tipo_proveedor === 'moral' ? (td.poderNotarial_numeroNotaria || '') : 'N/A',
+    };
+    const ineRepLegal = proveedor?.tipo_proveedor === 'moral' ? (td.identificacionOficialRepLegal_idmex_ocr || '_________________________') : 'N/A';
 
-    // --- Mapeo Inicial (igual que antes) ---
+
     const data: Partial<TemplateData> = {
-        // Encabezado y partes
-        TIPO_CONTRATO: tipoPlantilla === 'servicio' ? 'CONTRATO DE SERVICIO DE' : 'CONTRATO DE ADQUISICIÓN DE',
-        NOMBRE_CONTRATO: td.nombreContratoAdquisicion, // U1(Adq)
-        RAZON_SOCIAL_PROVEEDOR: razonSocialNombre, // U4(Adq), U3(Srv), etc.
-        NUMERO_PROCEDIMIENTO: td.numeroProcedimiento ?? `PENDIENTE_${contrato.id_contrato}`, // U40(Srv), U55(Adq), etc.
-        NOMBRE_FUNCIONARIO_AREA: areaReq.nombreFuncionario, // U2(Srv), U17(Adq), etc.
-        CARGO_FUNCIONARIO_AREA: areaReq.cargoFuncionario, // U3(Srv), U17(Adq), etc.
-        NOMBRE_APODERADO: apoderadoNombre, // U4(Srv), U31/U32(Adq), etc.
-
-        // Antecedentes y Suficiencia
-        // FECHA_SESION_EXTRAORDINARIA: formatDate(td.fechaSesion), // Ejemplo si lo añades
-        FECHA_SUFICIENCIA: formatDate(suf.fecha), // U5(Srv), U10(Adq)
-        NUMERO_SUFICIENCIA: suf.numeroOficio, // U6(Srv), U11(Adq)
-        CUENTA_SUFICIENCIA: suf.cuenta, // U7(Srv), U12(Adq)
-        RECURSO_SUFICIENCIA: suf.tipoRecurso, // U8(Srv), U13(Adq)
-        ARTICULO_FUNDAMENTO: td.articuloFundamento, // U14(Adq), U15(Srv)
-
-        // Datos Proveedor (del objeto 'proveedor')
-        RFC_PROVEEDOR: proveedor?.rfc, // U24(Srv), U38(Adq)
-        DOMICILIO_PROVEEDOR: domicilioFiscal, // U25(Srv), U39(Adq) / U24(PF Adq)
-        INE_OCR_PF: ineOcrPf, // U20(Adq)
-        ACTIVIDAD_ECONOMICA_PF: actividadPf, // U21(Adq)
-        CURP_PF: curpPf, // U23(Adq)
-        NUMERO_ESCRITURA_ACTA: datosActa.num, // U17(Srv), U26(Adq)
-        FECHA_ESCRITURA_ACTA: datosActa.fecha, // U18(Srv), U27(Adq)
-        LICENCIADO_ACTA: datosActa.lic, // U19(Srv), U28(Adq)
-        NUMERO_NOTARIA_ACTA: datosActa.notaria, // U20(Srv), U29(Adq)
-        DEMARCACION_NOTARIAL_ACTA: datosActa.demarcacion, // U21(Srv), U30(Adq)
-        NUMERO_ESCRITURA_PODER: datosPoder.num, // U33(Adq)
-        FECHA_ESCRITURA_PODER: datosPoder.fecha, // U34(Adq)
-        LICENCIADO_PODER: datosPoder.lic, // U35(Adq)
-        NUMERO_NOTARIA_PODER: datosPoder.notaria, // U36(Adq)
-        INE_IDMEX_REP_LEGAL: ineRepLegal, // U23(Srv), U37(Adq)
-
-        // Adquisición: Oficio (de template_data)
-        NUMERO_OFICIO_PETICION: td.oficioPeticionNumero, // U5(Adq)
-        FECHA_OFICIO_PETICION: formatDate(td.oficioPeticionFecha), // U6(Adq)
-        FUNCIONARIO_RECIBE_OFICIO: 'Lic. José Miguel Valencia Molina', // U7(Adq) - ¿Fijo o de areaReq?
-        FUNCIONARIO_DIRIGE_OFICIO: 'Lic. Ernesto Mora Rico', // U8(Adq) - ¿Fijo o de areaReq?
-
-        // Objeto / Descripción (de template_data)
-        DESCRIPCION_OBJETO: td.objetoPrincipal, // U9(Adq), U26-U28(Srv), U40-U42(Adq)
-
-        // Vigencia (de template_data)
-        FECHA_INICIO_CONTRATO: formatDate(td.fechaInicio), // U29(Srv), U43(Adq)
-        FECHA_FIN_CONTRATO: formatDate(td.fechaFin), // U29(Srv), U43(Adq)
-
-        // Montos (de template_data)
-        MONTO_TOTAL_NUMERO: formatCurrency(td.montoTotal, td.moneda), // U30(Srv), U45(Adq)
-        MONTO_TOTAL_LETRAS: formatCurrencyToWords(td.montoTotal, td.moneda),
-        MONTO_MINIMO_NUMERO: formatCurrency(td.montoMinimo, td.moneda), // U44(Adq)
-        MONTO_MINIMO_LETRAS: formatCurrencyToWords(td.montoMinimo, td.moneda), // U44(Adq)
-
-        // Garantías (de template_data)
-        MONTO_GARANTIA_CUMPLIMIENTO: formatCurrency(td.montoGarantiaCumplimiento, td.moneda), // U32(Srv), U46(Adq)
-        MONTO_GARANTIA_VICIOS: formatCurrency(td.montoGarantiaVicios, td.moneda), // U33(Srv), U47(Adq)
-        TEXTO_GARANTIA: td.garantiasTexto,
-
-        // Pago (de template_data)
-        CONDICIONES_PAGO: td.condicionesPago, // U31?(Srv)
-
-        // Cierre (de template_data)
-        NUMERO_HOJAS: td.numeroHojas?.toString(), // U34(Srv), U48(Adq)
-        FECHA_TERMINACION_DOC: formatDate(td.fechaFirma), // U35(Srv), U49(Adq)
-
-        // --- Fijos Municipio (Ejemplos, verifica si necesitas tags para estos) ---
-        SINDICA_MUNICIPAL: 'Lic. Rosalba Ruíz Ramos',
-        SECRETARIO_ADMIN: 'Lic. José Miguel Valencia Molina',
-
+        TIPO_CONTRATO: tipoPlantilla === 'servicio' ? 'CONTRATO DE PRESTACIÓN DE SERVICIOS' : 'CONTRATO DE ADQUISICIÓN DE BIENES',
+        NOMBRE_CONTRATO: td.nombreContratoAdquisicion || td.nombreContratoServicio || contrato.objeto_contrato,
+        RAZON_SOCIAL_PROVEEDOR: razonSocialNombre,
+        NOMBRE_PROVEEDOR_PF: proveedor?.tipo_proveedor === 'fisica' ? `${proveedor.nombre_fisica || ''} ${proveedor.apellido_p_fisica || ''} ${proveedor.apellido_m_fisica || ''}`.trim() : undefined,
+        NUMERO_PROCEDIMIENTO: td.numeroProcedimiento || `PENDIENTE_${contrato.id_contrato}`,
+        NOMBRE_FUNCIONARIO_AREA: areaReq.nombreFuncionario || '_________________________',
+        CARGO_FUNCIONARIO_AREA: areaReq.cargoFuncionario || '_________________________',
+        NOMBRE_APODERADO: apoderadoNombre,
+        FECHA_SUFICIENCIA: formatDate(suf.fecha),
+        NUMERO_SUFICIENCIA: suf.numeroOficio || '_______',
+        CUENTA_SUFICIENCIA: suf.cuenta || '_______',
+        RECURSO_SUFICIENCIA: suf.tipoRecurso || '_______',
+        ARTICULO_FUNDAMENTO: td.articuloFundamento || '_________________________',
+        RFC_PROVEEDOR: proveedor?.rfc || '________________',
+        DOMICILIO_PROVEEDOR: domicilioFiscal,
+        NUMERO_OFICIO_PETICION: td.oficioPeticionNumero || '_______',
+        FECHA_OFICIO_PETICION: formatDate(td.oficioPeticionFecha),
+        FUNCIONARIO_RECIBE_OFICIO: areaReq.nombreFuncionarioDirigeOficio || 'Lic. José Miguel Valencia Molina', // Example, adjust
+        FUNCIONARIO_DIRIGE_OFICIO: areaReq.nombreFuncionarioFirmaOficio || 'Lic. Ernesto Mora Rico', // Example, adjust
+        INE_OCR_PF: ineOcrPf,
+        ACTIVIDAD_ECONOMICA_PF: actividadPf,
+        CURP_PF: curpPf,
+        DOMICILIO_FISCAL_PF: proveedor?.tipo_proveedor === 'fisica' ? domicilioFiscal : 'N/A',
+        NUMERO_ESCRITURA_ACTA: datosActa.num,
+        FECHA_ESCRITURA_ACTA: datosActa.fecha,
+        LICENCIADO_ACTA: datosActa.lic,
+        NUMERO_NOTARIA_ACTA: datosActa.notaria,
+        DEMARCACION_NOTARIAL_ACTA: datosActa.demarcacion,
+        NUMERO_ESCRITURA_PODER: datosPoder.num,
+        FECHA_ESCRITURA_PODER: datosPoder.fecha,
+        LICENCIADO_PODER: datosPoder.lic,
+        NUMERO_NOTARIA_PODER: datosPoder.notaria,
+        INE_IDMEX_REP_LEGAL: ineRepLegal,
+        DESCRIPCION_OBJETO: td.objetoPrincipal || contrato.objeto_contrato || '_________________________',
+        FECHA_INICIO_CONTRATO: formatDate(td.fechaInicio || contrato.fecha_inicio),
+        FECHA_FIN_CONTRATO: formatDate(td.fechaFin || contrato.fecha_fin),
+        MONTO_TOTAL_NUMERO: formatCurrency(td.montoTotal || contrato.monto_total, td.moneda || contrato.moneda),
+        MONTO_TOTAL_LETRAS: formatCurrencyToWords(td.montoTotal || contrato.monto_total, td.moneda || contrato.moneda),
+        MONTO_MINIMO_NUMERO: formatCurrency(td.montoMinimo, td.moneda || contrato.moneda),
+        MONTO_MINIMO_LETRAS: formatCurrencyToWords(td.montoMinimo, td.moneda || contrato.moneda),
+        MONTO_GARANTIA_CUMPLIMIENTO: formatCurrency(td.montoGarantiaCumplimiento, td.moneda || contrato.moneda),
+        MONTO_GARANTIA_VICIOS: formatCurrency(td.montoGarantiaVicios, td.moneda || contrato.moneda),
+        TEXTO_GARANTIA: td.garantiasTexto || '_________________________',
+        CONDICIONES_PAGO: td.condicionesPago || contrato.condiciones_pago || '_________________________',
+        NUMERO_HOJAS: td.numeroHojas?.toString() || '_______',
+        FECHA_TERMINACION_DOC: formatDate(td.fechaFirma || contrato.fecha_firma),
+        SINDICA_MUNICIPAL: 'Lic. Rosalba Ruíz Ramos', // Example fixed value
+        SECRETARIO_ADMIN: 'Lic. José Miguel Valencia Molina', // Example fixed value
     };
 
-    // --- Rellenar Placeholders ---
-    const finalData = { ...data }; // Copia inicial
+    const finalData: Partial<TemplateData> = { ...data };
 
-    // *** LISTA EXPANDIDA Y EXPLÍCITA DE TODAS LAS CLAVES ***
     const allTemplateKeys: Array<keyof TemplateData> = [
-        'TIPO_CONTRATO',
-        'NOMBRE_CONTRATO',
-        'RAZON_SOCIAL_PROVEEDOR',
-        'NOMBRE_PROVEEDOR_PF',
-        'NUMERO_PROCEDIMIENTO',
-        'NOMBRE_FUNCIONARIO_AREA',
-        'CARGO_FUNCIONARIO_AREA',
-        'NOMBRE_APODERADO',
-        'FECHA_SESION_EXTRAORDINARIA', // Si lo usas
-        'FECHA_SUFICIENCIA',
-        'NUMERO_SUFICIENCIA',
-        'CUENTA_SUFICIENCIA',
-        'RECURSO_SUFICIENCIA',
-        'ARTICULO_FUNDAMENTO',
-        'RFC_PROVEEDOR',
-        'DOMICILIO_PROVEEDOR',
-        'NUMERO_OFICIO_PETICION',
-        'FECHA_OFICIO_PETICION',
-        'FUNCIONARIO_RECIBE_OFICIO',
-        'FUNCIONARIO_DIRIGE_OFICIO',
-        'INE_OCR_PF',
-        'ACTIVIDAD_ECONOMICA_PF',
-        'CURP_PF',
-        'DOMICILIO_FISCAL_PF', // ¿Duplicado de DOMICILIO_PROVEEDOR? Decide cuál usar
-        'NUMERO_ESCRITURA_ACTA',
-        'FECHA_ESCRITURA_ACTA',
-        'LICENCIADO_ACTA',
-        'NUMERO_NOTARIA_ACTA',
-        'DEMARCACION_NOTARIAL_ACTA',
-        'NUMERO_ESCRITURA_PODER',
-        'FECHA_ESCRITURA_PODER',
-        'LICENCIADO_PODER',
-        'NUMERO_NOTARIA_PODER',
-        'INE_IDMEX_REP_LEGAL',
-        'DESCRIPCION_OBJETO',
-        'FECHA_INICIO_CONTRATO',
-        'FECHA_FIN_CONTRATO',
-        'MONTO_TOTAL_NUMERO',
-        'MONTO_TOTAL_LETRAS',
-        'MONTO_MINIMO_NUMERO',
-        'MONTO_MINIMO_LETRAS',
-        'MONTO_GARANTIA_CUMPLIMIENTO',
-        'MONTO_GARANTIA_VICIOS',
-        'TEXTO_GARANTIA',
-        'CONDICIONES_PAGO',
-        'NUMERO_HOJAS',
-        'FECHA_TERMINACION_DOC',
-        'SINDICA_MUNICIPAL', // Fijo
-        'SECRETARIO_ADMIN', // Fijo
-        // *** ¡¡AÑADE AQUÍ CUALQUIER OTRA CLAVE/TAG QUE USES EN TUS .DOCX!! ***
+        'TIPO_CONTRATO', 'NOMBRE_CONTRATO', 'RAZON_SOCIAL_PROVEEDOR', 'NOMBRE_PROVEEDOR_PF',
+        'NUMERO_PROCEDIMIENTO', 'NOMBRE_FUNCIONARIO_AREA', 'CARGO_FUNCIONARIO_AREA',
+        'NOMBRE_APODERADO', 'FECHA_SESION_EXTRAORDINARIA', 'FECHA_SUFICIENCIA',
+        'NUMERO_SUFICIENCIA', 'CUENTA_SUFICIENCIA', 'RECURSO_SUFICIENCIA',
+        'ARTICULO_FUNDAMENTO', 'RFC_PROVEEDOR', 'DOMICILIO_PROVEEDOR',
+        'NUMERO_OFICIO_PETICION', 'FECHA_OFICIO_PETICION', 'FUNCIONARIO_RECIBE_OFICIO',
+        'FUNCIONARIO_DIRIGE_OFICIO', 'INE_OCR_PF', 'ACTIVIDAD_ECONOMICA_PF', 'CURP_PF',
+        'DOMICILIO_FISCAL_PF', 'NUMERO_ESCRITURA_ACTA', 'FECHA_ESCRITURA_ACTA',
+        'LICENCIADO_ACTA', 'NUMERO_NOTARIA_ACTA', 'DEMARCACION_NOTARIAL_ACTA',
+        'NUMERO_ESCRITURA_PODER', 'FECHA_ESCRITURA_PODER', 'LICENCIADO_PODER',
+        'NUMERO_NOTARIA_PODER', 'INE_IDMEX_REP_LEGAL', 'DESCRIPCION_OBJETO',
+        'FECHA_INICIO_CONTRATO', 'FECHA_FIN_CONTRATO', 'MONTO_TOTAL_NUMERO',
+        'MONTO_TOTAL_LETRAS', 'MONTO_MINIMO_NUMERO', 'MONTO_MINIMO_LETRAS',
+        'MONTO_GARANTIA_CUMPLIMIENTO', 'MONTO_GARANTIA_VICIOS', 'TEXTO_GARANTIA',
+        'CONDICIONES_PAGO', 'NUMERO_HOJAS', 'FECHA_TERMINACION_DOC',
+        'SINDICA_MUNICIPAL', 'SECRETARIO_ADMIN',
     ];
-    // *** FIN LISTA EXPANDIDA ***
 
-    // Bucle para asegurar que todas las claves tengan un valor (placeholder si es necesario)
     allTemplateKeys.forEach(key => {
-        // Comprueba si la clave existe en finalData y si su valor es null, undefined o ''
-        if (!Object.prototype.hasOwnProperty.call(finalData, key) || finalData[key] === null || finalData[key] === undefined || finalData[key] === '') {
-            // Asigna un placeholder o string vacío
-            finalData[key] = '_______' as any; // Placeholder genérico
+        if (!Object.prototype.hasOwnProperty.call(finalData, key) || finalData[key] === null || finalData[key] === undefined || String(finalData[key]).trim() === '') {
+            (finalData as any)[key] = '_______';
         }
     });
 
-    // Forzar tipo final
     return finalData as TemplateData;
 }

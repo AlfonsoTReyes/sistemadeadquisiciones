@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
         console.log(`API GET Notificaciones: Buscando para Usuario ${idUsuario}, Rol ${idRol}`);
 
         // Construir condiciones WHERE dinámicamente
-        let conditions: string[] = [];
-        let params: (number | string)[] = [];
+        const conditions: string[] = [];
+        const params: (number | string)[] = [];
         let paramIndex = 1;
 
         // Añadir condición de usuario SOLO si idUsuario es un número válido

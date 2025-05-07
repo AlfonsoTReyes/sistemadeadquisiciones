@@ -45,7 +45,7 @@ export async function GET(req: NextRequest /* Eliminamos el segundo argumento { 
     } catch (error: any) {
         console.error(`API Route GET /api/contratos/${idContratoStr} Error:`, error);
         let status = 500;
-        let message = error.message || 'Error al obtener detalles del contrato.';
+        const message = error.message || 'Error al obtener detalles del contrato.';
         if (message.includes("no encontrado")) status = 404;
         else if (message.includes("inválido")) status = 400;
         return NextResponse.json({ message }, { status });

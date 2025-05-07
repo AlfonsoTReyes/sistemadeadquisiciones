@@ -149,8 +149,8 @@ export async function PUT(req: NextRequest) {
   } catch (error: any) {
     // --- Manejo de Errores General (Sin cambios) ---
     console.error("API Route PUT /admin/proveedores Error Caught:", error);
-    let status = 500;
-    let message = error.message || 'Error inesperado procesando la solicitud.';
+    const status = 500;
+    const message = error.message || 'Error inesperado procesando la solicitud.';
     // ... (lógica para determinar status code basado en error) ...
     return NextResponse.json({ message: message }, { status });
   }
