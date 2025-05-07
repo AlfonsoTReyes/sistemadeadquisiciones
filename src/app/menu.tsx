@@ -173,10 +173,12 @@ export default function Menu() {
             </button>
             {idRol && <Notificaciones idrol={idRol} />}
             {/* *** RENDERIZAR NotificationManager *** */}
+            {/*
             <NotificationManager
               userId={idUsuario ? parseInt(idUsuario, 10) : null}
               idRol={idRol}
             />
+             */}
           </div>
 
 
