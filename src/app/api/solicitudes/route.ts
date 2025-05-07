@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSolicitudes, getSolicitudesAll, getSolicitudByIdPDF, getSolicitudById, createSolicitud, updateSolicitud,
   getSolicitudByConcursos,
   getSolicitudesFiltradasPorEstatus,
-  getSolicitudesAllFiltradasPorEstatus, getSolicitudesAdminEvento, getSolicitudesAdmin
+  getSolicitudesAllFiltradasPorEstatus, getSolicitudesAdminEvento, getSolicitudesAdmin,
+  getSolicitudesAdminEventoOrden,
+  getSolicitudesAdminOrden
  } from "../../../services/solicitudeservice";
 
 
@@ -53,13 +55,31 @@ export async function GET(req: NextRequest) {
       // Es tipo 1 o 2 → usa método que filtra por estatus
       const estatus = estatusPorTipo[tipoordenes][0];
 
-      if (sistema !== "UNIVERSAL") {
+      if (sistema === "ADQUISICIONES") {
+          // 🔹 Ejecuta la consulta para ADQUISICIONES
+          solicitud = await getSolicitudesAdminOrden();
+      } else if (sistema === "ADQUISICIONES EVENTOS") {
+          // 🔹 Ejecuta la consulta para ADQUISICIONES EVENTOS
+          solicitud = await getSolicitudesAdminEventoOrden();
+      } else if (sistema !== "UNIVERSAL") {
         if (secretaria) {
           solicitud = await getSolicitudesFiltradasPorEstatus(parseInt(secretaria), estatus);
         }
       } else {
+        // 🔹 Si es UNIVERSAL, ejecuta la consulta para todos
         solicitud = await getSolicitudesAllFiltradasPorEstatus(estatus);
       }
+
+      // if (sistema !== "UNIVERSAL") {
+      //   console.log("BBBBBBBBBBBBBBBBBB",estatus);
+
+      //   if (secretaria) {
+      //     solicitud = await getSolicitudesFiltradasPorEstatus(parseInt(secretaria), estatus);
+      //   }
+      // } else {
+      //   console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa",estatus);
+      //   solicitud = await getSolicitudesAllFiltradasPorEstatus(estatus);
+      // }
     } else {
       // Otros tipos (sin filtro de estatus)
       if (sistema === "ADQUISICIONES") {
