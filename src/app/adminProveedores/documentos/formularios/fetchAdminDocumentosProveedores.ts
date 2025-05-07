@@ -1,33 +1,60 @@
 // --- URLs de API ---
 // URL base para la mayoría de las operaciones de admin sobre proveedores y usuarios
-const ADMIN_PROVEEDORES_API_URL = '/api/adminProveedores';
+const ADMIN_PROVEEDORES_API_URL: string = '/api/adminProveedores';
 // URL específica para documentos y comentarios (si la separaste, si no, usa la de arriba)
-const DOCS_API_URL = "/api/adminDocumuentosProveedores"; // Comentada si usas la misma ruta base
-const DOCS_COMMENTS_API_URL = '/api/adminDocumuentosProveedores'; // Asumiendo que se maneja en la misma ruta con query params
-interface DocumentoProveedor {
-    id_documento_proveedor: number;
-    id_proveedor: number;
-    tipo_documento: string;
-    nombre_original: string;
-    ruta_archivo: string;
-    id_usuario: number;
-    estatus: string | boolean;
-    created_at: string; // O Date
-    updated_at: string; // O Date
-  }
+const DOCS_API_URL: string = "/api/adminDocumuentosProveedores"; // Usar este nombre consistentemente
+const DOCS_COMMENTS_API_URL: string = '/api/adminDocumuentosProveedores'; // Asumiendo que se maneja en la misma ruta con query params
+
+// --- Interfaces ---
+
+export interface DocumentoProveedor {
+  id_documento_proveedor: number;
+  id_proveedor: number;
+  tipo_documento: string;
+  nombre_original: string;
+  ruta_archivo: string;
+  id_usuario: number; // Asumo que es el ID del usuario que subió/modificó el documento
+  estatus: string | boolean;
+  created_at: string; // O Date si se transforman
+  updated_at: string; // O Date si se transforman
+}
+
+export interface ProveedorDetalles {
+  id_proveedor: number;
+  nombre_empresa: string; // Ejemplo, ajusta según tu modelo de datos
+  rfc: string;          // Ejemplo
+  // ... otros campos que esperas del proveedor
+}
+
+export interface Comentario {
+  id_comentario: number;
+  id_documento_proveedor: number;
+  comentario: string;
+  id_usuario_admin: number; // ID del admin que creó el comentario
+  created_at: string; // O Date
+  updated_at: string; // O Date
+  // podrías incluir nombre_usuario_admin si la API lo devuelve
+}
+
+// Interfaz genérica para respuestas de la API que no devuelven un objeto específico
+export interface ApiResponse {
+  message: string;
+  success?: boolean;
+  // podrías añadir 'data?: any;' si a veces viene con datos adicionales
+}
+
 /**
  * Obtiene los detalles de UN proveedor específico por su ID principal.
  * Usado para mostrar info en la cabecera de la página de documentos de admin.
  * Llama a GET /api/proveedores?id_proveedor=[id]
- * @param {number} idProveedor - El ID del proveedor a obtener.
- * @returns {Promise<object>} - Una promesa que resuelve al objeto del proveedor.
+ * @param idProveedor - El ID del proveedor a obtener.
+ * @returns Una promesa que resuelve al objeto del proveedor.
  */
-export const fetchProveedorDetallesPorIdAdmin = async (idProveedor) => {
-  // Renombrado para evitar conflicto si tienes otra función getProveedor
+export const fetchProveedorDetallesPorIdAdmin = async (idProveedor: number): Promise<ProveedorDetalles> => {
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-     const errorMsg = 'Fetch Error: idProveedor inválido para fetchProveedorDetallesPorIdAdmin';
-     console.error(errorMsg);
-     throw new Error(errorMsg);
+    const errorMsg = 'Fetch Error: idProveedor inválido para fetchProveedorDetallesPorIdAdmin';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
   console.log(`FETCH (Admin): fetchProveedorDetallesPorIdAdmin ID ${idProveedor}`);
   const apiUrl = `${ADMIN_PROVEEDORES_API_URL}?id_proveedor=${idProveedor}`;
@@ -39,18 +66,18 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor) => {
       cache: 'no-store',
     });
 
+    let errorData: any; // Para capturar el cuerpo del error si existe
     if (!response.ok) {
-      let errorData;
-      try { errorData = await response.json(); } catch (e) { /* ignora */ }
+      try { errorData = await response.json(); } catch (e) { /* ignora si no es json */ }
       console.error(`Fetch Error GET ${apiUrl}: Status ${response.status}. Response:`, errorData);
       throw new Error(errorData?.message || `Error al obtener detalles del proveedor ${idProveedor}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: ProveedorDetalles = await response.json();
     console.log(`DEBUG Fetch: fetchProveedorDetallesPorIdAdmin successful for ID ${idProveedor}`);
     return data;
 
-  } catch (err) {
+  } catch (err: any) {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
     console.error(`Fetch Error in fetchProveedorDetallesPorIdAdmin for ID ${idProveedor}:`, errorToThrow);
     throw errorToThrow;
@@ -61,8 +88,8 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor) => {
 /**
  * Obtiene la lista de documentos para un proveedor específico.
  * Llama a GET /api/documentosProveedores?id_proveedor=[id]
- * @param {number} idProveedor - El ID del proveedor.
- * @returns {Promise<Array<object>>} - Una promesa que resuelve a un array de documentos.
+ * @param idProveedor - El ID del proveedor.
+ * @returns Una promesa que resuelve a un array de documentos.
  */
 export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Promise<DocumentoProveedor[]> => {
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
@@ -72,7 +99,9 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Pro
   }
 
   console.log(`FETCH (Admin): fetchDocumentosPorProveedorAdmin ID ${idProveedor}`);
-  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_proveedor=${idProveedor}`;
+  // Usar DOCS_API_URL si esa es la intención, o DOCS_COMMENTS_API_URL si es la misma para GET de docs
+  const apiUrl = `${DOCS_API_URL}?id_proveedor=${idProveedor}`;
+
 
   try {
     const response = await fetch(apiUrl, {
@@ -81,32 +110,32 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Pro
       cache: 'no-store',
     });
 
+    let errorData: any;
     if (!response.ok) {
-      let errorData;
       try { errorData = await response.json(); } catch (e) { /* ignora */ }
       console.error(`Fetch Error GET ${apiUrl}: Status ${response.status}. Response:`, errorData);
       throw new Error(errorData?.message || `Error al obtener documentos del proveedor ${idProveedor}: ${response.statusText}`);
     }
 
-    const rawData = await response.json();
+    const rawData: any[] = await response.json();
     console.log(`DEBUG Fetch: fetchDocumentosPorProveedorAdmin successful for ID ${idProveedor}, received ${rawData.length} docs`);
 
-    // Transformar para asegurar el tipo
-    const documentos: DocumentoProveedor[] = rawData.map((item: any) => ({
-      id_documento_proveedor: item.id_documento_proveedor,
-      id_proveedor: item.id_proveedor,
-      tipo_documento: item.tipo_documento,
-      nombre_original: item.nombre_original,
-      ruta_archivo: item.ruta_archivo,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      estatus: item.estatus, // puede ser boolean o string según tu interfaz
-      id_usuario: item.id_usuario,
+    // Transformar para asegurar el tipo y campos correctos
+    const documentos: DocumentoProveedor[] = rawData.map((item: any): DocumentoProveedor => ({
+      id_documento_proveedor: Number(item.id_documento_proveedor),
+      id_proveedor: Number(item.id_proveedor),
+      tipo_documento: String(item.tipo_documento),
+      nombre_original: String(item.nombre_original),
+      ruta_archivo: String(item.ruta_archivo),
+      created_at: String(item.created_at),
+      updated_at: String(item.updated_at),
+      estatus: item.estatus, // string | boolean, se mantiene como viene
+      id_usuario: Number(item.id_usuario),
     }));
 
     return documentos;
 
-  } catch (err) {
+  } catch (err: any) {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
     console.error(`Fetch Error in fetchDocumentosPorProveedorAdmin for ID ${idProveedor}:`, errorToThrow);
     throw errorToThrow;
@@ -117,166 +146,207 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Pro
 /**
  * Actualiza el estatus de un documento específico (llamada desde Admin).
  * Llama a PUT /api/documentosProveedores enviando ID del documento y estatus en el cuerpo.
- * @param {number} idDocumento - El ID del documento a actualizar.
- * @param {string | boolean} nuevoEstatus - El nuevo estado (depende de tu DB).
- * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
+ * @param idDocumento - El ID del documento a actualizar.
+ * @param nuevoEstatus - El nuevo estado (depende de tu DB).
+ * @returns Una promesa que resuelve con la respuesta de la API (generalmente el documento actualizado).
  */
-export const updateDocumentoStatusAdmin = async (idDocumento, nuevoEstatus) => {
+export const updateDocumentoStatusAdmin = async (
+  idDocumento: number,
+  nuevoEstatus: string | boolean
+): Promise<DocumentoProveedor> => { // Asumimos que devuelve el documento actualizado
   console.log(`DEBUG Fetch: Calling updateDocumentoStatusAdmin for Doc ID ${idDocumento} with status ${nuevoEstatus}`);
-  const apiUrl = DOCS_API_URL; // Usa la URL base para PUT
+  const apiUrl = DOCS_API_URL; // Usa la URL base para PUT (o la específica si es diferente)
 
-  // Validación básica
   if (typeof idDocumento !== 'number' || isNaN(idDocumento)) {
-     const errorMsg = 'Fetch Error: idDocumento inválido para updateDocumentoStatusAdmin';
-     console.error(errorMsg);
-     throw new Error(errorMsg);
+    const errorMsg = 'Fetch Error: idDocumento inválido para updateDocumentoStatusAdmin';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
   if (nuevoEstatus === undefined || nuevoEstatus === null) {
-     const errorMsg = 'Fetch Error: nuevoEstatus inválido para updateDocumentoStatusAdmin';
-     console.error(errorMsg);
-     throw new Error(errorMsg);
+    const errorMsg = 'Fetch Error: nuevoEstatus inválido para updateDocumentoStatusAdmin';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
-
 
   try {
     const response = await fetch(apiUrl, {
-      method: 'PUT', // Método para actualizar según la API route
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        // Headers de autenticación si son necesarios
       },
-      // Body con el ID del DOCUMENTO y el nuevo ESTATUS
       body: JSON.stringify({
-        id_documento_proveedor: idDocumento, // La API espera este ID
-        estatus: nuevoEstatus               // La API espera el nuevo estado
+        id_documento_proveedor: idDocumento,
+        estatus: nuevoEstatus
       }),
     });
 
+    let errorData: any;
     if (!response.ok) {
-      let errorData;
       try { errorData = await response.json(); } catch (e) { /* ignora */ }
       console.error(`Fetch Error PUT ${apiUrl}: Status ${response.status} updating Doc ID ${idDocumento}. Response:`, errorData);
       throw new Error(errorData?.message || `Error al actualizar estatus del documento: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: DocumentoProveedor = await response.json(); // Asumimos que devuelve el documento actualizado
     console.log(`DEBUG Fetch: updateDocumentoStatusAdmin successful for Doc ID ${idDocumento}`);
-    return data; // Devuelve el documento actualizado
+    return data;
 
-  } catch (err) {
+  } catch (err: any) {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
     console.error(`Fetch Error in updateDocumentoStatusAdmin for Doc ID ${idDocumento}:`, errorToThrow);
     throw errorToThrow;
   }
 };
+
 /**
  * Obtiene la lista de comentarios para un documento específico.
- * Llama a GET /api/adminProveedores?documentoIdParaComentarios=[idDoc]
- * @param {number} idDocumento - El ID del documento.
- * @returns {Promise<Array<object>>} - Array de objetos comentario.
+ * Llama a GET /api/adminDocumuentosProveedores?documentoIdParaComentarios=[idDoc]
+ * @param idDocumento - El ID del documento.
+ * @returns Array de objetos comentario.
  */
-export const fetchComentariosPorDocumentoAdmin = async (idDocumento) => {
-  const docIdNum = parseInt(idDocumento, 10);
-  if (isNaN(docIdNum)) {
+export const fetchComentariosPorDocumentoAdmin = async (idDocumento: number): Promise<Comentario[]> => {
+  // La validación de idDocumento como número ya está implícita en el tipo de parámetro
+  if (isNaN(idDocumento)) {
       throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
   }
-  console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin Doc ID ${docIdNum}`);
-  const apiUrl = `${DOCS_COMMENTS_API_URL}?documentoIdParaComentarios=${docIdNum}`;
+  console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin Doc ID ${idDocumento}`);
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?documentoIdParaComentarios=${idDocumento}`;
 
   try {
       const response = await fetch(apiUrl, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store', // Evitar caché para comentarios
+          cache: 'no-store',
       });
-      const data = await response.json().catch(() => null);
+      
+      let responseBody: any = null; // Para depurar la respuesta completa
+      try {
+        responseBody = await response.clone().json(); // Clonar para leer y seguir usando response
+      } catch (e) {
+        // Si no es JSON, podría ser texto plano
+        try { responseBody = await response.clone().text(); } catch (e2) { /* No se pudo leer */ }
+      }
 
       if (!response.ok) {
-          console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response:`, data);
-          throw new Error(data?.message || `Error ${response.status}: No se pudieron obtener los comentarios.`);
+          console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response Body:`, responseBody);
+          const errorMessage = (typeof responseBody === 'object' && responseBody?.message)
+                               ? responseBody.message
+                               : `Error ${response.status}: No se pudieron obtener los comentarios.`;
+          throw new Error(errorMessage);
       }
-      if (!data) { throw new Error("Respuesta inválida del servidor al obtener comentarios."); }
 
-      console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin successful for Doc ID ${docIdNum}`);
-      return data; // Devuelve el array de comentarios
+      // Si response.ok, intentamos parsear como Comentario[]
+      const data: Comentario[] = await response.json(); 
+      
+      // Validar que data es un array (podría ser un objeto con una propiedad 'data' o 'comentarios')
+      // Si la API devuelve { comentarios: [...] }, necesitarás acceder a data.comentarios
+      if (!Array.isArray(data)) {
+        console.error(`FETCH Warning: La respuesta para comentarios no es un array. Recibido:`, data);
+        // Decide cómo manejar esto: lanzar error o devolver array vacío
+        // throw new Error("Respuesta inesperada del servidor al obtener comentarios.");
+        return []; // O ajusta para acceder a la propiedad correcta ej: data.comentarios
+      }
 
-  } catch (err) {
+
+      console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin successful for Doc ID ${idDocumento}`);
+      return data.map((item: any): Comentario => ({ // Mapeo para asegurar la estructura
+        id_comentario: Number(item.id_comentario),
+        id_documento_proveedor: Number(item.id_documento_proveedor),
+        comentario: String(item.comentario),
+        id_usuario_admin: Number(item.id_usuario_admin),
+        created_at: String(item.created_at),
+        updated_at: String(item.updated_at),
+      }));
+
+  } catch (err: any) {
       const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-      console.error(`FETCH Exception fetchComentariosPorDocumentoAdmin Doc ID ${docIdNum}:`, errorToThrow);
+      console.error(`FETCH Exception fetchComentariosPorDocumentoAdmin Doc ID ${idDocumento}:`, errorToThrow);
       throw errorToThrow;
   }
 };
 
 /**
 * Crea un nuevo comentario en un documento (Admin).
-* Llama a POST /api/adminProveedores (enviando datos del comentario en el body)
-* @param {number} idDocumento - ID del documento a comentar.
-* @param {string} comentarioTexto - El texto del comentario.
-* @param {number} idUsuarioAdmin - El ID del admin que comenta (¡Obtenerlo de forma segura!).
-* @returns {Promise<object>} - El comentario recién creado.
+* Llama a POST /api/adminDocumuentosProveedores (enviando datos del comentario en el body)
+* @param idDocumento - ID del documento a comentar.
+* @param comentarioTexto - El texto del comentario.
+* @param idUsuarioAdmin - El ID del admin que comenta.
+* @returns El comentario recién creado.
 */
-export const createComentarioAdmin = async (idDocumento, comentarioTexto, idUsuarioAdmin) => {
-  const docIdNum = parseInt(idDocumento, 10);
-  const adminIdNum = parseInt(idUsuarioAdmin, 10); // <-- AHORA SE VALIDA EL RECIBIDO
+export const createComentarioAdmin = async (
+  idDocumento: number,
+  comentarioTexto: string,
+  idUsuarioAdmin: number
+): Promise<Comentario> => {
 
-  if (isNaN(docIdNum) || isNaN(adminIdNum)) { // Validación ahora incluye adminIdNum
+  if (isNaN(idDocumento) || isNaN(idUsuarioAdmin)) {
       throw new Error("Fetch Error: ID de documento o ID de admin inválido.");
   }
   if (typeof comentarioTexto !== 'string' || comentarioTexto.trim() === '') {
       throw new Error("Fetch Error: El texto del comentario es requerido.");
   }
-  console.log(`FETCH (Admin): createComentarioAdmin for Doc ID ${docIdNum} by Admin ID ${adminIdNum}`);
-  const apiUrl = '/api/adminDocumuentosProveedores'; // Endpoint POST (Asegúrate que sea el correcto)
+  console.log(`FETCH (Admin): createComentarioAdmin for Doc ID ${idDocumento} by Admin ID ${idUsuarioAdmin}`);
+  const apiUrl = DOCS_COMMENTS_API_URL; // Endpoint POST (DOCS_COMMENTS_API_URL o DOCS_API_URL según tu API)
 
   try {
       const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // **CAMBIO: Enviar también idUsuarioAdmin**
           body: JSON.stringify({
-              id_documento_proveedor: docIdNum,
+              id_documento_proveedor: idDocumento,
               comentario: comentarioTexto.trim(),
-              id_usuario_admin: adminIdNum // <--- Se envía el ID desde el frontend
+              id_usuario_admin: idUsuarioAdmin
           }),
       });
-      // ... (Manejo de respuesta y errores como antes) ...
-      const data = await response.json().catch(() => null);
-      if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: No se pudo crear comentario.`); }
-      if (!data) { throw new Error("Respuesta inválida del servidor."); }
+      
+      let errorData: any;
+      if (!response.ok) {
+        try { errorData = await response.json(); } catch (e) { /* ignora */ }
+        throw new Error(errorData?.message || `Error ${response.status}: No se pudo crear comentario.`);
+      }
+      
+      const data: Comentario = await response.json();
+      if (!data || typeof data.id_comentario !== 'number') { // Validación básica de la respuesta
+          throw new Error("Respuesta inválida del servidor al crear comentario.");
+      }
       console.log(`FETCH (Admin): createComentarioAdmin successful`);
       return data;
 
-  } catch(err) {
+  } catch(err: any) {
        const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-       console.error(`FETCH Exception createComentarioAdmin Doc ID ${docIdNum}:`, errorToThrow);
+       console.error(`FETCH Exception createComentarioAdmin Doc ID ${idDocumento}:`, errorToThrow);
        throw errorToThrow;
   }
 };
 
 /**
 * Elimina un comentario específico por su ID (Admin).
-* Llama a DELETE /api/adminProveedores?id_comentario=[idComentario]
-* @param {number} idComentario - El ID del comentario a eliminar.
-* @returns {Promise<object>} - Respuesta de la API (ej. { message: "..." }).
+* Llama a DELETE /api/adminDocumuentosProveedores?id_comentario=[idComentario]
+* @param idComentario - El ID del comentario a eliminar.
+* @returns Respuesta de la API (ej. { message: "..." }).
 */
-export const deleteComentarioAdmin = async (idComentario) => {
-  const commentIdNum = parseInt(idComentario, 10);
-  if (isNaN(commentIdNum)) {
+export const deleteComentarioAdmin = async (idComentario: number): Promise<ApiResponse> => {
+  if (isNaN(idComentario)) {
       throw new Error("Fetch Error: ID de comentario inválido para eliminar.");
   }
-  console.log(`FETCH (Admin): deleteComentarioAdmin ID: ${commentIdNum}`);
-  // Construir URL con query param para DELETE
-  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_comentario=${commentIdNum}`;
+  console.log(`FETCH (Admin): deleteComentarioAdmin ID: ${idComentario}`);
+  const apiUrl = `${DOCS_COMMENTS_API_URL}?id_comentario=${idComentario}`;
 
   try {
       const response = await fetch(apiUrl, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' }, // Aunque no hay body, es buena práctica
+          headers: { 'Content-Type': 'application/json' },
       });
 
-      let data = null;
-      if (response.status !== 204) { // Si no es 'No Content', intentar leer body
-          data = await response.json().catch(() => null);
+      let data: ApiResponse | null = null;
+      // Un DELETE exitoso puede devolver 204 No Content (sin cuerpo) o 200 OK con un mensaje.
+      if (response.status !== 204 && response.body) {
+          try {
+            data = await response.json();
+          } catch (e) {
+            // Si no es JSON, podría ser un error o un mensaje de texto plano
+            console.warn(`DELETE ${apiUrl} no devolvió JSON válido, status: ${response.status}`);
+          }
       }
 
       if (!response.ok) {
@@ -284,12 +354,14 @@ export const deleteComentarioAdmin = async (idComentario) => {
           throw new Error(data?.message || `Error ${response.status}: No se pudo eliminar el comentario.`);
       }
 
-      console.log(`FETCH (Admin): deleteComentarioAdmin successful for ID: ${commentIdNum}`);
-      return data ?? { success: true, message: 'Comentario eliminado.' }; // Devolver respuesta o éxito genérico
+      console.log(`FETCH (Admin): deleteComentarioAdmin successful for ID: ${idComentario}`);
+      // Si es 204, data será null. Devolvemos un mensaje de éxito genérico.
+      // Si es 200 y data tiene un mensaje, lo usamos.
+      return data ?? { success: true, message: 'Comentario eliminado exitosamente.' };
 
-  } catch (err) {
+  } catch (err: any) {
       const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-      console.error(`FETCH Exception deleteComentarioAdmin ID ${commentIdNum}:`, errorToThrow);
+      console.error(`FETCH Exception deleteComentarioAdmin ID ${idComentario}:`, errorToThrow);
       throw errorToThrow;
   }
 };
