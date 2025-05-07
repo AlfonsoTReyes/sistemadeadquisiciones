@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSolicitudes, getSolicitudesAll, getSolicitudByIdPDF, getSolicitudById, createSolicitud, updateSolicitud,
   getSolicitudByConcursos,
   getSolicitudesFiltradasPorEstatus,
-  getSolicitudesAllFiltradasPorEstatus
+  getSolicitudesAllFiltradasPorEstatus, getSolicitudesAdminEvento, getSolicitudesAdmin
  } from "../../../services/solicitudeservice";
 
 
@@ -62,13 +62,22 @@ export async function GET(req: NextRequest) {
       }
     } else {
       // Otros tipos (sin filtro de estatus)
-      if (sistema !== "UNIVERSAL") {
+      if (sistema === "ADQUISICIONES") {
+          // 🔹 Ejecuta la consulta para ADQUISICIONES
+          solicitud = await getSolicitudesAdmin();
+      } else if (sistema === "ADQUISICIONES EVENTOS") {
+          // 🔹 Ejecuta la consulta para ADQUISICIONES EVENTOS
+          solicitud = await getSolicitudesAdminEvento();
+      } else if (sistema !== "UNIVERSAL") {
         if (secretaria) {
+          // 🔹 Ejecuta la consulta genérica
           solicitud = await getSolicitudes(parseInt(secretaria));
         }
       } else {
+        // 🔹 Si es UNIVERSAL, ejecuta la consulta para todos
         solicitud = await getSolicitudesAll();
       }
+      
     }
 
     if (!solicitud || solicitud.length === 0) {

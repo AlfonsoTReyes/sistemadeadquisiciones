@@ -216,8 +216,7 @@ const ModificarSolicitud: React.FC<ModificarSolicitudProps> = ({ onClose, onSoli
               <option value="">Selecciona adjudicación</option>
               <option value="1">Bienes y servicios</option>
               <option value="2">Obras públicas</option>
-              <option value="3">Arrendamiento</option>
-              <option value="4">Contrataciones </option>
+              <option value="3">Medios de comunicación</option>
             </select>
           </div>
         </div>
