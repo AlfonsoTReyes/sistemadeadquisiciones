@@ -81,17 +81,42 @@ const formatCurrency = (amount: string | number | null | undefined, _currency: s
 };
 
 const formatCurrencyToWords = (amount: string | number | null | undefined, currency: string | null = 'MXN'): string => {
-     if (amount === null || amount === undefined || amount === '') return '_______';
-     const numberAmount = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount; // Handle commas
-     if (isNaN(numberAmount)) return 'Monto inválido';
-     try {
-         // numeroALetras is now imported at the top
-         const [integerPart, decimalPart = '00'] = String(numberAmount.toFixed(2)).split('.');
-         const currencyName = currency?.toUpperCase() === 'USD' ? 'DÓLARES AMERICANOS' : 'PESOS';
-         const letras = numeroALetras(parseInt(integerPart)); // Use the imported function
-         return `${letras} ${currencyName} ${decimalPart}/100 M.N.`.toUpperCase();
-     } catch (e) { console.error("Error convirtiendo número a letras:", e); return '(Error en conversión)'; }
+    if (amount === null || amount === undefined || amount === '') return '_______';
+    const numberAmount = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount;
+    if (isNaN(numberAmount)) return 'Monto inválido';
+    try {
+        const [integerPart, decimalPart = '00'] = String(numberAmount.toFixed(2)).split('.');
+        const currencyName = currency?.toUpperCase() === 'USD' ? 'DÓLARES AMERICANOS' : 'PESOS';
+
+        // Attempt to get the function, prioritizing 'NumerosALetras' then 'default'
+        let conversorFunc: ((num: number | string) => string) | undefined | null = null;
+
+        if (typeof (numeroALetrasModule as any).NumerosALetras === 'function') {
+            conversorFunc = (numeroALetrasModule as any).NumerosALetras;
+        } else if (typeof numeroALetrasModule.default === 'function') {
+            conversorFunc = numeroALetrasModule.default;
+        } else if (typeof numeroALetrasModule === 'function') { // Less likely for namespace import
+            conversorFunc = numeroALetrasModule as any;
+        }
+
+
+        if (!conversorFunc) {
+           console.error("numero-a-letras function not found. Module content:", numeroALetrasModule);
+           // Try to log the keys to see what's available if the above fails
+           if (numeroALetrasModule) {
+               console.log("Keys in numeroALetrasModule:", Object.keys(numeroALetrasModule));
+           }
+           return '(Error: Conversor no encontrado)';
+        }
+
+        const letras = conversorFunc(parseInt(integerPart));
+        return `${letras} ${currencyName} ${decimalPart}/100 M.N.`.toUpperCase();
+    } catch (e) {
+        console.error("Error convirtiendo número a letras:", e);
+        return '(Error en conversión)';
+    }
 };
+
 
 
 export function mapContratoToTemplateData(contrato: ContratoDetallado): TemplateData {
