@@ -171,14 +171,14 @@ export default function Menu() {
             <button onClick={() => setIsOpen(!isOpen)} className="p-2 focus:outline-none hover:bg-blue-700 rounded-md transition duration-300" aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}>
               <FontAwesomeIcon icon={isOpen ? faTimes : faBars} size="lg" />
             </button>
-            {idRol && <Notificaciones idrol={idRol} />}
+            {/* {idRol && <Notificaciones idrol={idRol} />} */}
             {/* *** RENDERIZAR NotificationManager *** */}
-            {/*
+            
             <NotificationManager
               userId={idUsuario ? parseInt(idUsuario, 10) : null}
               idRol={idRol}
             />
-             */}
+            
           </div>
 
 
