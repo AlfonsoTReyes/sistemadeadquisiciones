@@ -41,56 +41,38 @@ export const fetchAllProveedores = async () => {
  * @param {boolean} newStatus - El nuevo estado (true para activo, false para inactivo).
  * @returns {Promise<object>} - Una promesa que resuelve con la respuesta de la API.
  */
-export const updateProveedorStatus = async (idProveedor, newStatus) => {
-  console.log(`DEBUG Fetch: Calling updateProveedorStatus for ID ${idProveedor} with status ${newStatus}`);
-  // --- Usa la URL BASE ---
-  const apiUrl = ADMIN_PROVEEDORES_API_URL;
+export const updateProveedorStatus = async (idProveedor: number, newStatus: boolean) => {
+  const apiUrl = `/api/adminProveedores/${idProveedor}/status`;
 
-  // Validación básica en JS (opcional pero útil)
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
-     const errorMsg = 'Fetch Error: idProveedor inválido para updateProveedorStatus';
-     console.error(errorMsg);
-     throw new Error(errorMsg); // Detener ejecución si el ID es inválido
+    throw new Error('ID de proveedor inválido');
   }
   if (typeof newStatus !== 'boolean') {
-     const errorMsg = 'Fetch Error: newStatus inválido (debe ser boolean) para updateProveedorStatus';
-     console.error(errorMsg);
-     throw new Error(errorMsg); // Detener ejecución si el estatus es inválido
+    throw new Error('Estatus inválido');
   }
 
   try {
     const response = await fetch(apiUrl, {
-      // --- MÉTODO AJUSTADO A PUT ---
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        // Añadir headers de autenticación si son necesarios
       },
-      // --- BODY AJUSTADO: Incluye id_proveedor y estatus ---
-      body: JSON.stringify({
-          id_proveedor: idProveedor, // Clave como la espera la API
-          estatus: newStatus         // Clave como la espera la API
-      }),
+      body: JSON.stringify({ estatus: newStatus }),
     });
 
     if (!response.ok) {
       let errorData;
-      try { errorData = await response.json(); } catch (e) { /* ignora error */ }
-      console.error(`Fetch Error PUT ${apiUrl}: Status ${response.status} updating ID ${idProveedor}. Response:`, errorData);
-      throw new Error(errorData?.message || `Error al actualizar el estatus del proveedor: ${response.statusText}`);
+      try { errorData = await response.json(); } catch (_) {}
+      throw new Error(errorData?.message || `Error al actualizar el estatus: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log(`DEBUG Fetch: updateProveedorStatus successful for ID ${idProveedor}`);
-    return data;
-
+    return await response.json();
   } catch (err) {
-    // Asegura que siempre se lance un objeto Error
-    const errorToThrow = err instanceof Error ? err : new Error(String(err));
-    console.error(`Fetch Error in updateProveedorStatus for ID ${idProveedor}:`, errorToThrow);
-    throw errorToThrow;
+    console.error(`Error actualizando estatus del proveedor ${idProveedor}:`, err);
+    throw err instanceof Error ? err : new Error(String(err));
   }
 };
+
 
 /**
  * Obtiene los datos completos del PERFIL de un proveedor específico por su ID.
