@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
             id: userId,
             usuario: proveedorUser.usuario,
             nombre: proveedorUser.nombre,
-            apellido_paterno: proveedorUser.apellido_paterno,
-            apellido_materno: proveedorUser.apellido_materno,
+            apellido_paterno: proveedorUser.apellido_p,
+            apellido_materno: proveedorUser.apellido_m,
             tipo: 'proveedor',
             hasProfile: hasProfile // Include flag in token
         };
