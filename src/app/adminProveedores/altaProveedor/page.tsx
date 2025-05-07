@@ -8,7 +8,9 @@ import Menu from '../../menu';
 import Pie from "../../pie";
 import TablaDocumentos from './tablaProveedores'; // O TablaAdministradorProveedores según tu export
 
-import { ProveedorAdminListData, ProveedorCompletoData, UsuarioProveedorData } from './interface';
+import { UsuarioProveedorData } from './interface';
+import { ProveedorAdminListData, ProveedorCompletoData } from '@/types/proveedor';
+
 
 import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
 import ModalActualizarUsuarioProveedor from './formularios/modalActualizarUsuario';
