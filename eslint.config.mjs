@@ -14,7 +14,6 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-<<<<<<< HEAD
   ...compat.extends("next/core-web-vitals", "next/typescript"), // Tus configuraciones base
 
   // Nuevo objeto de configuración para personalizar reglas
