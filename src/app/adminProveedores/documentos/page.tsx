@@ -8,7 +8,7 @@ import Pie from "../../pie";
 //import DynamicMenu from "@/components/dinamicMenu"; // Ajusta ruta si es necesario
 // Importa el componente que SÓLO muestra y permite editar estatus
 import VistaDocumentosAdmin from './formularios/vistaDocumentos'; // <-- Ajusta ruta al componente correcto
-import { ProveedorData, ProveedorHeaderData } from './interfaces'; // Ajusta ruta a tu interfaz
+import { ProveedorHeaderData } from './interfaces'; // Ajusta ruta a tu interfaz
 
 // Importa las funciones fetch necesarias para ESTA vista de admin
 import {
