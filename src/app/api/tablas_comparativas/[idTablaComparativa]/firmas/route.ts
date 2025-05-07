@@ -3,30 +3,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { agregarFirma } from '@/services/tablasComparativasService';
 import { AgregarFirmaInput } from '@/types/tablaComparativa';
 
-// export const dynamic = 'force-dynamic'; // Keep this if you added it
+export const dynamic = 'force-dynamic'; // Recommended to ensure Node.js runtime behavior
 
 export async function POST(
-    request: NextRequest,
-    // Use a more generic type for the context object initially
-    context: { params?: { [key: string]: string | string[] | undefined } }
+    request: NextRequest
+    // context parameter is removed for this workaround
 ) {
-    // Type assertion/check for params and idTablaComparativa
-    if (!context.params || typeof context.params.idTablaComparativa !== 'string') {
-        console.error("API POST Firmas: Invalid or missing idTablaComparativa in params", context.params);
+    // WORKAROUND: Extract idTablaComparativa from pathname
+    const pathnameParts = request.nextUrl.pathname.split('/');
+    // Expected path: /api/tablas_comparativas/[idTablaComparativa]/firmas
+    // Array indices:    0   1           2               3                4
+    const idTablaComparativa = pathnameParts[3]; // Adjust index if your base path is different
+
+    if (!idTablaComparativa) {
+        console.error("API POST Firmas: Could not extract idTablaComparativa from pathname.", request.nextUrl.pathname, pathnameParts);
         return NextResponse.json({ message: 'ID de tabla comparativa no encontrado en la ruta.' }, { status: 400 });
     }
-    const { idTablaComparativa } = context.params as { idTablaComparativa: string };
 
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/firmas:`;
     console.log(logPrefix);
 
     const idTabla = parseInt(idTablaComparativa, 10);
     if (isNaN(idTabla)) {
-        return NextResponse.json({ message: 'ID de tabla comparativa inválido.' }, { status: 400 });
+        return NextResponse.json({ message: 'ID de tabla comparativa inválido (extraído del pathname).' }, { status: 400 });
     }
 
-    // TODO: Authentication
-    // const idUsuarioDeSesion = ...
+    // TODO: Implement robust authentication here to get idUsuarioDeSesion
+    // const idUsuarioDeSesion = await getUserIdFromSession(request); // Example
+    // if (!idUsuarioDeSesion) {
+    //     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    // }
 
     try {
         const body = await request.json();
@@ -38,6 +44,7 @@ export async function POST(
             return NextResponse.json({ message: 'Cuerpo de solicitud inválido.' }, { status: 400 });
         }
         if (!inputDataFromClient.id_usuario || typeof inputDataFromClient.id_usuario !== 'number') {
+            // This should ideally come from session, not client payload
             return NextResponse.json({ message: 'ID de usuario inválido o faltante. (Debe obtenerse de la sesión)' }, { status: 400 });
         }
         if (!inputDataFromClient.tipo_firma || typeof inputDataFromClient.tipo_firma !== 'string' || !inputDataFromClient.tipo_firma.trim()) {
@@ -45,8 +52,8 @@ export async function POST(
         }
 
         const dataForService: AgregarFirmaInput = {
-            id_tabla_comparativa: idTabla,
-            id_usuario: inputDataFromClient.id_usuario, // Replace with session user ID
+            id_tabla_comparativa: idTabla, // Uses ID from path
+            id_usuario: inputDataFromClient.id_usuario, // TODO: Replace with user ID from session
             tipo_firma: inputDataFromClient.tipo_firma,
             comentario_firma: inputDataFromClient.comentario_firma || null,
         };
@@ -62,7 +69,7 @@ export async function POST(
         if (error instanceof Error) {
             message = error.message || message;
             errorDetail = error.message;
-            if (error.message.includes('no encontrado')) {
+            if (error.message.includes('no encontrado')) { // Example of specific error handling
                 return NextResponse.json({ message: message }, { status: 404 });
             }
         } else if (typeof error === 'string') {
