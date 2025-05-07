@@ -1,18 +1,25 @@
 // src/app/api/proveedores/[idProveedor]/articulos/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
-import { buscarArticulosPorProveedorYTermino } from '@/services/catalogoProveedoresService'; // Ajusta la ruta
-import { ArticuloCatalogo } from '@/types/catalogoProveedores'; // Ajusta la ruta
+import { buscarArticulosPorProveedorYTermino } from '@/services/catalogoProveedoresService';
+import { ArticuloCatalogo } from '@/types/catalogoProveedores';
 
-interface RouteContext { // Renombrado de RouteParams para claridad
-    params: {
-        idProveedor: string;
+// export const dynamic = 'force-dynamic'; // Try adding this
+
+export async function GET(
+    request: NextRequest
+    // { params }: { params: { idProveedor: string } } // Temporarily remove for workaround
+) {
+    // WORKAROUND: Extract idProveedor from pathname
+    const pathnameParts = request.nextUrl.pathname.split('/');
+    // Expected path: /api/proveedores/[idProveedor]/articulos
+    // Array indices:    0   1      2            3           4
+    const idProveedor = pathnameParts[3]; // Adjust index if your base path is different
+
+    if (!idProveedor) {
+        console.error("Error: Could not extract idProveedor from pathname.", request.nextUrl.pathname, pathnameParts);
+        return NextResponse.json({ message: 'No se pudo determinar el ID del proveedor desde la URL' }, { status: 400 });
     }
-}
 
-export async function GET(request: NextRequest, context: RouteContext) {
-    const { params } = context;
-    const { idProveedor } = params;
     const { searchParams } = new URL(request.url);
     const searchTerm = searchParams.get('search');
 
@@ -21,7 +28,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const proveedorIdNum = parseInt(idProveedor, 10);
     if (isNaN(proveedorIdNum)) {
-        return NextResponse.json({ message: 'ID de proveedor inválido.' }, { status: 400 });
+        return NextResponse.json({ message: 'ID de proveedor inválido (extraído del pathname).' }, { status: 400 });
     }
 
     if (!searchTerm || searchTerm.trim().length < 3) {
@@ -30,15 +37,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     try {
-        // Llamar a la función del servicio correcto
         const articulos: ArticuloCatalogo[] = await buscarArticulosPorProveedorYTermino(proveedorIdNum, searchTerm);
         console.log(`${logPrefix} Found ${articulos.length} articles.`);
         return NextResponse.json(articulos);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`${logPrefix} Error:`, error);
+        let message = 'Error al buscar artículos del proveedor';
+        let errorDetail: string | undefined;
+        if (error instanceof Error) {
+            message = error.message || message;
+            errorDetail = error.message;
+        } else if (typeof error === 'string') {
+            message = error;
+            errorDetail = error;
+        }
         return NextResponse.json(
-            { message: 'Error al buscar artículos del proveedor', error: error.message },
+            { message: message, error: errorDetail },
             { status: 500 }
         );
     }
