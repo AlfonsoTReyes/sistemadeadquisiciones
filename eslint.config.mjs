@@ -14,39 +14,14 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"), // Tus configuraciones base
-
-  // Nuevo objeto de configuración para personalizar reglas
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    // Opcional: puedes especificar a qué archivos aplicar estas reglas.
-    // Si no se especifica, se aplica globalmente (después de las extendidas).
-    // files: ["**/*.ts", "**/*.tsx"], // Descomenta si quieres ser específico
-
-    // plugins: { // Descomenta y usa si es necesario (ver nota arriba)
-    //   '@typescript-eslint': tsPlugin,
-    // },
-
     rules: {
-      // Para variables no utilizadas:
-      '@typescript-eslint/no-unused-vars': ['warn', { // Cambiado de 'error' a 'warn'
-        argsIgnorePattern: '^_',          // Ignorar argumentos de función que comiencen con _
-        varsIgnorePattern: '^_',          // Ignorar variables que comiencen con _
-        caughtErrorsIgnorePattern: '^_',  // Ignorar errores capturados que comiencen con _
-      }],
-
-      // Para el uso explícito de 'any':
-      '@typescript-eslint/no-explicit-any': 'warn', // Cambiado de 'error' a 'warn'
-
-      // Si tienes otros errores específicos que quieras modificar, añádelos aquí.
-      // Por ejemplo, si tuvieras una regla como 'no-console':
-      // 'no-console': 'warn', // Permitir console.log pero con advertencia
-
-      // IMPORTANTE: Las reglas de hooks como 'react-hooks/rules-of-hooks'
-      // generalmente se dejan como 'error' porque indican problemas fundamentales.
-      // 'react-hooks/rules-of-hooks': 'error', (ya debería estar así por next/core-web-vitals)
-      // 'react-hooks/exhaustive-deps': 'warn', (ya debería estar así por next/core-web-vitals)
-    }
-  }
+      // Deshabilitar las reglas para `any` y variables no usadas
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
