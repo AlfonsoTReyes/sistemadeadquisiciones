@@ -13,7 +13,7 @@ const formatDateES = (date: Date): string => {
     return `San Juan del Río, Qro., a ${day} de ${month} de ${year}`;
 }
 
-export const revalidacionProveedores = async (providerData: ProveedorData): Promise<void> => {
+export const revalidacionProveedores = async (providerData: typeof ProveedorInfo): Promise<void> => {
     return new Promise((resolve, reject) => {
         try {
             const doc = new jsPDF({
