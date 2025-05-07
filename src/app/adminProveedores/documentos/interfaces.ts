@@ -10,20 +10,19 @@ export interface DocumentoProveedor {
     updated_at: string; // O Date
   }
  export interface ProveedorHeaderData {
-    id_proveedor: number;
-    rfc?: string | null;
-    tipo_proveedor?: 'moral' | 'fisica' | 'desconocido' | string;
-    // Añadir nombre/razón social si fetchProveedorDetallesPorIdAdmin lo devuelve
-    nombre_o_razon_social?: string | null;
+  id_proveedor: number;
+  rfc: string;
+  tipo_proveedor: string; // <--- Este campo debe existir
+  nombre_o_razon_social: string; // <--- Este campo también
 }
 export interface ComentarioDocProveedor {
   id_comentario: number;
-  id_documento_proveedor: number;
-  id_usuario: number;
   comentario: string;
-  created_at: string;
+  id_documento_proveedor: number;
+  id_usuario_admin: number;
   nombre_admin?: string;
   apellidos_admin?: string;
+  created_at: string; // o Date si haces conversión
 }
 
 // Interfaz para crear un nuevo comentario

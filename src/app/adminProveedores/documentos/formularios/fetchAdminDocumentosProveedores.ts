@@ -23,7 +23,7 @@ export interface ProveedorDetalles {
   id_proveedor: number;
   nombre_empresa: string; // Ejemplo, ajusta según tu modelo de datos
   rfc: string;          // Ejemplo
-  // ... otros campos que esperas del proveedor
+  nombre_o_razon_social: string;
 }
 
 export interface Comentario {
