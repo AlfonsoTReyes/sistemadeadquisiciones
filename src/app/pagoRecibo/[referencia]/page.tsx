@@ -1,73 +1,65 @@
 // app/pagoRecibo/[referencia]/page.tsx
 import { notFound } from 'next/navigation';
-// ---> Verifica la ruta de importación de tipos <---
-import { ReciboData } from '@/types/pago';
+import { ReciboData } from '@/types/pago'; // Ensure this path is correct
 
 async function fetchRecibo(referencia: string): Promise<ReciboData | null> {
-    // La URL de la API interna de Next.js
     const internalApiUrl = `/api/pagos/recibo?ref=${encodeURIComponent(referencia)}&format=json`;
-    // Para fetch del lado del servidor, necesitamos la URL absoluta
     const absoluteApiUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${internalApiUrl}`;
 
     console.log(`Recibo Page: Fetching ${absoluteApiUrl}`);
     try {
-        // Usar la URL absoluta para el fetch del lado del servidor
         const res = await fetch(absoluteApiUrl, {
              cache: 'no-store',
              headers: { 'Accept': 'application/json' }
-             });
+        });
 
         if (res.status === 404) {
             console.log(`Recibo Page: API devolvió 404 para ref ${referencia}`);
-            return null; // Recibo no encontrado
+            return null;
         }
-
-        if (!res.ok) { // Maneja otros errores (incluyendo el 405)
+        if (!res.ok) {
             let errorMsg = `Error ${res.status} (${res.statusText}) al obtener recibo desde ${internalApiUrl}`;
             try {
                  const errorData = await res.json();
-                 // Incluir mensaje del error de la API si existe
                  errorMsg = errorData.message ? `${errorMsg}: ${errorData.message}` : errorMsg;
             } catch (e) { /* No hacer nada si no es JSON */ }
-             console.error(`Recibo Page: Error en fetchRecibo - ${errorMsg}`);
-            throw new Error(errorMsg); // Lanza el error para que el componente lo capture
+            console.error(`Recibo Page: Error en fetchRecibo - ${errorMsg}`);
+            throw new Error(errorMsg);
         }
-
         const data: ReciboData = await res.json();
         return data;
-
-    } catch (error: any) {
-        // Loguea el error original que puede venir del fetch o del throw anterior
+    } catch (error: unknown) { // Changed to unknown
         console.error(`Recibo Page: Catch en fetchRecibo para ref ${referencia}:`, error);
-        // Re-lanza el error para que el componente lo maneje
-        throw new Error(error.message || 'No se pudo cargar la información del recibo.');
+        const message = error instanceof Error ? error.message : 'No se pudo cargar la información del recibo.';
+        throw new Error(message);
     }
 }
 
-interface PageProps { params: { referencia: string } }
+// Remove or comment out your custom PageProps interface
+// interface PageProps { params: { referencia: string } }
 
 // --- El Server Component ---
-export default async function ReciboPage({ params }: PageProps) {
-    // Accede a params.referencia directamente cuando lo necesites
-    const encodedReferencia = params.referencia; // La referencia viene URL-encoded de la ruta
+// Let TypeScript infer the type of props, especially params
+export default async function ReciboPage({ params }: { params: { referencia: string } }) {
+    const encodedReferencia = params.referencia;
 
     if (!encodedReferencia) {
+        // This check might be redundant if 'referencia' is a required dynamic segment,
+        // as Next.js would typically 404 before reaching here if it's missing.
+        // However, it doesn't hurt as a safeguard.
         notFound();
     }
 
-    // Decodifica la referencia para mostrarla y pasarla al fetch
     const decodedReferencia = decodeURIComponent(encodedReferencia);
 
     let reciboData: ReciboData | null = null;
     let fetchError: string | null = null;
 
     try {
-        // Pasa la referencia decodificada a la función fetch
         reciboData = await fetchRecibo(decodedReferencia);
-    } catch (error: any) {
-        fetchError = error.message; // Captura el error lanzado por fetchRecibo
+    } catch (error: unknown) { // Changed to unknown
+        fetchError = error instanceof Error ? error.message : "Error desconocido al obtener recibo.";
     }
-
 
     if (fetchError) {
         return (
@@ -96,6 +88,15 @@ export default async function ReciboPage({ params }: PageProps) {
                  <p className="text-sm text-gray-500">Folio: {reciboData.folioRecibo || 'N/A'}</p>
                  <p className="text-sm text-gray-500">Fecha: {reciboData.fechaHora ? new Date(reciboData.fechaHora).toLocaleString() : 'N/A'}</p>
                  <p className="text-sm text-gray-500">Referencia: <span className="font-mono">{reciboData.pago?.referencia || 'N/A'}</span></p>
+            </div>
+            {/* Consider adding more fields from ReciboData here */}
+            <div className="mt-6 border-t pt-6">
+                <h2 className="text-xl font-semibold text-gray-700 mb-3">Detalles del Pago</h2>
+                <p><strong>Concepto:</strong> {reciboData.pago?.concepto || 'N/A'}</p>
+                <p><strong>Monto:</strong> {reciboData.pago?.monto !== undefined ? `${reciboData.pago.monto.toFixed(2)} ${reciboData.pago.moneda || 'MXN'}` : 'N/A'}</p>
+                <p><strong>Método de Pago:</strong> {reciboData.pago?.metodoPago || 'N/A'}</p>
+                <p><strong>Estado del Pago:</strong> {reciboData.pago?.estado || 'N/A'}</p>
+                {/* Add more details as needed */}
             </div>
         </div>
     );
