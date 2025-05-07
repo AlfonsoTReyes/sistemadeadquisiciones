@@ -26,6 +26,7 @@
     "@vercel/postgres": "^0.10.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.6.0",
+    "clsx": "^2.1.1",
     "docx": "^9.4.1",
     "docxtemplater": "^3.61.1",
     "dotenv": "^16.4.7",
@@ -46,11 +47,8 @@
     "pusher-js": "^8.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-
-    "react-icons": "^5.5.0",
-
     "react-hot-toast": "^2.5.2",
-
+    "react-icons": "^5.5.0",
     "react-select": "^5.10.1",
     "react-webcam": "^7.2.0",
     "uuid": "^11.1.0"
