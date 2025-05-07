@@ -1,30 +1,30 @@
 // src/app/api/adminProveedores/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-// Ensure this path correctly points to your service file
 import { updateProveedorEstatus } from '@/services/adminproveedoresservice';
 
-// Define the expected shape of the params for this specific route
-interface RouteHandlerParams {
-  id: string;
-}
-
-// This is the type Next.js *should* be inferring for the second argument
-// when you use dynamic segments.
-type NextRouteContext<P = Record<string, string | string[]>> = {
-  params: P;
-};
-
 export async function PATCH(
-    req: NextRequest,
-    context: NextRouteContext<RouteHandlerParams> // Use the more generic NextRouteContext with your specific params
+    req: NextRequest
+    // We are removing the second 'context' or '{ params }' argument for this test
 ) {
-    const idProveedorStr = context.params.id;
-    console.log(`DEBUG API PATCH /api/adminProveedores/${idProveedorStr}/status: Request received.`);
+    // Attempt to extract 'id' from the URL pathname
+    // Pathname will be like: /api/adminProveedores/21/status
+    const pathnameParts = req.nextUrl.pathname.split('/');
+    // The 'id' should be the second to last part if the route is /api/adminProveedores/[id]/status
+    // Example: ['', 'api', 'adminProveedores', '21', 'status']
+    // So, id would be at index pathnameParts.length - 2
+    const idProveedorStr = pathnameParts[pathnameParts.length - 2];
+
+    console.log(`DEBUG API PATCH (from pathname) /api/adminProveedores/${idProveedorStr}/status: Request received. Pathname: ${req.nextUrl.pathname}`);
+
+    if (!idProveedorStr) {
+        console.error("Error: Could not extract ID from pathname.", pathnameParts);
+        return NextResponse.json({ message: 'No se pudo determinar el ID del proveedor desde la URL' }, { status: 400 });
+    }
 
     try {
         const idProveedor = parseInt(idProveedorStr, 10);
         if (isNaN(idProveedor)) {
-            return NextResponse.json({ message: 'ID de proveedor inválido en la URL' }, { status: 400 });
+            return NextResponse.json({ message: 'ID de proveedor inválido en la URL (extraído del pathname)' }, { status: 400 });
         }
 
         const body = await req.json();
