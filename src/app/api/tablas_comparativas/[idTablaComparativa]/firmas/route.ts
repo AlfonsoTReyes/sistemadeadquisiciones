@@ -1,66 +1,86 @@
-// src/app/api/tablas-comparativas/[idTablaComparativa]/firmas/route.ts
+// src/app/api/tablas_comparativas/[idTablaComparativa]/firmas/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { agregarFirma } from '@/services/tablasComparativasService'; // ¡IMPLEMENTAR ESTA FUNCIÓN!
+import { agregarFirma } from '@/services/tablasComparativasService';
 import { AgregarFirmaInput } from '@/types/tablaComparativa';
-// import { ZodError } from 'zod';
 
-interface RouteParams {
-    params: { idTablaComparativa: string };
-}
+// interface RouteParams { // This interface is not needed with the inline type
+//     params: { idTablaComparativa: string };
+// }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
-    const { idTablaComparativa } = params;
+// Add this if you are still encountering runtime "params should be awaited" errors
+// export const dynamic = 'force-dynamic';
+
+export async function POST(
+    request: NextRequest,
+    { params }: { params: { idTablaComparativa: string } } // Standard Next.js App Router signature
+) {
+    const { idTablaComparativa } = params; // idTablaComparativa is now directly available
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/firmas:`;
     console.log(logPrefix);
 
-    // 1. Validar ID de Tabla
     const idTabla = parseInt(idTablaComparativa, 10);
     if (isNaN(idTabla)) {
         return NextResponse.json({ message: 'ID de tabla comparativa inválido.' }, { status: 400 });
     }
 
-    // 2. ¡AÑADIR AUTENTICACIÓN AQUÍ! Obtener idUsuario de la sesión
+    // TODO: Implement robust authentication here to get idUsuarioDeSesion
+    // const idUsuarioDeSesion = await getUserIdFromSession(request); // Example
+    // if (!idUsuarioDeSesion) {
+    //     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    // }
 
     try {
-        // 3. Obtener y Validar Cuerpo
         const body = await request.json();
         console.log(`${logPrefix} Request body:`, body);
 
-        // --- Validación (¡Usar Zod!) ---
-        const inputData = body as AgregarFirmaInput; // Cast temporal
-        if (!inputData || typeof inputData !== 'object') {
+        // It's better to construct the inputData for the service carefully
+        // rather than just casting, especially when dealing with auth-sensitive data like id_usuario.
+        const inputDataFromClient = body as Partial<AgregarFirmaInput>;
+
+        // Validate and construct the data for the service
+        if (!inputDataFromClient || typeof inputDataFromClient !== 'object') {
             return NextResponse.json({ message: 'Cuerpo de solicitud inválido.' }, { status: 400 });
         }
-        // Verificar que el id_tabla_comparativa del cuerpo coincide con la ruta
-        if (inputData.id_tabla_comparativa !== idTabla) {
-            return NextResponse.json({ message: 'El ID de tabla en el cuerpo no coincide con el ID de la ruta.' }, { status: 400 });
+
+        // The id_usuario should ideally come from the session, not the client's payload for security.
+        // For now, we'll validate what's sent, but this is a security note.
+        if (!inputDataFromClient.id_usuario || typeof inputDataFromClient.id_usuario !== 'number') {
+            console.error(`${logPrefix} Error: id_usuario inválido o faltante en el payload del cliente. Implementar obtención desde sesión.`);
+            return NextResponse.json({ message: 'ID de usuario inválido o faltante. (Debe obtenerse de la sesión)' }, { status: 400 });
         }
-        // El ID de usuario debe venir del backend (sesión), no confiar en el cliente
-        // inputData.id_usuario = idUsuarioDeSesion; // Sobrescribir o validar
-        if (!inputData.id_usuario || typeof inputData.id_usuario !== 'number') {
-            // Este error indica un problema al obtener el ID de sesión o si se envió desde el cliente
-            console.error(`${logPrefix} Error: id_usuario inválido o faltante en datos procesados.`);
-            return NextResponse.json({ message: 'Error interno al procesar usuario.' }, { status: 500 });
-        }
-        if (!inputData.tipo_firma) {
+        if (!inputDataFromClient.tipo_firma || typeof inputDataFromClient.tipo_firma !== 'string' || !inputDataFromClient.tipo_firma.trim()) {
             return NextResponse.json({ message: 'El tipo de firma es requerido.' }, { status: 400 });
         }
-        // --- Fin Validación ---
 
-        // 4. Llamar al Servicio
-        const nuevaFirma = await agregarFirma(inputData);
+        // Construct the final data for the service, ensuring id_tabla_comparativa from path
+        // and id_usuario (ideally from session, here from client for now)
+        const dataForService: AgregarFirmaInput = {
+            id_tabla_comparativa: idTabla, // Use ID from path
+            id_usuario: inputDataFromClient.id_usuario, // TODO: Replace with user ID from session
+            tipo_firma: inputDataFromClient.tipo_firma,
+            comentario_firma: inputDataFromClient.comentario_firma || null,
+        };
 
-        // 5. Devolver Respuesta Exitosa
+        const nuevaFirma = await agregarFirma(dataForService);
         return NextResponse.json(nuevaFirma, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) { // Changed to unknown
         console.error(`${logPrefix} Error:`, error);
-        // if (error instanceof ZodError) { ... }
-        if (error.message.includes('no encontrado')) { // Ej: idTabla o idUsuario no existen
-            return NextResponse.json({ message: error.message }, { status: 404 });
+        let message = 'Error al agregar la firma';
+        let errorDetail: string | undefined;
+
+        if (error instanceof Error) {
+            message = error.message || message;
+            errorDetail = error.message;
+            if (error.message.includes('no encontrado')) {
+                return NextResponse.json({ message: message }, { status: 404 });
+            }
+        } else if (typeof error === 'string') {
+            message = error;
+            errorDetail = error;
         }
         return NextResponse.json(
-            { message: 'Error al agregar la firma', error: error.message },
+            { message: message, error: errorDetail },
             { status: 500 }
         );
     }
