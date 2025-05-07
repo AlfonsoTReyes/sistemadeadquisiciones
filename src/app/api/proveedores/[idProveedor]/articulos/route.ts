@@ -37,7 +37,7 @@ export async function GET(
     }
 
     try {
-        const articulos: ArticuloCatalogo[] = await buscarArticulosPorProveedorYTermino(proveedorIdNum, searchTerm);
+        const articulos: Partial<ArticuloCatalogo>[] = await buscarArticulosPorProveedorYTermino(proveedorIdNum, searchTerm);
         console.log(`${logPrefix} Found ${articulos.length} articles.`);
         return NextResponse.json(articulos);
 
