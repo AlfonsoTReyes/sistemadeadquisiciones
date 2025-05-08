@@ -87,6 +87,7 @@ export const getUsuarioById = async (id: number) => {
         u.estatus,
         r.nombre AS rol,  
         s.nombre AS nombre_s,
+        s.nomenclatura,
         d.nombre AS nombre_d,
         u.puesto,
         u.id_rol,

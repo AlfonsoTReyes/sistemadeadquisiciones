@@ -77,6 +77,7 @@ const useLoginService = () => {
         sessionStorage.setItem("userId", data.usuario.id_usuario);
         sessionStorage.setItem("userSistema", data.usuario.sistema);
         sessionStorage.setItem("userSecre", data.usuario.id_secretaria);
+        sessionStorage.setItem("userDepe", data.usuario.id_dependencia);
   
         await fetchPermissions(data.usuario.id_rol.toString());
   
