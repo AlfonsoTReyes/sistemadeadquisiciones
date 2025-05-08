@@ -9,6 +9,7 @@ export interface ArticuloProveedor {
     created_at: string | Date;
     updated_at: string | Date;
     codigo_partida: string;
+    partida_descripcion?: string;
 }
 
 // Interfaz para los datos del formulario en el modal
