@@ -75,10 +75,10 @@ export default async function ReciboPage(props: any) { // TEMPORARY: Use 'any' f
             </div>
             <div className="mt-6 border-t pt-6">
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">Detalles del Pago</h2>
-                <p><strong>Concepto:</strong> {reciboData.pago?.concepto || 'N/A'}</p>
+                <p><strong>Concepto:</strong> {reciboData.concepto?.descripcion || 'N/A'}</p>
                 <p><strong>Monto:</strong> {reciboData.pago?.monto !== undefined ? `${reciboData.pago.monto.toFixed(2)} ${reciboData.pago.moneda || 'MXN'}` : 'N/A'}</p>
-                <p><strong>Método de Pago:</strong> {reciboData.pago?.metodoPago || 'N/A'}</p>
-                <p><strong>Estado del Pago:</strong> {reciboData.pago?.estado || 'N/A'}</p>
+                <p><strong>Método de Pago:</strong> {reciboData.pago?.metodo || 'N/A'}</p>
+                {/*<p><strong>Estado del Pago:</strong> {reciboData.pago?.estado || 'N/A'}</p>*/}
             </div>
         </div>
     );

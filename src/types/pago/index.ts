@@ -124,6 +124,7 @@ export interface ReciboData {
     monto?: number;
     metodo?: string; // Ej: 'Online (Webhook)'
     autorizacion?: string | null; // Código de autorización del banco/MIT
+    moneda?: string;
   };
   /** Detalles sobre el concepto o trámite pagado. @optional */
   concepto?: {
