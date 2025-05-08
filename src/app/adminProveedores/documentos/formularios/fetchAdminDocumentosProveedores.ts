@@ -200,59 +200,59 @@ export const updateDocumentoStatusAdmin = async (
 export const fetchComentariosPorDocumentoAdmin = async (idDocumento: number): Promise<Comentario[]> => {
   // La validación de idDocumento como número ya está implícita en el tipo de parámetro
   if (isNaN(idDocumento)) {
-      throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
+    throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
   }
   const apiUrl = `${DOCS_COMMENTS_API_URL}?documentoIdParaComentarios=${idDocumento}`;
 
   try {
-      const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-      });
-      
-      let responseBody: any = null; // Para depurar la respuesta completa
-      try {
-        responseBody = await response.clone().json(); // Clonar para leer y seguir usando response
-      } catch (e) {
-        // Si no es JSON, podría ser texto plano
-        try { responseBody = await response.clone().text(); } catch (e2) { /* No se pudo leer */ }
-      }
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
 
-      if (!response.ok) {
-          console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response Body:`, responseBody);
-          const errorMessage = (typeof responseBody === 'object' && responseBody?.message)
-                               ? responseBody.message
-                               : `Error ${response.status}: No se pudieron obtener los comentarios.`;
-          throw new Error(errorMessage);
-      }
+    let responseBody: any = null; // Para depurar la respuesta completa
+    try {
+      responseBody = await response.clone().json(); // Clonar para leer y seguir usando response
+    } catch (e) {
+      // Si no es JSON, podría ser texto plano
+      try { responseBody = await response.clone().text(); } catch (e2) { /* No se pudo leer */ }
+    }
 
-      // Si response.ok, intentamos parsear como Comentario[]
-      const data: Comentario[] = await response.json(); 
-      
-      // Validar que data es un array (podría ser un objeto con una propiedad 'data' o 'comentarios')
-      // Si la API devuelve { comentarios: [...] }, necesitarás acceder a data.comentarios
-      if (!Array.isArray(data)) {
-        console.error(`FETCH Warning: La respuesta para comentarios no es un array. Recibido:`, data);
-        // Decide cómo manejar esto: lanzar error o devolver array vacío
-        // throw new Error("Respuesta inesperada del servidor al obtener comentarios.");
-        return []; // O ajusta para acceder a la propiedad correcta ej: data.comentarios
-      }
+    if (!response.ok) {
+      console.error(`FETCH Error GET ${apiUrl}: Status ${response.status}. Response Body:`, responseBody);
+      const errorMessage = (typeof responseBody === 'object' && responseBody?.message)
+        ? responseBody.message
+        : `Error ${response.status}: No se pudieron obtener los comentarios.`;
+      throw new Error(errorMessage);
+    }
+
+    // Si response.ok, intentamos parsear como Comentario[]
+    const data: Comentario[] = await response.json();
+
+    // Validar que data es un array (podría ser un objeto con una propiedad 'data' o 'comentarios')
+    // Si la API devuelve { comentarios: [...] }, necesitarás acceder a data.comentarios
+    if (!Array.isArray(data)) {
+      console.error(`FETCH Warning: La respuesta para comentarios no es un array. Recibido:`, data);
+      // Decide cómo manejar esto: lanzar error o devolver array vacío
+      // throw new Error("Respuesta inesperada del servidor al obtener comentarios.");
+      return []; // O ajusta para acceder a la propiedad correcta ej: data.comentarios
+    }
 
 
-      return data.map((item: any): Comentario => ({ // Mapeo para asegurar la estructura
-        id_comentario: Number(item.id_comentario),
-        id_documento_proveedor: Number(item.id_documento_proveedor),
-        comentario: String(item.comentario),
-        id_usuario_admin: Number(item.id_usuario_admin),
-        created_at: String(item.created_at),
-        updated_at: String(item.updated_at),
-      }));
+    return data.map((item: any): Comentario => ({ // Mapeo para asegurar la estructura
+      id_comentario: Number(item.id_comentario),
+      id_documento_proveedor: Number(item.id_documento_proveedor),
+      comentario: String(item.comentario),
+      id_usuario_admin: Number(item.id_usuario_admin),
+      created_at: String(item.created_at),
+      updated_at: String(item.updated_at),
+    }));
 
   } catch (err: any) {
-      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-      console.error(`FETCH Exception fetchComentariosPorDocumentoAdmin Doc ID ${idDocumento}:`, errorToThrow);
-      throw errorToThrow;
+    const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+    console.error(`FETCH Exception fetchComentariosPorDocumentoAdmin Doc ID ${idDocumento}:`, errorToThrow);
+    throw errorToThrow;
   }
 };
 
@@ -271,40 +271,40 @@ export const createComentarioAdmin = async (
 ): Promise<Comentario> => {
 
   if (isNaN(idDocumento) || isNaN(idUsuarioAdmin)) {
-      throw new Error("Fetch Error: ID de documento o ID de admin inválido.");
+    throw new Error("Fetch Error: ID de documento o ID de admin inválido.");
   }
   if (typeof comentarioTexto !== 'string' || comentarioTexto.trim() === '') {
-      throw new Error("Fetch Error: El texto del comentario es requerido.");
+    throw new Error("Fetch Error: El texto del comentario es requerido.");
   }
   const apiUrl = DOCS_COMMENTS_API_URL; // Endpoint POST (DOCS_COMMENTS_API_URL o DOCS_API_URL según tu API)
 
   try {
-      const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              id_documento_proveedor: idDocumento,
-              comentario: comentarioTexto.trim(),
-              id_usuario_admin: idUsuarioAdmin
-          }),
-      });
-      
-      let errorData: any;
-      if (!response.ok) {
-        try { errorData = await response.json(); } catch (e) { /* ignora */ }
-        throw new Error(errorData?.message || `Error ${response.status}: No se pudo crear comentario.`);
-      }
-      
-      const data: Comentario = await response.json();
-      if (!data || typeof data.id_comentario !== 'number') { // Validación básica de la respuesta
-          throw new Error("Respuesta inválida del servidor al crear comentario.");
-      }
-      return data;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_documento_proveedor: idDocumento,
+        comentario: comentarioTexto.trim(),
+        id_usuario_admin: idUsuarioAdmin
+      }),
+    });
 
-  } catch(err: any) {
-       const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
-       console.error(`FETCH Exception createComentarioAdmin Doc ID ${idDocumento}:`, errorToThrow);
-       throw errorToThrow;
+    let errorData: any;
+    if (!response.ok) {
+      try { errorData = await response.json(); } catch (e) { /* ignora */ }
+      throw new Error(errorData?.message || `Error ${response.status}: No se pudo crear comentario.`);
+    }
+
+    const data: Comentario = await response.json();
+    if (!data || typeof data.id_comentario !== 'number') { // Validación básica de la respuesta
+      throw new Error("Respuesta inválida del servidor al crear comentario.");
+    }
+    return data;
+
+  } catch (err: any) {
+    const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
+    console.error(`FETCH Exception createComentarioAdmin Doc ID ${idDocumento}:`, errorToThrow);
+    throw errorToThrow;
   }
 };
 
@@ -316,38 +316,39 @@ export const createComentarioAdmin = async (
 */
 export const deleteComentarioAdmin = async (idComentario: number): Promise<ApiResponse> => {
   if (isNaN(idComentario)) {
-      throw new Error("Fetch Error: ID de comentario inválido para eliminar.");
+    throw new Error("Fetch Error: ID de comentario inválido para eliminar.");
   }
   const apiUrl = `${DOCS_COMMENTS_API_URL}?id_comentario=${idComentario}`;
 
   try {
-      const response = await fetch(apiUrl, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-      });
+    const response = await fetch(apiUrl, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-      let data: ApiResponse | null = null;
-      // Un DELETE exitoso puede devolver 204 No Content (sin cuerpo) o 200 OK con un mensaje.
-      if (response.status !== 204 && response.body) {
-          try {
-            data = await response.json();
-          } catch (e) {
-            // Si no es JSON, podría ser un error o un mensaje de texto plano
-            console.warn(`DELETE ${apiUrl} no devolvió JSON válido, status: ${response.status}`);
-          }
+    let data: ApiResponse | null = null;
+    // Un DELETE exitoso puede devolver 204 No Content (sin cuerpo) o 200 OK con un mensaje.
+    if (response.status !== 204 && response.body) {
+      try {
+        data = await response.json();
+      } catch (e) {
+        // Si no es JSON, podría ser un error o un mensaje de texto plano
+        console.warn(`DELETE ${apiUrl} no devolvió JSON válido, status: ${response.status}`);
       }
+    }
 
-      if (!response.ok) {
-          console.error(`FETCH Error DELETE ${apiUrl}: Status ${response.status}. Response:`, data);
-          throw new Error(data?.message || `Error ${response.status}: No se pudo eliminar el comentario.`);
-      }
+    if (!response.ok) {
+      console.error(`FETCH Error DELETE ${apiUrl}: Status ${response.status}. Response:`, data);
+      throw new Error(data?.message || `Error ${response.status}: No se pudo eliminar el comentario.`);
+    }
 
-      // Si es 204, data será null. Devolvemos un mensaje de éxito genérico.
-      // Si es 200 y data tiene un mensaje, lo usamos.
-      return data ?? { success: true, message: 'Comentario eliminado exitosamente.' };
+    // Si es 204, data será null. Devolvemos un mensaje de éxito genérico.
+    // Si es 200 y data tiene un mensaje, lo usamos.
+    return data ?? { success: true, message: 'Comentario eliminado exitosamente.' };
 
   } catch (err: any) {
-      console.error(`FETCH Exception deleteComentarioAdmin ID ${idComentario}:`, errorToThrow);
-      throw errorToThrow;
+    const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido'));
+    console.error(`FETCH Exception deleteComentarioAdmin ID ${idComentario}:`, errorToThrow);
+    throw errorToThrow;
   }
 };

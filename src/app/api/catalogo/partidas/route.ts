@@ -6,10 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     getAllSelectablePartidas
 } from '@/services/partidasService'; // O '../services/partidasService' etc.
-console.log("***** MODULE LOADED: /api/catalogos/partidas/route.ts *****"); // <-- AÑADIR AQUÍ
 // --- GET: Obtener todas las partidas seleccionables del catálogo general ---
 export async function GET(req: NextRequest) {
-    console.log("--- HIT: GET /api/catalogos/partidas ---");
     try {
         // No se necesita ID de proveedor aquí
 
@@ -17,10 +15,8 @@ export async function GET(req: NextRequest) {
         // const isAuthorized = await checkUserIsAuthenticated(req);
         // if (!isAuthorized) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
-        console.log("API ROUTE GET /catalogos/partidas: Fetching all selectable partidas...");
         const catalogo = await getAllSelectablePartidas();
 
-        console.log(`API ROUTE GET /catalogos/partidas: Successfully fetched ${catalogo.length} catalog partidas.`);
         return NextResponse.json(catalogo);
 
     } catch (error: any) {

@@ -24,7 +24,6 @@ export async function GET(req: NextRequest /* Eliminamos el segundo argumento { 
     }
     // *** FIN NUEVA FORMA ***
 
-    console.log(`API Route GET /api/contratos/ (ID from path: ${idContratoStr}) called`);
 
     // Validar que obtuvimos algo
     if (!idContratoStr) {
@@ -65,7 +64,6 @@ export async function PUT(req: NextRequest /* Eliminamos { params } */) {
     }
     // *** FIN NUEVA FORMA ***
 
-    console.log(`API Route PUT /api/contratos/${idContratoStr} called`);
 
      if (!idContratoStr) {
         return NextResponse.json({ message: 'No se pudo extraer el ID del contrato de la URL.' }, { status: 400 });
@@ -78,7 +76,6 @@ export async function PUT(req: NextRequest /* Eliminamos { params } */) {
         let body: ContratoUpdateData & { template_data?: object };
         try { body = await req.json(); } catch (e) { return NextResponse.json({ message: 'Error JSON.' }, { status: 400 }); }
 
-        console.log(`API Route PUT: Received data for ${idContrato}:`, JSON.stringify(body, null, 2));
 
         if (Object.keys(body).length === 0) { return NextResponse.json({ message: 'No hay datos para actualizar.' }, { status: 400 }); }
         if ('template_data' in body && typeof body.template_data !== 'object' && body.template_data !== null) { return NextResponse.json({ message: 'Formato inválido para template_data.' }, { status: 400 }); }
@@ -87,7 +84,6 @@ export async function PUT(req: NextRequest /* Eliminamos { params } */) {
 
         if (!contratoActualizado) { return NextResponse.json({ message: `Contrato ID ${idContrato} no encontrado.` }, { status: 404 }); }
 
-        console.log(`API Route PUT: Contrato ${idContrato} actualizado.`);
         return NextResponse.json(contratoActualizado);
 
     } catch (error: any) {
@@ -112,7 +108,6 @@ export async function DELETE(req: NextRequest) {
         idContratoStr = pathnameParts[pathnameParts.length - 1];
     } catch (e) { return NextResponse.json({ message: 'Error procesando ruta.' }, { status: 400 }); }
 
-    console.log(`API Route DELETE /api/contratos/${idContratoStr} called`);
 
      if (!idContratoStr) { return NextResponse.json({ message: 'No se pudo extraer ID.' }, { status: 400 }); }
 
@@ -120,7 +115,6 @@ export async function DELETE(req: NextRequest) {
         const idContrato = parseInt(idContratoStr, 10);
         if (isNaN(idContrato)) { return NextResponse.json({ message: 'ID inválido.' }, { status: 400 }); }
         // await deleteContract(idContrato);
-        console.log(`API Route DELETE: Contrato ${idContrato} eliminado.`);
         return NextResponse.json(null, { status: 204 });
     } catch (error: any) {
         console.error(`API Route DELETE /api/contratos/${idContratoStr} Error:`, error);

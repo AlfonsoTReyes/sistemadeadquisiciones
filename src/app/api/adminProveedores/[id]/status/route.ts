@@ -14,7 +14,6 @@ export async function PATCH(
     // So, id would be at index pathnameParts.length - 2
     const idProveedorStr = pathnameParts[pathnameParts.length - 2];
 
-    console.log(`DEBUG API PATCH (from pathname) /api/adminProveedores/${idProveedorStr}/status: Request received. Pathname: ${req.nextUrl.pathname}`);
 
     if (!idProveedorStr) {
         console.error("Error: Could not extract ID from pathname.", pathnameParts);
@@ -33,10 +32,8 @@ export async function PATCH(
             return NextResponse.json({ message: 'El valor de "estatus" debe ser booleano (true/false)' }, { status: 400 });
         }
 
-        console.log(`DEBUG API PATCH: Calling service updateProveedorEstatus for ID ${idProveedor} to ${estatus}`);
         const proveedorActualizado = await updateProveedorEstatus(idProveedor, estatus);
 
-        console.log(`DEBUG API PATCH: Service call successful for ID ${idProveedor}.`);
         return NextResponse.json(proveedorActualizado);
 
     } catch (error: unknown) {

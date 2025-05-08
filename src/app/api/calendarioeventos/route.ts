@@ -50,7 +50,6 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const { id_evento_calendario, ...datosActualizados } = body;
-    console.log(body);
     if (!id_evento_calendario) {
       return NextResponse.json({ message: "Falta el id del evento" }, { status: 400 });
     }

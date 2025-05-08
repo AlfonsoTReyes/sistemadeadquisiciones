@@ -59,7 +59,6 @@ export async function PUT(req: NextRequest) {
   let requestData;
   try {
     requestData = await req.json();
-    console.log("API Route PUT /admin/proveedores received data:", JSON.stringify(requestData, null, 2));
     const data = requestData;
 
     // --- Caso 1: Actualización de Usuario Proveedor ---
@@ -86,13 +85,11 @@ export async function PUT(req: NextRequest) {
       }
       // --- Subcaso 2c: Estatus de Revisión (CON NOTIFICACIÓN) ---
       else if (isRevisionStatusUpdate) {
-        console.log("API Route: Handling Revision Status Update for provider:", idProveedor);
         const nuevoEstatusRevision = data.estatus_revision;
         // ... (validación de nuevoEstatusRevision) ...
 
         // 1. Actualizar el estado
         const resultadoUpdate = await actualizarEstatusRevision(idProveedor, nuevoEstatusRevision);
-        console.log(`API Route: Estado de revisión actualizado para ${idProveedor}.`);
 
         // --- INICIO LÓGICA DE NOTIFICACIÓN ---
         try {
@@ -119,7 +116,6 @@ export async function PUT(req: NextRequest) {
               console.error(`API Route: Falló el envío de notificación para usuario ${idUsuarioProveedor} (Proveedor ${idProveedor}): ${notifResult.error}`);
               // No fallar la respuesta principal por esto, solo loggear
             } else {
-              console.log(`API Route: Notificación enviada (ID: ${notifResult.id_notificacion}) a usuario ${idUsuarioProveedor}`);
             }
           } else {
             if (!idUsuarioProveedor) console.warn(`API Route: No se encontró usuario asociado al proveedor ${idProveedor}. No se envió notificación.`);

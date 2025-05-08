@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
 
     // Si viene idBases, buscar bases por idBases (opcional si quieres)
     if (idBases) {
-        console.log(idBases);
       const bases = await getBasesById(parseInt(idBases));
       if (!bases) {
         return NextResponse.json({ message: "Bases no encontradas" }, { status: 404 });
