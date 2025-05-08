@@ -136,7 +136,6 @@ const ModalActualizarProveedor: React.FC<ModalProps> = ({
     // --- Efecto para inicializar/resetear estados ---
     useEffect(() => {
         if (proveedorData && proveedorData.id_proveedor) {
-            console.log("Modal Admin useEffect: Reseteando estados con proveedorData:", proveedorData);
             setForm({
                 rfc: proveedorData.rfc || '',
                 nombre: proveedorData.nombre_fisica || '',
@@ -163,7 +162,6 @@ const ModalActualizarProveedor: React.FC<ModalProps> = ({
             });
             const repsIniciales = Array.isArray(proveedorData.representantes) ? proveedorData.representantes : [];
             setRepresentantes(repsIniciales);
-            console.log("Modal Admin useEffect: Estado 'representantes' inicializado con:", repsIniciales);
             setNuevoRepNombre('');
             setNuevoRepApellidoP('');
             setNuevoRepApellidoM('');
@@ -299,7 +297,6 @@ const ModalActualizarProveedor: React.FC<ModalProps> = ({
             }));
         }
 
-        console.log("Modal enviando payload a onSubmit:", payload);
         await onSubmit(payload);
     };
 

@@ -30,7 +30,6 @@ const ModalActualizarUsuarioProveedor: React.FC<ModalUsuarioProps> = ({
   error: apiError, // Renombrar para claridad
 }) => {
   // Estado del formulario inicializado con los datos del usuario
-  //console.log("MODAL USUARIO RECIBIÓ userData:", userData); // <-- Verifica que id_usuario esté aquí
   const [form, setForm] = useState({
     usuario: userData.usuario || '',
     nombre: userData.nombre || '',
@@ -89,7 +88,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       payload.contraseña = form.contraseña;
   }
 
-  console.log("Modal Usuario enviando payload:", payload);
 
   await onSubmit(payload);
 };

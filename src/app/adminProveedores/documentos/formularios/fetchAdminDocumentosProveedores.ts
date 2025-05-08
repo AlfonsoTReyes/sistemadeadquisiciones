@@ -56,7 +56,6 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor: number): Pro
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
-  console.log(`FETCH (Admin): fetchProveedorDetallesPorIdAdmin ID ${idProveedor}`);
   const apiUrl = `${ADMIN_PROVEEDORES_API_URL}?id_proveedor=${idProveedor}`;
 
   try {
@@ -74,7 +73,6 @@ export const fetchProveedorDetallesPorIdAdmin = async (idProveedor: number): Pro
     }
 
     const data: ProveedorDetalles = await response.json();
-    console.log(`DEBUG Fetch: fetchProveedorDetallesPorIdAdmin successful for ID ${idProveedor}`);
     return data;
 
   } catch (err: any) {
@@ -98,7 +96,6 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Pro
     throw new Error(errorMsg);
   }
 
-  console.log(`FETCH (Admin): fetchDocumentosPorProveedorAdmin ID ${idProveedor}`);
   // Usar DOCS_API_URL si esa es la intención, o DOCS_COMMENTS_API_URL si es la misma para GET de docs
   const apiUrl = `${DOCS_API_URL}?id_proveedor=${idProveedor}`;
 
@@ -118,7 +115,6 @@ export const fetchDocumentosPorProveedorAdmin = async (idProveedor: number): Pro
     }
 
     const rawData: any[] = await response.json();
-    console.log(`DEBUG Fetch: fetchDocumentosPorProveedorAdmin successful for ID ${idProveedor}, received ${rawData.length} docs`);
 
     // Transformar para asegurar el tipo y campos correctos
     const documentos: DocumentoProveedor[] = rawData.map((item: any): DocumentoProveedor => ({
@@ -154,7 +150,6 @@ export const updateDocumentoStatusAdmin = async (
   idDocumento: number,
   nuevoEstatus: string | boolean
 ): Promise<DocumentoProveedor> => { // Asumimos que devuelve el documento actualizado
-  console.log(`DEBUG Fetch: Calling updateDocumentoStatusAdmin for Doc ID ${idDocumento} with status ${nuevoEstatus}`);
   const apiUrl = DOCS_API_URL; // Usa la URL base para PUT (o la específica si es diferente)
 
   if (typeof idDocumento !== 'number' || isNaN(idDocumento)) {
@@ -188,12 +183,10 @@ export const updateDocumentoStatusAdmin = async (
     }
 
     const data: DocumentoProveedor = await response.json(); // Asumimos que devuelve el documento actualizado
-    console.log(`DEBUG Fetch: updateDocumentoStatusAdmin successful for Doc ID ${idDocumento}`);
     return data;
 
   } catch (err: any) {
     const errorToThrow = err instanceof Error ? err : new Error(String(err));
-    console.error(`Fetch Error in updateDocumentoStatusAdmin for Doc ID ${idDocumento}:`, errorToThrow);
     throw errorToThrow;
   }
 };
@@ -209,7 +202,6 @@ export const fetchComentariosPorDocumentoAdmin = async (idDocumento: number): Pr
   if (isNaN(idDocumento)) {
       throw new Error("Fetch Error: ID de documento inválido para obtener comentarios.");
   }
-  console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin Doc ID ${idDocumento}`);
   const apiUrl = `${DOCS_COMMENTS_API_URL}?documentoIdParaComentarios=${idDocumento}`;
 
   try {
@@ -248,7 +240,6 @@ export const fetchComentariosPorDocumentoAdmin = async (idDocumento: number): Pr
       }
 
 
-      console.log(`FETCH (Admin): fetchComentariosPorDocumentoAdmin successful for Doc ID ${idDocumento}`);
       return data.map((item: any): Comentario => ({ // Mapeo para asegurar la estructura
         id_comentario: Number(item.id_comentario),
         id_documento_proveedor: Number(item.id_documento_proveedor),
@@ -285,7 +276,6 @@ export const createComentarioAdmin = async (
   if (typeof comentarioTexto !== 'string' || comentarioTexto.trim() === '') {
       throw new Error("Fetch Error: El texto del comentario es requerido.");
   }
-  console.log(`FETCH (Admin): createComentarioAdmin for Doc ID ${idDocumento} by Admin ID ${idUsuarioAdmin}`);
   const apiUrl = DOCS_COMMENTS_API_URL; // Endpoint POST (DOCS_COMMENTS_API_URL o DOCS_API_URL según tu API)
 
   try {
@@ -309,7 +299,6 @@ export const createComentarioAdmin = async (
       if (!data || typeof data.id_comentario !== 'number') { // Validación básica de la respuesta
           throw new Error("Respuesta inválida del servidor al crear comentario.");
       }
-      console.log(`FETCH (Admin): createComentarioAdmin successful`);
       return data;
 
   } catch(err: any) {
@@ -329,7 +318,6 @@ export const deleteComentarioAdmin = async (idComentario: number): Promise<ApiRe
   if (isNaN(idComentario)) {
       throw new Error("Fetch Error: ID de comentario inválido para eliminar.");
   }
-  console.log(`FETCH (Admin): deleteComentarioAdmin ID: ${idComentario}`);
   const apiUrl = `${DOCS_COMMENTS_API_URL}?id_comentario=${idComentario}`;
 
   try {
@@ -354,13 +342,11 @@ export const deleteComentarioAdmin = async (idComentario: number): Promise<ApiRe
           throw new Error(data?.message || `Error ${response.status}: No se pudo eliminar el comentario.`);
       }
 
-      console.log(`FETCH (Admin): deleteComentarioAdmin successful for ID: ${idComentario}`);
       // Si es 204, data será null. Devolvemos un mensaje de éxito genérico.
       // Si es 200 y data tiene un mensaje, lo usamos.
       return data ?? { success: true, message: 'Comentario eliminado exitosamente.' };
 
   } catch (err: any) {
-      const errorToThrow = err instanceof Error ? err : new Error(String(err || 'Error desconocido en fetch'));
       console.error(`FETCH Exception deleteComentarioAdmin ID ${idComentario}:`, errorToThrow);
       throw errorToThrow;
   }

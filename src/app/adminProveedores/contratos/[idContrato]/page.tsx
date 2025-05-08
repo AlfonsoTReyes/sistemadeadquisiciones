@@ -61,7 +61,6 @@ const AdminContratoDetailPage: React.FC = () => {
         setIsUpdating(true);
         setUpdateError(null);
         // *** Loguea ambos argumentos ***
-        console.log(`Guardando datos para contrato ID: ${idDelContrato}`, datosParaActualizar);
 
         try {
             // *** LLAMAR CON LOS DOS ARGUMENTOS RECIBIDOS ***
@@ -88,7 +87,6 @@ const AdminContratoDetailPage: React.FC = () => {
 
         setIsGenerating(templateType); // Marcar cuál se está generando
         setGenerationError(null);
-        console.log(`Solicitando generación de Word para contrato ${contratoId}, plantilla: ${templateType}`);
 
         try {
             // Llama a la función fetch (asegúrate que exista en contratosFetch.ts)

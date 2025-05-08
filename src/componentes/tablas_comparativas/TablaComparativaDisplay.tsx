@@ -127,7 +127,7 @@ export const TablaComparativaDisplay: React.FC<TablaComparativaDisplayProps> = (
                                     <td className="border border-gray-300 p-2">{template.descripcion_item}</td>
                                     <td className="border border-gray-300 p-2 text-xs text-gray-600">
                                         {/* *** CAMBIO: Usar helper para formatear *** */}
-                                        {formatCaracteristicas(template.caracteristicas_tecnicas)}
+                                        {formatCaracteristicas(template.caracteristicas_tecnicas ?? null)}
                                     </td>
                                     <td className="border border-gray-300 p-2 text-center">{template.udm}</td>
                                     <td className="border border-gray-300 p-2 text-right">{template.cantidad?.toLocaleString() ?? '0'}</td>

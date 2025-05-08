@@ -21,11 +21,9 @@ const AdminCrearContratoPage: React.FC = () => {
     const handleSave = async (data: ContratoInputData) => {
         setIsSaving(true);
         setError(null);
-        console.log("Datos del formulario a enviar:", data);
         try {
             // *** LLAMA A LA FUNCIÓN FETCH REAL ***
             const result = await createContractFromTemplateData(data); // <--- LLAMADA DESCOMENTADA Y REAL
-            console.log("Contrato creado exitosamente:", result);
             alert(`Contrato tipo ${data.tipoContrato} creado exitosamente con ID: ${result.id_contrato}`);
             // Redirigir al detalle del nuevo contrato
             router.push(`/adminProveedores/contratos/${result.id_contrato}`);

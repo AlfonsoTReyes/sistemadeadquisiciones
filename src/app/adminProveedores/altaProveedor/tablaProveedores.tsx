@@ -102,7 +102,6 @@ const TablaAdministradorProveedores: React.FC<TablaProps> = ({
         </thead>
         <tbody>
           {proveedores.map((proveedor) => {
-            console.log("Datos del proveedor para tabla:", JSON.stringify(proveedor, null, 2));
             const isLoadingGeneral = isLoadingStatusChange[proveedor.id_proveedor] ?? false;
             const isLoadingRevision = isLoadingRevisionChange[proveedor.id_proveedor] ?? false;
             const isAnyLoading = isLoadingGeneral || isLoadingRevision || isFetchingEditData;
