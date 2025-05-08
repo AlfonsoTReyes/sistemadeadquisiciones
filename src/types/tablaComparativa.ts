@@ -159,9 +159,9 @@ export type AgregarProveedorInput = Omit<TablaComparativaProveedorSnapshot,
  * Datos necesarios para agregar un nuevo ítem a un proveedor en la tabla.
  */
 export interface AgregarItemInput extends Omit<TablaComparativaItem, 'id' | 'subtotal_item'> {
-    id_articulo_origen?: number | null;
-    codigo_partida_origen?: string | null;
-    caracteristicas_tecnicas?: CaracteristicaTecnica[] | null;
+    id_articulo_origen: number | null; // <- ya es así en la base
+    codigo_partida_origen: string | null;
+    caracteristicas_tecnicas: CaracteristicaTecnica[] | null;
 }
 
 /**
@@ -175,7 +175,7 @@ export type ActualizarItemInput = Partial<Pick<TablaComparativaItem,
  * Datos necesarios para agregar una nueva observación/validación.
  */
 export interface AgregarObservacionInput extends Omit<TablaComparativaObservacion, 'id'> {
-    comentario_adicional?: string | null;
+    comentario_adicional: string | null; // <- quitar el `?` para que coincida
 }
 
 /**
@@ -189,7 +189,7 @@ export type ActualizarObservacionInput = Partial<Pick<TablaComparativaObservacio
  * Datos necesarios para agregar una nueva firma.
  */
 export interface AgregarFirmaInput extends Omit<TablaComparativaFirma, 'id' | 'fecha_firma' | 'nombre_usuario'> {
-    comentario_firma?: string | null;
+    comentario_firma: string | null;
 }
 
 /**
