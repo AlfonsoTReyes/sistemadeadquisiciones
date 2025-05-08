@@ -124,7 +124,9 @@ export default function CatalogoProveedoresPage() {
     // --- NUEVOS HANDLERS PARA MODAL DE ARTÍCULOS ---
     const handleVerArticulosClick = (proveedor: ProveedorCatalogo) => {
         console.log(`PAGE: Abriendo modal de artículos para proveedor: ${proveedor.nombre_o_razon_social} (ID: ${proveedor.id_proveedor})`);
-        setArticulosParaModal(proveedor.articulos || []); // Pasa los artículos del proveedor clickeado
+        setArticulosParaModal(
+            proveedor.partidas_asignadas.flatMap(partida => partida.articulos)
+        );
         setProveedorModalNombre(proveedor.nombre_o_razon_social || 'Proveedor'); // Pasa el nombre
         setIsArticulosModalOpen(true); // Abre el modal
     };

@@ -1,36 +1,32 @@
-// src/app/catalogos/proveedores/interface.ts
-
-// Artículo como se muestra en el catálogo público
 export interface ArticuloCatalogo {
-    id_articulo: number;
-    descripcion: string;
-    unidad_medida: string;
-    precio_unitario: number;
-    codigo_partida: string;
+  id_articulo: number;
+  nombre_articulo: string;
+  descripcion_articulo?: string;
+  unidad_medida?: string; // opcional si lo usarás
+  precio_unitario?: number; // opcional si lo usarás
+  codigo_partida?: string; // opcional si deseas saber de qué partida viene
 }
 
-// Partida asociada a un proveedor
-export interface PartidaProveedorCatalogo {
-    codigo_partida: string;
-    descripcion: string;
+// --- Partida con sus artículos ---
+export interface PartidaConArticulos {
+  codigo_partida: string;
+  descripcion_partida: string;
+  articulos: ArticuloCatalogo[];
 }
 
-// Información completa del proveedor para mostrar en el catálogo
+// --- Proveedor en el catálogo ---
 export interface ProveedorCatalogo {
-    id_proveedor: number;
-    rfc: string;
-    nombre_o_razon_social: string; // Nombre o Razón Social combinados
-    giro_comercial: string | null;
-    correo: string | null;
-    telefono_uno: string | null;
-    pagina_web: string | null;
-    // Puedes añadir más campos de 'proveedores' si quieres mostrarlos
-    partidas: PartidaProveedorCatalogo[];
-    articulos: ArticuloCatalogo[];
+  id_proveedor: number; // ← usamos siempre número para consistencia
+  nombre_empresa: string;
+  rfc: string;
+  nombre_o_razon_social: string;
+  giro_comercial: string;
+  correo: string;
+  partidas_asignadas: PartidaConArticulos[];
 }
 
-// Para el dropdown de filtro
+// --- Filtro de partidas para dropdown ---
 export interface CatalogoPartidaFiltro {
-    codigo: string;
-    descripcion: string;
+  codigo: string;
+  descripcion: string;
 }
