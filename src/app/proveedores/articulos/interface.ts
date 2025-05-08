@@ -8,6 +8,7 @@ export interface ArticuloProveedor {
     estatus: boolean;
     created_at: string | Date;
     updated_at: string | Date;
+    codigo_partida: string;
 }
 
 // Interfaz para los datos del formulario en el modal

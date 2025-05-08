@@ -67,22 +67,25 @@ const ModalArticulo: React.FC<ModalArticuloProps> = ({
     }, [isOpen, isEditing, initialData]); // No añadir formInitialState aquí para evitar bucles
 
     // Handler genérico para cambios (funciona para select también)
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
         const { name, value, type } = e.target;
 
-        if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
-             setForm(prev => ({ ...prev, [name]: e.target.checked }));
+        if (type === 'checkbox') {
+            const checkbox = e.target as HTMLInputElement;
+            setForm(prev => ({ ...prev, [name]: checkbox.checked }));
         } else if (name === 'stock' || name === 'precio_unitario') {
-            // Validación numérica como antes
             const numericValue = value.replace(/[^0-9.]/g, '');
             const parts = numericValue.split('.');
-            const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : numericValue;
+            const formattedValue =
+                parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : numericValue;
             setForm(prev => ({ ...prev, [name]: formattedValue }));
         } else {
-            // Actualiza otros campos (incluyendo codigo_partida del select)
             setForm(prev => ({ ...prev, [name]: value }));
         }
     };
+
 
     // Handler para enviar el formulario
     const handleSubmit = async (e: React.FormEvent) => {
@@ -91,38 +94,39 @@ const ModalArticulo: React.FC<ModalArticuloProps> = ({
 
         // --- Validaciones Actualizadas ---
         if (!form.codigo_partida) { // <-- Validar que se seleccionó una partida
-             setInternalError("Debe seleccionar una partida presupuestaria."); return;
+            setInternalError("Debe seleccionar una partida presupuestaria."); return;
         }
         if (!form.descripcion.trim()) { setInternalError("La descripción es obligatoria."); return; }
         if (!form.unidad_medida.trim()) { setInternalError("La unidad de medida es obligatoria."); return; }
         if (form.stock.trim() === '' || isNaN(parseFloat(form.stock)) || parseFloat(form.stock) < 0) {
             setInternalError("El stock es obligatorio y debe ser un número no negativo."); return;
         }
-         if (form.precio_unitario.trim() === '' || isNaN(parseFloat(form.precio_unitario)) || parseFloat(form.precio_unitario) < 0) {
+        if (form.precio_unitario.trim() === '' || isNaN(parseFloat(form.precio_unitario)) || parseFloat(form.precio_unitario) < 0) {
             setInternalError("El precio unitario es obligatorio y debe ser un número no negativo."); return;
         }
-         if (!isEditing && !idProveedor) { setInternalError("Error interno: Falta ID proveedor."); return; }
+        if (!isEditing && !idProveedor) { setInternalError("Error interno: Falta ID proveedor."); return; }
         // -------------------------------
 
         // Prepara el payload
-        const payload = {
-            // Incluye codigo_partida del estado del formulario
+        const payload: ArticuloFormData & {
+            codigo_partida: string;
+            id_proveedor: number;
+            id_articulo?: number;
+          } = {
             codigo_partida: form.codigo_partida,
             descripcion: form.descripcion,
             unidad_medida: form.unidad_medida,
             estatus: form.estatus,
-            // Convierte stock y precio a número
-            stock: parseFloat(form.stock),
-            precio_unitario: parseFloat(form.precio_unitario),
-            // Añade IDs
-            id_proveedor: initialData?.id_proveedor ?? idProveedor!, // Usar ! si estamos seguros que idProveedor no será null aquí
-            ...(isEditing && { id_articulo: initialData?.id_articulo })
-        };
+            stock: form.stock, // ✅ permanece como string
+            precio_unitario: form.precio_unitario, // ✅ permanece como string
+            id_proveedor: initialData?.id_proveedor ?? idProveedor!,
+            ...(isEditing && { id_articulo: initialData?.id_articulo }),
+          };
 
         // Verifica que id_proveedor se asignó correctamente
         if (!payload.id_proveedor) {
-             setInternalError("Error fatal: No se pudo determinar el ID del proveedor.");
-             return;
+            setInternalError("Error fatal: No se pudo determinar el ID del proveedor.");
+            return;
         }
 
         console.log("Modal: Enviando payload:", payload);
@@ -180,9 +184,9 @@ const ModalArticulo: React.FC<ModalArticuloProps> = ({
                                 <option value="" disabled>Cargando partidas...</option> // O mensaje de error si falla la carga
                             )}
                         </select>
-                         {(!partidasDisponibles || partidasDisponibles.length === 0) && !isLoading && (
+                        {(!partidasDisponibles || partidasDisponibles.length === 0) && !isLoading && (
                             <p className="text-xs text-red-500 mt-1">No se pudo cargar el catálogo de partidas.</p>
-                         )}
+                        )}
                     </div>
                     {/* --- FIN Selector de Partida --- */}
 
@@ -226,17 +230,17 @@ const ModalArticulo: React.FC<ModalArticuloProps> = ({
                         </div>
 
                     </div>
-                     {/* Checkbox de Estatus movido fuera del grid */}
-                     <div className="flex items-center">
-                            <input
-                                id="estatus" name="estatus" type="checkbox"
-                                checked={form.estatus} onChange={handleChange}
-                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                disabled={isLoading}
-                            />
-                            <label htmlFor="estatus" className="ml-2 block text-sm font-medium text-gray-900">
-                                Artículo Activo
-                            </label>
+                    {/* Checkbox de Estatus movido fuera del grid */}
+                    <div className="flex items-center">
+                        <input
+                            id="estatus" name="estatus" type="checkbox"
+                            checked={form.estatus} onChange={handleChange}
+                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            disabled={isLoading}
+                        />
+                        <label htmlFor="estatus" className="ml-2 block text-sm font-medium text-gray-900">
+                            Artículo Activo
+                        </label>
                     </div>
 
                     {/* --- Botones --- */}
