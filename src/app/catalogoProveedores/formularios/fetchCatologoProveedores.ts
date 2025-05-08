@@ -12,7 +12,6 @@ import {CatalogoPartidaFiltro, ArticuloCatalogo, PartidaConArticulos, ProveedorC
  * @throws Si la llamada fetch/API falla.
  */
 export const fetchPartidasParaFiltro = async (): Promise<CatalogoPartidaFiltro[]> => {
-    console.log(`FETCH: Solicitando catálogo de partidas para filtro desde ${API_CATALOGO_PARTIDAS_URL}`);
     try {
         const response = await fetch(API_CATALOGO_PARTIDAS_URL, {
             cache: 'no-store',
@@ -31,7 +30,6 @@ export const fetchPartidasParaFiltro = async (): Promise<CatalogoPartidaFiltro[]
         }
 
         const data: CatalogoPartidaFiltro[] = await response.json();
-        console.log(`FETCH: Catálogo de partidas para filtro obtenido (${data.length} partidas).`);
 
         return data.map(item => ({
             codigo: String(item.codigo),

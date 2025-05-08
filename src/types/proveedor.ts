@@ -70,8 +70,8 @@ export interface ProveedorCompletoData {
 export interface ProveedorDetallado {
     id_proveedor: number;
     rfc?: string;
-    giro_comercial?: string;
-    correo?: string;
+    giro_comercial?: string | null;
+    correo?: string | null;
     camara_comercial?: string | null;
     numero_registro_camara?: string | null;
     numero_registro_imss?: string | null;
@@ -81,13 +81,13 @@ export interface ProveedorDetallado {
     created_at?: string | null; // Considera usar Date si parseas
     updated_at?: string | null; // Considera usar Date si parseas
     fecha_solicitud?: string | null; // Considera usar Date si parseas
-    calle?: string;
-    numero?: string;
-    colonia?: string;
-    codigo_postal?: string;
-    municipio?: string;
-    estado?: string;
-    telefono_uno?: string;
+    calle?: string | null;
+    numero?: string | null;
+    colonia?: string | null;
+    codigo_postal?: string | null;
+    municipio?: string | null;
+    estado?: string | null;
+    telefono_uno?: string | null;
     telefono_dos?: string | null;
     pagina_web?: string | null;
     id_usuario_proveedor?: number | null;

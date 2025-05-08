@@ -70,9 +70,9 @@ interface ProveedorFormData {
 }
 
 // Payload para la función onSubmit
-interface ModalUpdatePayload {
+export interface ModalUpdatePayload {
     id_proveedor: number;
-    tipoProveedor: 'moral' | 'fisica'; // El tipo original no cambia
+    tipo_proveedor: 'moral' | 'fisica';
     rfc: string;
     giro_comercial?: string | null;
     actividadSat: string;
@@ -89,16 +89,19 @@ interface ModalUpdatePayload {
     camara_comercial?: string | null;
     numero_registro_camara?: string | null;
     numero_registro_imss?: string | null;
-    proveedorEventos?: boolean;
-    // Campos Físicos
+    proveedor_eventos?: boolean;
     nombre?: string;
     apellido_p?: string;
     apellido_m?: string | null;
     curp?: string;
-    // Campos Morales
     razon_social?: string;
-    representantes?: Array<Partial<Omit<RepresentanteLegalOutput, 'id_morales'>> & { id_morales?: number | undefined }>;
-}
+    representantes?: Array<
+      Partial<Omit<RepresentanteLegalOutput, 'id_morales'>> & {
+        id_morales?: number | undefined;
+      }
+    >;
+    [key: string]: unknown; // <-- Añadir esta línea
+  }
 
 interface ModalProps {
     isOpen: boolean;
@@ -264,7 +267,7 @@ const ModalActualizarProveedor: React.FC<ModalProps> = ({
 
         const payload: ModalUpdatePayload = { // CORREGIDO: any -> ModalUpdatePayload
             id_proveedor: proveedorData.id_proveedor,
-            tipoProveedor: tipoProveedorOriginal,
+            tipo_proveedor: tipoProveedorOriginal,
             rfc: form.rfc,
             giro_comercial: form.giro_comercial || null,
             actividadSat: form.actividadSat,

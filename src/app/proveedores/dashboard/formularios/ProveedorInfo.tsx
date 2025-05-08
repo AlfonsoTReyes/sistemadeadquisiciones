@@ -7,7 +7,10 @@ import { updateProveedor, solicitarRevision } from './fetchdashboard';
 import ModalActualizarProveedor from './modalActualizarProveedor';
 import { generateProveedorPdfClientSide } from '../../../PDF/usuarioProveedor';
 // import { revalidacionProveedores } from '../../../PDF/revalidacionProveedores'; // Function was unused
-
+interface RevisionResponse {
+    estatus_revision: string;
+    id_proveedor: number;
+}
 // --- Interfaces ---
 interface RepresentanteLegalOutput {
     id_morales: number;
@@ -117,7 +120,7 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
         try {
             // Assuming updateProveedor expects a type compatible with UpdateModalPayload
             const updatedProvider = await updateProveedor(updatedDataFromModal as any); // Cast to any if updateProveedor expects a slightly different shape. Ideally, align types.
-            setProviderData(updatedProvider);
+            setProviderData(updatedProvider as ProveedorData);
             alert("¡Perfil actualizado con éxito!");
             handleCloseModal();
 
@@ -176,7 +179,13 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
 
         setIsRequestingReview(true); setRequestReviewError(null); setRequestReviewSuccess(null);
         try {
-            const result = await solicitarRevision(providerData.id_proveedor);
+            const result = await solicitarRevision(providerData.id_proveedor) as RevisionResponse;
+
+            if (result?.estatus_revision) {
+                setProviderData(prev => prev ? { ...prev, estatus_revision: result.estatus_revision } : null);
+                setRequestReviewSuccess("Solicitud enviada.");
+                setTimeout(() => setRequestReviewSuccess(null), 5000);
+            }
             if (result?.estatus_revision) {
                 setProviderData(prev => prev ? { ...prev, estatus_revision: result.estatus_revision } : null);
                 setRequestReviewSuccess("Solicitud enviada.");
@@ -221,10 +230,10 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
 
             <div className={`mb-6 p-3 rounded-md border text-center
               ${estatus_revision === 'APROBADO' ? 'bg-green-50 border-green-300 text-green-800' :
-                estatus_revision === 'RECHAZADO' ? 'bg-red-50 border-red-300 text-red-800' :
-                estatus_revision === 'PENDIENTE_REVISION' || estatus_revision === 'EN_REVISION' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' :
-                estatus_revision === 'PENDIENTE_PAGO' ? 'bg-orange-50 border-orange-300 text-orange-800' :
-                'bg-gray-100 border-gray-300 text-gray-600'}`}>
+                    estatus_revision === 'RECHAZADO' ? 'bg-red-50 border-red-300 text-red-800' :
+                        estatus_revision === 'PENDIENTE_REVISION' || estatus_revision === 'EN_REVISION' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' :
+                            estatus_revision === 'PENDIENTE_PAGO' ? 'bg-orange-50 border-orange-300 text-orange-800' :
+                                'bg-gray-100 border-gray-300 text-gray-600'}`}>
                 <p className="font-medium text-sm">
                     Estado de Proceso de Solicitud: <span className="font-bold">{textoEstatusRevision}</span>
                 </p>
@@ -291,7 +300,14 @@ const ProveedorInfo: React.FC<ProveedorInfoProps> = ({
                     <InfoFieldDisplay label="Cámara Comercial" value={providerData.camara_comercial} />
                     <InfoFieldDisplay label="No. Reg. Cámara" value={providerData.numero_registro_camara} />
                     <InfoFieldDisplay label="No. Reg. IMSS" value={providerData.numero_registro_imss} />
-                    <InfoFieldDisplay label="Última Actualización" value={providerData.updated_at ? new Date(providerData.updated_at).toLocaleString() : undefined} />
+                    <InfoFieldDisplay
+  label="Última Actualización"
+  value={
+    (typeof providerData.updated_at === 'string' || typeof providerData.updated_at === 'number')
+      ? new Date(providerData.updated_at).toLocaleString()
+      : undefined
+  }
+/>
                 </div>
             </div>
 

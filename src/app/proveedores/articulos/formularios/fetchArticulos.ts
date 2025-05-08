@@ -74,7 +74,6 @@ interface DeleteSuccessResponse {
  * @throws {Error}
  */
 export const fetchArticulosProveedor = async (idProveedor: number, activoOnly: boolean = true): Promise<Articulo[]> => {
-    console.log(`FETCH: Solicitando artículos para proveedor ID: ${idProveedor}, ActivoOnly: ${activoOnly}`);
     if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
         const errorMsg = `Fetch Error: 'idProveedor' es requerido y numérico. Valor: ${idProveedor}`;
         console.error(errorMsg); throw new Error(errorMsg);
@@ -84,7 +83,6 @@ export const fetchArticulosProveedor = async (idProveedor: number, activoOnly: b
     if (!activoOnly) { params.append('activoOnly', 'false'); }
     const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?${params.toString()}`;
 
-    console.log(`FETCH: Calling GET ${apiUrlWithQuery}`);
     try {
         const response: Response = await fetch(apiUrlWithQuery);
         if (!response.ok) {
@@ -94,7 +92,6 @@ export const fetchArticulosProveedor = async (idProveedor: number, activoOnly: b
             throw new Error(errorData.message || `Error al obtener artículos: ${response.statusText}`);
         }
         const data: Articulo[] = await response.json();
-        console.log(`FETCH: Artículos obtenidos para proveedor ${idProveedor} (${data.length}).`);
         return data;
     } catch (error: unknown) {
         const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
@@ -111,8 +108,6 @@ export const fetchArticulosProveedor = async (idProveedor: number, activoOnly: b
  * @throws {Error}
  */
 export const createArticuloProveedorFetch = async (articuloData: ArticuloCreateData): Promise<Articulo> => {
-    console.log(`FETCH: Intentando crear artículo para prov ${articuloData?.id_proveedor}, partida ${articuloData?.codigo_partida}`);
-    console.log(`FETCH: Payload para crear:`, JSON.stringify(articuloData, null, 2));
 
     if (!articuloData || typeof articuloData.id_proveedor !== 'number' || isNaN(articuloData.id_proveedor)) {
         throw new Error("Fetch Error: 'id_proveedor' numérico es requerido en articuloData.");
@@ -138,7 +133,6 @@ export const createArticuloProveedorFetch = async (articuloData: ArticuloCreateD
             throw new Error(errorData.message || `Error al crear artículo: ${response.statusText}`);
         }
         const data: Articulo = await response.json();
-        console.log(`FETCH: Artículo creado exitosamente. Respuesta:`, data);
         return data;
     } catch (error: unknown) {
         const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
@@ -156,8 +150,6 @@ export const createArticuloProveedorFetch = async (articuloData: ArticuloCreateD
  * @throws {Error}
  */
 export const updateArticuloProveedorFetch = async (idArticulo: number, articuloUpdateData: ArticuloUpdateData): Promise<Articulo> => {
-    console.log(`FETCH: Intentando actualizar artículo ID: ${idArticulo} para prov ${articuloUpdateData?.id_proveedor}`);
-    console.log(`FETCH: Payload para actualizar:`, JSON.stringify(articuloUpdateData, null, 2));
 
     if (typeof idArticulo !== 'number' || isNaN(idArticulo)) {
         throw new Error(`Fetch Error: 'idArticulo' es requerido y numérico. Valor: ${idArticulo}`);
@@ -170,7 +162,6 @@ export const updateArticuloProveedorFetch = async (idArticulo: number, articuloU
     }
 
     const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?id_articulo=${idArticulo}`;
-    console.log(`FETCH: Calling PUT ${apiUrlWithQuery}`);
 
     try {
         const response: Response = await fetch(apiUrlWithQuery, {
@@ -186,7 +177,6 @@ export const updateArticuloProveedorFetch = async (idArticulo: number, articuloU
             throw new Error(errorData.message || `Error al actualizar artículo ${idArticulo}: ${response.statusText}`);
         }
         const data: Articulo = await response.json();
-        console.log(`FETCH: Actualización de artículo ${idArticulo} exitosa. Respuesta:`, data);
         return data;
     } catch (error: unknown) {
         const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
@@ -204,7 +194,6 @@ export const updateArticuloProveedorFetch = async (idArticulo: number, articuloU
  * @throws {Error}
  */
 export const deleteArticuloProveedorFetch = async (idArticulo: number, idProveedor: number): Promise<DeleteSuccessResponse> => {
-    console.log(`FETCH: Intentando eliminar artículo ID: ${idArticulo} para proveedor ID: ${idProveedor}`);
 
     if (typeof idArticulo !== 'number' || isNaN(idArticulo)) {
         throw new Error(`Fetch Error: 'idArticulo' es requerido y numérico. Valor: ${idArticulo}`);
@@ -214,7 +203,6 @@ export const deleteArticuloProveedorFetch = async (idArticulo: number, idProveed
     }
 
     const apiUrlWithQuery = `${API_PROVEEDOR_ARTICULOS_URL}?id_articulo=${idArticulo}&id_proveedor=${idProveedor}`;
-    console.log(`FETCH: Calling DELETE ${apiUrlWithQuery}`);
 
     try {
         const response: Response = await fetch(apiUrlWithQuery, {
@@ -228,7 +216,6 @@ export const deleteArticuloProveedorFetch = async (idArticulo: number, idProveed
             throw new Error(errorData.message || `Error al eliminar artículo ${idArticulo}: ${response.statusText}`);
         }
         const data: DeleteSuccessResponse = await response.json();
-        console.log(`FETCH: Eliminación de artículo ${idArticulo} exitosa. Respuesta:`, data);
         return data;
     } catch (error: unknown) {
         const errorToThrow = error instanceof Error ? error : new Error(String(error || 'Error desconocido'));
