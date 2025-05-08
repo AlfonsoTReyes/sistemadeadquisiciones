@@ -28,9 +28,9 @@ const ContractEditForm: React.FC<ContractEditFormProps> = ({
 }) => {
 
     // --- Estados (Inicialización sin cambios) ---
-    const td = initialData.template_data ?? {};
-    const suf = td.suficiencia as SuficienciaInput | undefined ?? {};
-    const areaReq = td.areaRequirente as AreaRequirenteInput | undefined ?? {};
+    const td = (initialData.template_data ?? {}) as Partial<ContratoInputData>;
+    const suf = (td.suficiencia ?? {}) as Partial<SuficienciaInput>;
+    const areaReq = (td.areaRequirente ?? {}) as Partial<AreaRequirenteInput>;
     // ... (todos los useState como los tenías, inicializados con initialData y td) ...
     const [numeroProcedimiento, setNumeroProcedimiento] = useState(td.numeroProcedimiento ?? initialData.numero_contrato ?? ''); // Usa el del template si existe, sino el core
     const [idProveedor, setIdProveedor] = useState(initialData.id_proveedor.toString());
@@ -62,10 +62,21 @@ const ContractEditForm: React.FC<ContractEditFormProps> = ({
     const [garantiasTexto, setGarantiasTexto] = useState(td.garantiasTexto ?? initialData.garantias ?? '');
 
     // Específicos Adquisición
-    const [nombreContratoAdquisicion, setNombreContratoAdquisicion] = useState(td.nombreContratoAdquisicion ?? '');
-    const [montoMinimo, setMontoMinimo] = useState<number | ''>(td.montoMinimo ?? '');
-    const [oficioPeticionNumero, setOficioPeticionNumero] = useState(td.oficioPeticionNumero ?? '');
-    const [oficioPeticionFecha, setOficioPeticionFecha] = useState(td.oficioPeticionFecha?.split('T')[0] ?? '');
+    const [nombreContratoAdquisicion, setNombreContratoAdquisicion] = useState(
+        td.tipoContrato === 'adquisicion' ? td.nombreContratoAdquisicion ?? '' : ''
+    );
+    const [montoMinimo, setMontoMinimo] = useState<number | ''>(
+        td.tipoContrato === 'adquisicion' ? td.montoMinimo ?? '' : ''
+    );
+    const [oficioPeticionNumero, setOficioPeticionNumero] = useState(
+        td.tipoContrato === 'adquisicion' ? td.oficioPeticionNumero ?? '' : ''
+    );
+    const [oficioPeticionFecha, setOficioPeticionFecha] = useState(
+        td.tipoContrato === 'adquisicion' && td.oficioPeticionFecha
+            ? td.oficioPeticionFecha.split('T')[0]
+            : ''
+    );
+
 
     // Tipo de contrato (no editable usualmente, pero necesario para lógica interna)
     const tipoContratoState = td.tipoContrato ?? 'servicio'; // Asume servicio si no está
@@ -181,124 +192,124 @@ const ContractEditForm: React.FC<ContractEditFormProps> = ({
                         {!loadingProveedores && !proveedoresError && proveedoresOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
                     </select>
                     {proveedoresError && <p className={errorTextStyles}>{proveedoresError}</p>}
-                     {/* Podrías mostrar info adicional del proveedor aquí si es útil */}
+                    {/* Podrías mostrar info adicional del proveedor aquí si es útil */}
                 </div>
             </fieldset>
 
             {/* --- Sección Específica Adquisición (condicional) --- */}
-             {tipoContratoState === 'adquisicion' && (
-                 <fieldset className={fieldsetStyles}>
-                     <legend className={legendStyles}>Datos Adquisición</legend>
+            {tipoContratoState === 'adquisicion' && (
+                <fieldset className={fieldsetStyles}>
+                    <legend className={legendStyles}>Datos Adquisición</legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                         <div className="md:col-span-2">
                             <label htmlFor="nombreContratoAdqEdit" className={labelStyles}>Nombre Contrato (Título) *</label>
-                            <input id="nombreContratoAdqEdit" type="text" value={nombreContratoAdquisicion} onChange={e=>setNombreContratoAdquisicion(e.target.value)} required disabled={isSaving} className={inputStyles}/>
+                            <input id="nombreContratoAdqEdit" type="text" value={nombreContratoAdquisicion} onChange={e => setNombreContratoAdquisicion(e.target.value)} required disabled={isSaving} className={inputStyles} />
                         </div>
                         <div>
                             <label htmlFor="montoMinimoEdit" className={labelStyles}>Monto Mínimo (Opc)</label>
-                            <input id="montoMinimoEdit" type="number" step="0.01" value={montoMinimo} onChange={e=>setMontoMinimo(Number(e.target.value))} disabled={isSaving} className={inputStyles}/>
+                            <input id="montoMinimoEdit" type="number" step="0.01" value={montoMinimo} onChange={e => setMontoMinimo(Number(e.target.value))} disabled={isSaving} className={inputStyles} />
                         </div>
-                         <div></div> {/* Placeholder */}
+                        <div></div> {/* Placeholder */}
                         <div>
                             <label htmlFor="oficioNumEdit" className={labelStyles}>Núm. Oficio Petición (Opc)</label>
-                            <input id="oficioNumEdit" type="text" value={oficioPeticionNumero} onChange={e=>setOficioPeticionNumero(e.target.value)} disabled={isSaving} className={inputStyles}/>
+                            <input id="oficioNumEdit" type="text" value={oficioPeticionNumero} onChange={e => setOficioPeticionNumero(e.target.value)} disabled={isSaving} className={inputStyles} />
                         </div>
                         <div>
                             <label htmlFor="oficioFechaEdit" className={labelStyles}>Fecha Oficio Petición (Opc)</label>
-                            <input id="oficioFechaEdit" type="date" value={oficioPeticionFecha} onChange={e=>setOficioPeticionFecha(e.target.value)} disabled={isSaving} className={inputStyles}/>
+                            <input id="oficioFechaEdit" type="date" value={oficioPeticionFecha} onChange={e => setOficioPeticionFecha(e.target.value)} disabled={isSaving} className={inputStyles} />
                         </div>
                     </div>
-                 </fieldset>
-             )}
+                </fieldset>
+            )}
 
             {/* --- Sección Datos Generales Contrato --- */}
             <fieldset className={fieldsetStyles}>
-                 <legend className={legendStyles}>Datos del Contrato</legend>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                     <div><label htmlFor="numeroProcedimientoEdit" className={labelStyles}>Núm. Procedimiento</label><input id="numeroProcedimientoEdit" type="text" value={numeroProcedimiento} onChange={e => setNumeroProcedimiento(e.target.value)} disabled={isSaving} className={inputStyles} /></div>
-                     <div><label htmlFor="articuloFundamentoEdit" className={labelStyles}>Artículo Fundamento</label><input id="articuloFundamentoEdit" type="text" value={articuloFundamento} onChange={e => setArticuloFundamento(e.target.value)} disabled={isSaving} className={inputStyles} /></div>
-                     <div className="md:col-span-2"><label htmlFor="objetoPrincipalEdit" className={labelStyles}>Objeto Principal *</label><input id="objetoPrincipalEdit" type="text" value={objetoPrincipal} onChange={e => setObjetoPrincipal(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
-                     <div className="md:col-span-2"><label htmlFor="descripcionDetalladaEdit" className={labelStyles}>Descripción Detallada</label><textarea id="descripcionDetalladaEdit" value={descripcionDetallada} onChange={e => setDescripcionDetallada(e.target.value)} disabled={isSaving} rows={4} className={textareaStyles} /></div>
-                 </div>
+                <legend className={legendStyles}>Datos del Contrato</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div><label htmlFor="numeroProcedimientoEdit" className={labelStyles}>Núm. Procedimiento</label><input id="numeroProcedimientoEdit" type="text" value={numeroProcedimiento} onChange={e => setNumeroProcedimiento(e.target.value)} disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="articuloFundamentoEdit" className={labelStyles}>Artículo Fundamento</label><input id="articuloFundamentoEdit" type="text" value={articuloFundamento} onChange={e => setArticuloFundamento(e.target.value)} disabled={isSaving} className={inputStyles} /></div>
+                    <div className="md:col-span-2"><label htmlFor="objetoPrincipalEdit" className={labelStyles}>Objeto Principal *</label><input id="objetoPrincipalEdit" type="text" value={objetoPrincipal} onChange={e => setObjetoPrincipal(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                    <div className="md:col-span-2"><label htmlFor="descripcionDetalladaEdit" className={labelStyles}>Descripción Detallada</label><textarea id="descripcionDetalladaEdit" value={descripcionDetallada} onChange={e => setDescripcionDetallada(e.target.value)} disabled={isSaving} rows={4} className={textareaStyles} /></div>
+                </div>
             </fieldset>
 
             {/* --- Sección Vigencia y Monto --- */}
             <fieldset className={fieldsetStyles}>
-                <legend className={legendStyles}>Vigencia y Monto {tipoContratoState==='adquisicion'?'Máximo':'Total'}</legend>
+                <legend className={legendStyles}>Vigencia y Monto {tipoContratoState === 'adquisicion' ? 'Máximo' : 'Total'}</legend>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                     <div><label htmlFor="fechaInicioEdit" className={labelStyles}>Fecha Inicio *</label><input id="fechaInicioEdit" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
                     <div><label htmlFor="fechaFinEdit" className={labelStyles}>Fecha Fin *</label><input id="fechaFinEdit" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
                     <div className="md:col-span-1 grid grid-cols-2 gap-x-3">
-                        <div className="col-span-2 sm:col-span-1"><label htmlFor="montoTotalEdit" className={labelStyles}>Monto {tipoContratoState==='adquisicion'?'Máximo':'Total'} *</label><input id="montoTotalEdit" type="number" step="0.01" value={montoTotal} onChange={e => setMontoTotal(Number(e.target.value))} required disabled={isSaving} className={inputStyles} /></div>
+                        <div className="col-span-2 sm:col-span-1"><label htmlFor="montoTotalEdit" className={labelStyles}>Monto {tipoContratoState === 'adquisicion' ? 'Máximo' : 'Total'} *</label><input id="montoTotalEdit" type="number" step="0.01" value={montoTotal} onChange={e => setMontoTotal(Number(e.target.value))} required disabled={isSaving} className={inputStyles} /></div>
                         <div className="col-span-2 sm:col-span-1"><label htmlFor="monedaEdit" className={labelStyles}>Moneda</label><select id="monedaEdit" value={moneda} onChange={e => setMoneda(e.target.value)} disabled={isSaving} className={selectStyles}><option value="MXN">MXN</option><option value="USD">USD</option></select></div>
                     </div>
-                 </div>
+                </div>
             </fieldset>
 
-             {/* --- Sección Suficiencia Presupuestal --- */}
-             <fieldset className={fieldsetStyles}>
-                 <legend className={legendStyles}>Suficiencia Presupuestal</legend>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                     <div><label htmlFor="sufFechaEdit" className={labelStyles}>Fecha *</label><input id="sufFechaEdit" type="date" value={suficienciaFecha} onChange={e=>setSuficienciaFecha(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                     <div><label htmlFor="sufNumOficioEdit" className={labelStyles}>Número Oficio *</label><input id="sufNumOficioEdit" type="text" value={suficienciaNumOficio} onChange={e=>setSuficienciaNumOficio(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                     <div><label htmlFor="sufCuentaEdit" className={labelStyles}>Cuenta *</label><input id="sufCuentaEdit" type="text" value={suficienciaCuenta} onChange={e=>setSuficienciaCuenta(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                     <div><label htmlFor="sufRecursoEdit" className={labelStyles}>Tipo Recurso *</label><input id="sufRecursoEdit" type="text" value={suficienciaRecurso} onChange={e=>setSuficienciaRecurso(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                 </div>
+            {/* --- Sección Suficiencia Presupuestal --- */}
+            <fieldset className={fieldsetStyles}>
+                <legend className={legendStyles}>Suficiencia Presupuestal</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div><label htmlFor="sufFechaEdit" className={labelStyles}>Fecha *</label><input id="sufFechaEdit" type="date" value={suficienciaFecha} onChange={e => setSuficienciaFecha(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="sufNumOficioEdit" className={labelStyles}>Número Oficio *</label><input id="sufNumOficioEdit" type="text" value={suficienciaNumOficio} onChange={e => setSuficienciaNumOficio(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="sufCuentaEdit" className={labelStyles}>Cuenta *</label><input id="sufCuentaEdit" type="text" value={suficienciaCuenta} onChange={e => setSuficienciaCuenta(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="sufRecursoEdit" className={labelStyles}>Tipo Recurso *</label><input id="sufRecursoEdit" type="text" value={suficienciaRecurso} onChange={e => setSuficienciaRecurso(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                </div>
             </fieldset>
 
             {/* --- Sección Área Requirente --- */}
-             <fieldset className={fieldsetStyles}>
-                 <legend className={legendStyles}>Área Requirente</legend>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <div><label htmlFor="reqNombreEdit" className={labelStyles}>Nombre Funcionario *</label><input id="reqNombreEdit" type="text" value={reqNombre} onChange={e=>setReqNombre(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                    <div><label htmlFor="reqCargoEdit" className={labelStyles}>Cargo Funcionario *</label><input id="reqCargoEdit" type="text" value={reqCargo} onChange={e=>setReqCargo(e.target.value)} required disabled={isSaving} className={inputStyles}/></div>
-                 </div>
+            <fieldset className={fieldsetStyles}>
+                <legend className={legendStyles}>Área Requirente</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div><label htmlFor="reqNombreEdit" className={labelStyles}>Nombre Funcionario *</label><input id="reqNombreEdit" type="text" value={reqNombre} onChange={e => setReqNombre(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="reqCargoEdit" className={labelStyles}>Cargo Funcionario *</label><input id="reqCargoEdit" type="text" value={reqCargo} onChange={e => setReqCargo(e.target.value)} required disabled={isSaving} className={inputStyles} /></div>
+                </div>
             </fieldset>
 
-             {/* --- Sección Garantías y Cierre --- */}
-             <fieldset className={fieldsetStyles}>
-                 <legend className={legendStyles}>Garantías y Cierre</legend>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                     <div><label htmlFor="montoGarantiaCumpEdit" className={labelStyles}>Monto Garantía Cumplimiento (Opc)</label><input id="montoGarantiaCumpEdit" type="number" step="0.01" value={montoGarantiaCump} onChange={e=>setMontoGarantiaCump(Number(e.target.value))} disabled={isSaving} className={inputStyles}/></div>
-                     <div><label htmlFor="montoGarantiaViciosEdit" className={labelStyles}>Monto Garantía Vicios Ocultos (Opc)</label><input id="montoGarantiaViciosEdit" type="number" step="0.01" value={montoGarantiaVicios} onChange={e=>setMontoGarantiaVicios(Number(e.target.value))} disabled={isSaving} className={inputStyles}/></div>
-                     <div className="md:col-span-2"><label htmlFor="garantiasTextoEdit" className={labelStyles}>Texto Adicional Garantías (Opc)</label><textarea id="garantiasTextoEdit" value={garantiasTexto} onChange={e=>setGarantiasTexto(e.target.value)} disabled={isSaving} rows={2} className={textareaStyles}/></div>
-                     <div className="md:col-span-2"><label htmlFor="condicionesPagoEdit" className={labelStyles}>Condiciones de Pago (Opc)</label><textarea id="condicionesPagoEdit" value={condicionesPago} onChange={e=>setCondicionesPago(e.target.value)} disabled={isSaving} rows={3} className={textareaStyles}/></div>
-                     <div><label htmlFor="fechaFirmaEdit" className={labelStyles}>Fecha Firma/Elaboración</label><input id="fechaFirmaEdit" type="date" value={fechaFirma} onChange={e=>setFechaFirma(e.target.value)} disabled={isSaving} className={inputStyles}/></div>
-                     <div><label htmlFor="numeroHojasEdit" className={labelStyles}>Número Hojas</label><input id="numeroHojasEdit" type="number" value={numeroHojas} onChange={e=>setNumeroHojas(Number(e.target.value))} disabled={isSaving} className={inputStyles}/></div>
-                 </div>
+            {/* --- Sección Garantías y Cierre --- */}
+            <fieldset className={fieldsetStyles}>
+                <legend className={legendStyles}>Garantías y Cierre</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div><label htmlFor="montoGarantiaCumpEdit" className={labelStyles}>Monto Garantía Cumplimiento (Opc)</label><input id="montoGarantiaCumpEdit" type="number" step="0.01" value={montoGarantiaCump} onChange={e => setMontoGarantiaCump(Number(e.target.value))} disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="montoGarantiaViciosEdit" className={labelStyles}>Monto Garantía Vicios Ocultos (Opc)</label><input id="montoGarantiaViciosEdit" type="number" step="0.01" value={montoGarantiaVicios} onChange={e => setMontoGarantiaVicios(Number(e.target.value))} disabled={isSaving} className={inputStyles} /></div>
+                    <div className="md:col-span-2"><label htmlFor="garantiasTextoEdit" className={labelStyles}>Texto Adicional Garantías (Opc)</label><textarea id="garantiasTextoEdit" value={garantiasTexto} onChange={e => setGarantiasTexto(e.target.value)} disabled={isSaving} rows={2} className={textareaStyles} /></div>
+                    <div className="md:col-span-2"><label htmlFor="condicionesPagoEdit" className={labelStyles}>Condiciones de Pago (Opc)</label><textarea id="condicionesPagoEdit" value={condicionesPago} onChange={e => setCondicionesPago(e.target.value)} disabled={isSaving} rows={3} className={textareaStyles} /></div>
+                    <div><label htmlFor="fechaFirmaEdit" className={labelStyles}>Fecha Firma/Elaboración</label><input id="fechaFirmaEdit" type="date" value={fechaFirma} onChange={e => setFechaFirma(e.target.value)} disabled={isSaving} className={inputStyles} /></div>
+                    <div><label htmlFor="numeroHojasEdit" className={labelStyles}>Número Hojas</label><input id="numeroHojasEdit" type="number" value={numeroHojas} onChange={e => setNumeroHojas(Number(e.target.value))} disabled={isSaving} className={inputStyles} /></div>
+                </div>
             </fieldset>
 
-             {/* --- Selectores Opcionales Relacionados --- */}
-             <fieldset className={fieldsetStyles}>
-                 <legend className={legendStyles}>IDs Relacionados (Opcional)</legend>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                    <div>
-                        <label htmlFor="idSolicitudForm" className={labelStyles}>Solicitud</label>
-                        <select id="idSolicitudForm" value={idSolicitud} onChange={(e) => setIdSolicitud(e.target.value)} disabled={disableSave} className={`${selectStyles} ${solicitudesError ? 'border-red-500' : ''}`}>
-                            <option value="">{loadingSolicitudes ? 'Cargando...' : (solicitudesError ? 'Error' : '-- Ninguna --')}</option>
-                            {!loadingSolicitudes && !solicitudesError && solicitudesOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
-                        </select>
-                        {solicitudesError && <p className={errorTextStyles}>{solicitudesError}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="idDictamenForm" className={labelStyles}>Dictamen</label>
-                        <select id="idDictamenForm" value={idDictamen} onChange={(e) => setIdDictamen(e.target.value)} disabled={disableSave} className={`${selectStyles} ${dictamenesError ? 'border-red-500' : ''}`}>
-                            <option value="">{loadingDictamenes ? 'Cargando...' : (dictamenesError ? 'Error' : '-- Ninguno --')}</option>
-                            {!loadingDictamenes && !dictamenesError && dictamenesOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
-                        </select>
-                        {dictamenesError && <p className={errorTextStyles}>{dictamenesError}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="idConcursoForm" className={labelStyles}>Concurso</label>
-                        <select id="idConcursoForm" value={idConcurso} onChange={(e) => setIdConcurso(e.target.value)} disabled={disableSave} className={`${selectStyles} ${concursosError ? 'border-red-500' : ''}`}>
-                            <option value="">{loadingConcursos ? 'Cargando...' : (concursosError ? 'Error' : '-- Ninguno --')}</option>
-                            {!loadingConcursos && !concursosError && concursosOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
-                        </select>
-                        {concursosError && <p className={errorTextStyles}>{concursosError}</p>}
+            {/* --- Selectores Opcionales Relacionados --- */}
+            <fieldset className={fieldsetStyles}>
+                <legend className={legendStyles}>IDs Relacionados (Opcional)</legend>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                        <div>
+                            <label htmlFor="idSolicitudForm" className={labelStyles}>Solicitud</label>
+                            <select id="idSolicitudForm" value={idSolicitud} onChange={(e) => setIdSolicitud(e.target.value)} disabled={disableSave} className={`${selectStyles} ${solicitudesError ? 'border-red-500' : ''}`}>
+                                <option value="">{loadingSolicitudes ? 'Cargando...' : (solicitudesError ? 'Error' : '-- Ninguna --')}</option>
+                                {!loadingSolicitudes && !solicitudesError && solicitudesOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
+                            </select>
+                            {solicitudesError && <p className={errorTextStyles}>{solicitudesError}</p>}
+                        </div>
+                        <div>
+                            <label htmlFor="idDictamenForm" className={labelStyles}>Dictamen</label>
+                            <select id="idDictamenForm" value={idDictamen} onChange={(e) => setIdDictamen(e.target.value)} disabled={disableSave} className={`${selectStyles} ${dictamenesError ? 'border-red-500' : ''}`}>
+                                <option value="">{loadingDictamenes ? 'Cargando...' : (dictamenesError ? 'Error' : '-- Ninguno --')}</option>
+                                {!loadingDictamenes && !dictamenesError && dictamenesOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
+                            </select>
+                            {dictamenesError && <p className={errorTextStyles}>{dictamenesError}</p>}
+                        </div>
+                        <div>
+                            <label htmlFor="idConcursoForm" className={labelStyles}>Concurso</label>
+                            <select id="idConcursoForm" value={idConcurso} onChange={(e) => setIdConcurso(e.target.value)} disabled={disableSave} className={`${selectStyles} ${concursosError ? 'border-red-500' : ''}`}>
+                                <option value="">{loadingConcursos ? 'Cargando...' : (concursosError ? 'Error' : '-- Ninguno --')}</option>
+                                {!loadingConcursos && !concursosError && concursosOptions.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
+                            </select>
+                            {concursosError && <p className={errorTextStyles}>{concursosError}</p>}
+                        </div>
                     </div>
                 </div>
-                 </div>
             </fieldset>
 
             {/* --- Botones --- */}

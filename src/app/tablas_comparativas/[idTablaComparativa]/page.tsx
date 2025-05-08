@@ -138,9 +138,7 @@ export default function DetalleTablaComparativaPage() {
         if (!tablaData || isSubmitting) return;
         setIsSubmitting(true); setError(null);
         try {
-            console.log(`Obteniendo detalles completos para proveedor ID: ${proveedorSeleccionado.id_proveedor}`);
             const proveedorCompleto = await fetchProveedorDetalladoParaSnapshot(proveedorSeleccionado.id_proveedor);
-            console.log("Detalles completos obtenidos:", proveedorCompleto);
             if (!proveedorCompleto?.rfc) throw new Error("Datos detallados del proveedor no encontrados o incompletos.");
 
             const proveedorSnapshotData: AgregarProveedorInput = {
@@ -161,7 +159,6 @@ export default function DetalleTablaComparativaPage() {
                 // tiempo_entrega_snapshot: null, // ELIMINADO (no en AgregarProveedorInput)
             };
 
-            console.log("Enviando datos para agregar proveedor:", proveedorSnapshotData);
             await agregarProveedorATablaFetch(tablaData.id, proveedorSnapshotData);
             await cargarTabla();
         } catch (err: unknown) { // CORREGIDO: any -> unknown
