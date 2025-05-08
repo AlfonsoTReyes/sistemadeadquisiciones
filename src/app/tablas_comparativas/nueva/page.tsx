@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FormularioTablaComparativa } from '@/componentes/tablas_comparativas/FormularioTablaComparativa'; // Ajusta la ruta
-import { CrearTablaComparativaInput } from '@/types/tablaComparativa'; // Ajusta la ruta
+import { CrearTablaComparativaInput, TablaComparativa } from '@/types/tablaComparativa'; // Ajusta la ruta
 import { crearTablaComparativaFetch } from '@/fetch/tablasComparativasFetch'; // Ajusta la ruta
 import Link from 'next/link';
 
@@ -13,16 +13,17 @@ export default function NuevaTablaComparativaPage() {
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    const handleSubmit = async (formData: CrearTablaComparativaInput) => {
-        setIsLoading(true);
-        setError(null);
+    const handleSubmit = async (
+        data: CrearTablaComparativaInput | Partial<Pick<TablaComparativa, 'nombre' | 'descripcion' | 'estado'>>
+    ) => {
+        if (!('nombre' in data)) return; // validación mínima de tipo
 
+        // Aquí asumimos que `id_usuario_creador` no viene y lo añadimos
         let userId: number | null = null;
         let validationError: string | null = null;
 
-        // 1. Leer el ID del usuario desde sessionStorage DENTRO del handler
         if (typeof window !== "undefined") {
-            const storedUserId = sessionStorage.getItem('userId'); // Usa la clave correcta que guardaste al iniciar sesión
+            const storedUserId = sessionStorage.getItem('userId');
             if (storedUserId) {
                 const parsedId = parseInt(storedUserId, 10);
                 if (!isNaN(parsedId)) {
@@ -37,7 +38,6 @@ export default function NuevaTablaComparativaPage() {
             validationError = "Entorno no válido para acceder a sessionStorage.";
         }
 
-        // 2. Si hubo error al leer/validar el ID, detener el proceso
         if (validationError) {
             setError(validationError);
             setIsLoading(false);
@@ -45,30 +45,18 @@ export default function NuevaTablaComparativaPage() {
             return;
         }
 
-        // 3. Asignar el ID de usuario leído y validado
-        //    (Aseguramos que userId no es null por la validación anterior)
-        const dataToSend: CrearTablaComparativaInput = {
-            ...formData,
-            id_usuario_creador: userId!, // Usamos '!' porque ya validamos que no es null
+        const formData: CrearTablaComparativaInput = {
+            nombre: data.nombre!,
+            descripcion: data.descripcion || null,
+            id_usuario_creador: userId!,
         };
 
-        console.log("Datos a enviar para crear:", dataToSend);
-
-        // 4. Intentar crear la tabla
         try {
-            const nuevaTabla = await crearTablaComparativaFetch(dataToSend);
-            console.log("Tabla creada:", nuevaTabla);
-            // Redirigir a la página de detalle de la tabla recién creada
+            const nuevaTabla = await crearTablaComparativaFetch(formData);
             router.push(`/tablas_comparativas/${nuevaTabla.id}`);
-
         } catch (err: any) {
             console.error("Error al crear tabla:", err);
-            // Verificar si el error es por la FK (aunque ya validamos el ID, podría no existir en la DB por alguna razón)
-            if (err.message && err.message.includes('violates foreign key constraint')) {
-                setError("Error de base de datos: El usuario especificado no existe o no se pudo crear la relación. Verifique la consola del servidor.");
-            } else {
-                setError(err.message || 'Ocurrió un error al crear la tabla.');
-            }
+            setError(err.message || 'Ocurrió un error al crear la tabla.');
         } finally {
             setIsLoading(false);
         }
