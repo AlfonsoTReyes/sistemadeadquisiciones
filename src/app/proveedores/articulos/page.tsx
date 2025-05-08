@@ -159,8 +159,8 @@ export default function GestionArticulosProveedorPage() {
                 codigo_partida: formDataFromModal.codigo_partida,
                 descripcion: formDataFromModal.descripcion,
                 unidad_medida: formDataFromModal.unidad_medida,
-                stock: formDataFromModal.stock, // El modal ya debe convertir a número si es necesario
-                precio_unitario: formDataFromModal.precio_unitario, // El modal ya debe convertir
+                stock: parseFloat(formDataFromModal.stock), // ✅ convertir a número
+                precio_unitario: parseFloat(formDataFromModal.precio_unitario), // ✅ convertir a número
                 estatus: formDataFromModal.estatus
             };
 
