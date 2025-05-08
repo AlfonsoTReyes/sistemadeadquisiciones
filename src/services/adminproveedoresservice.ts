@@ -1,6 +1,8 @@
 // src/services/proveedoresservice.ts
 import { sql, VercelPoolClient, db } from '@vercel/postgres';
 import { triggerPusherEvent } from '../lib/pusher-server'; // Ajusta ruta
+import {CreateProveedorData} from '@/services/proveedoresservice';
+
 import bcrypt from 'bcryptjs';
 
 // --- INTERFACES (Definir o asegurar que existen en otro lugar) ---
@@ -112,7 +114,7 @@ const procesarResultadoProveedor = (rows: any[]): ProveedorCompletoData | null =
     const firstRow = rows[0];
     const tipo: 'moral' | 'fisica' | 'desconocido' =
         firstRow.razon_social != null ? 'moral' :
-        (firstRow.nombre_fisica != null ? 'fisica' : 'desconocido');
+            (firstRow.nombre_fisica != null ? 'fisica' : 'desconocido');
 
     const proveedorBase: ProveedorCompletoData = {
         id_proveedor: firstRow.id_proveedor,
@@ -189,7 +191,8 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
         `;
 
         const proveedoresFormateados = result.rows.map(row => {
-            const tipoProveedorDeterminado = row.es_moral ? 'moral' : (row.es_fisica ? 'fisica' : 'desconocido');
+            const tipoProveedorDeterminado: 'moral' | 'fisica' | 'desconocido' =
+                row.es_moral ? 'moral' : row.es_fisica ? 'fisica' : 'desconocido';
             return {
                 id_proveedor: row.id_proveedor,
                 rfc: row.rfc,
@@ -198,15 +201,14 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
                 estatus_revision: row.estatus_revision,
                 telefono: row.telefono_uno,
                 tipo_proveedor: tipoProveedorDeterminado,
-                razon_social: tipoProveedorDeterminado === 'moral' ? row.razon_social : null,
-                nombre_fisica: tipoProveedorDeterminado === 'fisica' ? row.nombre_fisica : null,
-                apellido_p_fisica: tipoProveedorDeterminado === 'fisica' ? row.apellido_p_fisica : null,
-                apellido_m_fisica: tipoProveedorDeterminado === 'fisica' ? row.apellido_m_fisica : null,
-                nombre_display: row.nombre_display_calculado 
+                razon_social: tipoProveedorDeterminado === "moral" ? row.razon_social : null,
+                nombre_fisica: tipoProveedorDeterminado === "fisica" ? row.nombre_fisica : null,
+                apellido_p_fisica: tipoProveedorDeterminado === "fisica" ? row.apellido_p_fisica : null,
+                apellido_m_fisica: tipoProveedorDeterminado === "fisica" ? row.apellido_m_fisica : null,
+                nombre_display: row.nombre_display_calculado,
             };
         });
 
-        console.log(`SERVICE: Found ${proveedoresFormateados.length} UNIQUE providers for admin list.`);
         return proveedoresFormateados;
     } catch (error: unknown) { // Changed to unknown
         console.error("SERVICE ERROR in getAllProveedoresForAdmin:", error);
@@ -221,11 +223,11 @@ export const getAllProveedoresForAdmin = async (): Promise<ProveedorAdminListDat
 export const updateProveedorEstatus = async (
     idProveedor: number,
     estatus: boolean
-  ): Promise<{ id_proveedor: number; rfc: string | null; estatus: boolean | null; updated_at: string | null; }> => {
+): Promise<{ id_proveedor: number; rfc: string | null; estatus: boolean | null; updated_at: string | null; }> => {
     console.log(`DEBUG Service: Updating status for provider ID ${idProveedor} to ${estatus}`);
-    
+
     try {
-      const result = await sql`
+        const result = await sql`
         UPDATE proveedores
         SET
           estatus = ${estatus},
@@ -233,24 +235,29 @@ export const updateProveedorEstatus = async (
         WHERE id_proveedor = ${idProveedor}
         RETURNING id_proveedor, rfc, estatus, updated_at;
       `;
-  
-      if (result.rows.length === 0) {
-        throw new Error(`Proveedor con ID ${idProveedor} no encontrado para actualizar.`);
-      }
-  
-      console.log(`DEBUG Service: Status updated successfully for provider ID ${idProveedor}`);
-      return result.rows[0];
-  
+
+        if (result.rows.length === 0) {
+            throw new Error(`Proveedor con ID ${idProveedor} no encontrado para actualizar.`);
+        }
+
+        console.log(`DEBUG Service: Status updated successfully for provider ID ${idProveedor}`);
+        return result.rows[0] as {
+            id_proveedor: number;
+            rfc: string | null;
+            estatus: boolean | null;
+            updated_at: string | null;
+        };
+
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(`Error updating provider status for ID ${idProveedor}: ${error.message}\n${error.stack}`);
-        throw new Error(error.message);
-      }
-      console.error(`Error desconocido al actualizar proveedor ID ${idProveedor}:`, error);
-      throw new Error('Error al actualizar el estatus del proveedor.');
+        if (error instanceof Error) {
+            console.error(`Error updating provider status for ID ${idProveedor}: ${error.message}\n${error.stack}`);
+            throw new Error(error.message);
+        }
+        console.error(`Error desconocido al actualizar proveedor ID ${idProveedor}:`, error);
+        throw new Error('Error al actualizar el estatus del proveedor.');
     }
-  };
-  
+};
+
 
 export const getProveedorById = async (id: number): Promise<ProveedorCompletoData | null> => {
     console.log(`SERVICE: getProveedorById called for ID ${id}`);
@@ -358,14 +365,14 @@ export const createProveedorCompleto = async (data: CreateProveedorData): Promis
     } catch (errUnknown: unknown) {
         console.error(`SERVICE Create: Error durante el registro para user ID: ${id_usuario_proveedor}`);
         if (client) { try { await client.sql`ROLLBACK`; console.log("SERVICE Create: ROLLBACK ejecutado."); } catch (rbErr) { console.error("Error en ROLLBACK:", rbErr); } }
-        
+
         let message = "Error desconocido en el registro.";
         let code: string | undefined;
         let constraint: string | undefined;
         let detail: string | undefined;
 
         if (errUnknown instanceof Error) {
-            message = errUnknown.message || message; 
+            message = errUnknown.message || message;
             const errAsAny = errUnknown as any;
             if (typeof errAsAny.code === 'string') code = errAsAny.code;
             if (typeof errAsAny.constraint === 'string') constraint = errAsAny.constraint;
@@ -382,7 +389,7 @@ export const createProveedorCompleto = async (data: CreateProveedorData): Promis
             console.error("Error FK Detectado:", detail);
             throw new Error(`Error de referencia: ${detail || message}`);
         }
-        throw new Error(message); 
+        throw new Error(message);
     } finally {
         if (client) { await client.release(); }
     }
@@ -404,19 +411,19 @@ export const updateProveedorProfileForAdmin = async (
     if (tipoProveedor === 'moral' && proveedorData.representantes !== undefined && !Array.isArray(proveedorData.representantes)) {
         throw new Error("El campo 'representantes' debe ser un array si se incluye para proveedor moral.");
     }
-     if (tipoProveedor === 'moral' && Array.isArray(proveedorData.representantes)) {
-         for(const rep of proveedorData.representantes) {
-             if (!rep.nombre_representante?.trim() || !rep.apellido_p_representante?.trim()) {
-                 throw new Error("Cada representante debe tener nombre y apellido paterno válidos.");
-             }
-             if (rep.id_morales !== undefined && (typeof rep.id_morales !== 'number' || isNaN(rep.id_morales))) {
-                 throw new Error(`ID de representante (id_morales=${rep.id_morales}) inválido.`);
-             }
-         }
-     }
-     if (tipoProveedor === 'fisica' && proveedorData.curp !== undefined && (typeof proveedorData.curp !== 'string' || proveedorData.curp.trim().length !== 18)) {
+    if (tipoProveedor === 'moral' && Array.isArray(proveedorData.representantes)) {
+        for (const rep of proveedorData.representantes) {
+            if (!rep.nombre_representante?.trim() || !rep.apellido_p_representante?.trim()) {
+                throw new Error("Cada representante debe tener nombre y apellido paterno válidos.");
+            }
+            if (rep.id_morales !== undefined && (typeof rep.id_morales !== 'number' || isNaN(rep.id_morales))) {
+                throw new Error(`ID de representante (id_morales=${rep.id_morales}) inválido.`);
+            }
+        }
+    }
+    if (tipoProveedor === 'fisica' && proveedorData.curp !== undefined && (typeof proveedorData.curp !== 'string' || proveedorData.curp.trim().length !== 18)) {
         throw new Error('Si se incluye "curp", debe ser una cadena de 18 caracteres.');
-     }
+    }
 
     console.log(`SERVICE: updateProveedorProfileForAdmin - Iniciando para ID ${idProveedor}, Tipo: ${tipoProveedor}`);
 
@@ -482,14 +489,14 @@ export const updateProveedorProfileForAdmin = async (
             addUpdateFieldFisica('curp', proveedorData.curp);
 
             if (updateFieldsFisicas.length > 0) {
-                 const updateQueryFisicas = `UPDATE personas_fisicas SET ${updateFieldsFisicas.join(', ')} WHERE id_proveedor = $${paramIndexFisicas}`;
-                 updateValuesFisicas.push(idProveedor);
-                 console.log(`SERVICE: Ejecutando UPDATE en 'personas_fisicas' (ID Prov: ${idProveedor})`);
-                 const resFis = await client.query(updateQueryFisicas, updateValuesFisicas);
-                 if(resFis.rowCount === 0) console.warn(`WARN SERVICE: No se encontró registro en 'personas_fisicas' para ID Proveedor ${idProveedor}.`);
-                 else console.log(`SERVICE: Tabla 'personas_fisicas' actualizada.`);
+                const updateQueryFisicas = `UPDATE personas_fisicas SET ${updateFieldsFisicas.join(', ')} WHERE id_proveedor = $${paramIndexFisicas}`;
+                updateValuesFisicas.push(idProveedor);
+                console.log(`SERVICE: Ejecutando UPDATE en 'personas_fisicas' (ID Prov: ${idProveedor})`);
+                const resFis = await client.query(updateQueryFisicas, updateValuesFisicas);
+                if (resFis.rowCount === 0) console.warn(`WARN SERVICE: No se encontró registro en 'personas_fisicas' para ID Proveedor ${idProveedor}.`);
+                else console.log(`SERVICE: Tabla 'personas_fisicas' actualizada.`);
             } else {
-                 console.log(`SERVICE: Sin campos que actualizar en 'personas_fisicas'.`);
+                console.log(`SERVICE: Sin campos que actualizar en 'personas_fisicas'.`);
             }
 
         } else if (tipoProveedor === 'moral') {
@@ -498,70 +505,70 @@ export const updateProveedorProfileForAdmin = async (
             let razonSocialActual = proveedorData.razon_social;
 
             if (razonSocialActual !== undefined) {
-                 if (typeof razonSocialActual !== 'string' || razonSocialActual.trim() === '') {
-                     throw new Error("Si se proporciona 'razon_social', no puede estar vacía.");
-                 }
-                 console.log(`SERVICE: Actualizando razon_social a "${razonSocialActual}" en 'proveedores_morales' para ID Prov: ${idProveedor}`);
-                 await client.sql`UPDATE proveedores_morales SET razon_social = ${razonSocialActual} WHERE id_proveedor = ${idProveedor};`;
-            } else if (repsEntrantes && repsEntrantes.some(r => r.id_morales === undefined || r.id_morales < 0 )) {
-                 console.log(`SERVICE: Obteniendo razon_social actual para nuevos representantes (ID Prov: ${idProveedor})`);
-                 const current = await client.sql`SELECT razon_social FROM proveedores_morales WHERE id_proveedor = ${idProveedor} LIMIT 1;`;
-                 razonSocialActual = current.rows[0]?.razon_social;
-                 console.log(`SERVICE: Razon social actual obtenida: "${razonSocialActual}"`);
-                 if(razonSocialActual === undefined || razonSocialActual === null) {
-                      throw new Error(`No se puede añadir representantes porque no se encontró una razón social existente para el proveedor ID ${idProveedor} y no se proporcionó una nueva.`);
-                 }
+                if (typeof razonSocialActual !== 'string' || razonSocialActual.trim() === '') {
+                    throw new Error("Si se proporciona 'razon_social', no puede estar vacía.");
+                }
+                console.log(`SERVICE: Actualizando razon_social a "${razonSocialActual}" en 'proveedores_morales' para ID Prov: ${idProveedor}`);
+                await client.sql`UPDATE proveedores_morales SET razon_social = ${razonSocialActual} WHERE id_proveedor = ${idProveedor};`;
+            } else if (repsEntrantes && repsEntrantes.some(r => r.id_morales === undefined || r.id_morales < 0)) {
+                console.log(`SERVICE: Obteniendo razon_social actual para nuevos representantes (ID Prov: ${idProveedor})`);
+                const current = await client.sql`SELECT razon_social FROM proveedores_morales WHERE id_proveedor = ${idProveedor} LIMIT 1;`;
+                razonSocialActual = current.rows[0]?.razon_social;
+                console.log(`SERVICE: Razon social actual obtenida: "${razonSocialActual}"`);
+                if (razonSocialActual === undefined || razonSocialActual === null) {
+                    throw new Error(`No se puede añadir representantes porque no se encontró una razón social existente para el proveedor ID ${idProveedor} y no se proporcionó una nueva.`);
+                }
             }
 
             if (repsEntrantes !== undefined) {
-                 console.log(`SERVICE: Sincronizando ${repsEntrantes.length} representante(s)...`);
-                 const { rows: repsExistentesDb } = await client.sql<{id_morales: number}>`
+                console.log(`SERVICE: Sincronizando ${repsEntrantes.length} representante(s)...`);
+                const { rows: repsExistentesDb } = await client.sql<{ id_morales: number }>`
                     SELECT id_morales FROM proveedores_morales WHERE id_proveedor = ${idProveedor};
                  `;
-                 const idsExistentesDb = new Set(repsExistentesDb.map(r => r.id_morales));
-                 console.log("SERVICE: IDs existentes en BD:", Array.from(idsExistentesDb));
+                const idsExistentesDb = new Set(repsExistentesDb.map(r => r.id_morales));
+                console.log("SERVICE: IDs existentes en BD:", Array.from(idsExistentesDb));
 
-                 const idsParaMantenerOActualizar = new Set<number>();
+                const idsParaMantenerOActualizar = new Set<number>();
 
-                 for (const repIn of repsEntrantes) {
-                     if (!repIn.nombre_representante?.trim() || !repIn.apellido_p_representante?.trim()) {
-                         console.warn("SERVICE: Saltando representante entrante sin nombre o apellido paterno:", repIn);
-                         continue;
-                     }
-                     const idMoralEntrante = repIn.id_morales;
-                     if (idMoralEntrante != null && idMoralEntrante > 0 && idsExistentesDb.has(idMoralEntrante)) {
-                         console.log(`SERVICE: Actualizando representante existente (id_morales: ${idMoralEntrante})`);
-                         await client.sql`
+                for (const repIn of repsEntrantes) {
+                    if (!repIn.nombre_representante?.trim() || !repIn.apellido_p_representante?.trim()) {
+                        console.warn("SERVICE: Saltando representante entrante sin nombre o apellido paterno:", repIn);
+                        continue;
+                    }
+                    const idMoralEntrante = repIn.id_morales;
+                    if (idMoralEntrante != null && idMoralEntrante > 0 && idsExistentesDb.has(idMoralEntrante)) {
+                        console.log(`SERVICE: Actualizando representante existente (id_morales: ${idMoralEntrante})`);
+                        await client.sql`
                              UPDATE proveedores_morales SET
                                  nombre_representante = ${repIn.nombre_representante},
                                  apellido_p_representante = ${repIn.apellido_p_representante},
                                  apellido_m_representante = ${repIn.apellido_m_representante ?? null}
                              WHERE id_morales = ${idMoralEntrante};
                          `;
-                         idsParaMantenerOActualizar.add(idMoralEntrante);
-                     }
-                     else {
-                         if(razonSocialActual === undefined || razonSocialActual === null) {
-                              throw new Error(`Error crítico: Falta razon_social para insertar nuevo representante ${repIn.nombre_representante}.`);
-                         }
-                         console.log(`SERVICE: Insertando NUEVO representante: ${repIn.nombre_representante}`);
-                         await client.sql`
+                        idsParaMantenerOActualizar.add(idMoralEntrante);
+                    }
+                    else {
+                        if (razonSocialActual === undefined || razonSocialActual === null) {
+                            throw new Error(`Error crítico: Falta razon_social para insertar nuevo representante ${repIn.nombre_representante}.`);
+                        }
+                        console.log(`SERVICE: Insertando NUEVO representante: ${repIn.nombre_representante}`);
+                        await client.sql`
                              INSERT INTO proveedores_morales
                                 (id_proveedor, razon_social, nombre_representante, apellido_p_representante, apellido_m_representante)
                              VALUES
                                 (${idProveedor}, ${razonSocialActual}, ${repIn.nombre_representante}, ${repIn.apellido_p_representante}, ${repIn.apellido_m_representante ?? null});
                          `;
-                     }
-                 }
+                    }
+                }
 
-                 const idsParaEliminar = Array.from(idsExistentesDb).filter(id => !idsParaMantenerOActualizar.has(id));
-                 if (idsParaEliminar.length > 0) {
-                     console.log(`SERVICE: Eliminando ${idsParaEliminar.length} representante(s) obsoletos:`, idsParaEliminar);
-                     await client.query(`DELETE FROM proveedores_morales WHERE id_morales = ANY($1::int[])`, [idsParaEliminar]);
-                     console.log(`SERVICE: Representantes obsoletos eliminados.`);
-                 } else {
+                const idsParaEliminar = Array.from(idsExistentesDb).filter(id => !idsParaMantenerOActualizar.has(id));
+                if (idsParaEliminar.length > 0) {
+                    console.log(`SERVICE: Eliminando ${idsParaEliminar.length} representante(s) obsoletos:`, idsParaEliminar);
+                    await client.query(`DELETE FROM proveedores_morales WHERE id_morales = ANY($1::int[])`, [idsParaEliminar]);
+                    console.log(`SERVICE: Representantes obsoletos eliminados.`);
+                } else {
                     console.log(`SERVICE: No hay representantes obsoletos para eliminar.`);
-                 }
+                }
             } else {
                 console.log(`SERVICE: No se proporcionó array 'representantes', no se sincronizarán.`);
             }
@@ -634,7 +641,7 @@ export const updateUsuarioProveedor = async (usuarioData: any): Promise<any> => 
     const requiredFields = ['usuario', 'nombre', 'apellido_p', 'correo', 'estatus'];
     for (const field of requiredFields) {
         if (!usuarioData[field]) {
-             console.error(`SERVICE ERROR: Missing required field '${field}'.`, usuarioData);
+            console.error(`SERVICE ERROR: Missing required field '${field}'.`, usuarioData);
             throw new Error(`El campo '${field}' es requerido.`);
         }
     }
@@ -692,16 +699,16 @@ export const updateUsuarioProveedor = async (usuarioData: any): Promise<any> => 
         } else if (typeof error === 'string') {
             message = `Error interno del servidor al actualizar usuario: ${error}`;
         }
-        
+
         if (code === '23505') {
-             const field = constraint?.includes('usuario') ? 'usuario' : constraint?.includes('correo') ? 'correo electrónico' : 'campo único';
+            const field = constraint?.includes('usuario') ? 'usuario' : constraint?.includes('correo') ? 'correo electrónico' : 'campo único';
             throw new Error(`Error: El ${field} '${usuarioData[field.split(' ')[0]] || ''}' ya está en uso.`);
         } else if (code === '42703') {
-             throw new Error(`Error de base de datos: La columna referenciada no existe (${message}). Revisa los nombres de columna.`);
+            throw new Error(`Error de base de datos: La columna referenciada no existe (${message}). Revisa los nombres de columna.`);
         } else if (code === '42601') {
-             throw new Error(`Error de sintaxis en la consulta SQL: ${message}.`);
+            throw new Error(`Error de sintaxis en la consulta SQL: ${message}.`);
         } else if (message.includes('no encontrado')) {
-             throw error; // Re-throw original "no encontrado" error
+            throw error; // Re-throw original "no encontrado" error
         }
         throw new Error(message);
     }
@@ -756,8 +763,8 @@ export const actualizarEstatusRevision = async (
         }
 
         return {
-             id_proveedor: updatedData.id_proveedor,
-             estatus_revision: updatedData.estatus_revision
+            id_proveedor: updatedData.id_proveedor,
+            estatus_revision: updatedData.estatus_revision
         };
 
     } catch (error: unknown) { // Changed to unknown

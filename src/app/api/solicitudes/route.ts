@@ -71,13 +71,11 @@ export async function GET(req: NextRequest) {
       }
 
       // if (sistema !== "UNIVERSAL") {
-      //   console.log("BBBBBBBBBBBBBBBBBB",estatus);
 
       //   if (secretaria) {
       //     solicitud = await getSolicitudesFiltradasPorEstatus(parseInt(secretaria), estatus);
       //   }
       // } else {
-      //   console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa",estatus);
       //   solicitud = await getSolicitudesAllFiltradasPorEstatus(estatus);
       // }
     } else {
@@ -168,7 +166,6 @@ export async function POST(req: NextRequest) {
   try {
     const { folio, motivo, monto, id_adjudicacion, secretaria, dependencia, lugar, asunto, necesidad, cotizacion, compra_servicio, nomina, usuario } = await req.json();
     let tipo;
-    console.log(folio, motivo, monto, id_adjudicacion, secretaria, dependencia, lugar, asunto, necesidad, cotizacion, compra_servicio, nomina, usuario);
     if (!folio || !nomina || !secretaria || !motivo || !monto || !id_adjudicacion || !usuario) {
       return NextResponse.json({ message: "todos los campos son obligatorios" }, { status: 400 });
     }
@@ -196,7 +193,6 @@ export async function PUT(req: NextRequest) {
   try {
     const { idSolicitud, folio, motivo, monto, id_adjudicacion,lugar, asunto, necesidad, cotizacion, compra_servicio
      } = await req.json();
-    console.log(idSolicitud, folio, motivo, monto, id_adjudicacion);
 
     if (!idSolicitud) {
       return NextResponse.json({ message: "id de solicitud no proporcionado" }, { status: 400 });
@@ -228,7 +224,6 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(solicitudActualizada);
   } catch (error) {
-    console.log(error);
     console.error("error al actualizar solicitud:", error);
     return NextResponse.json({ message: "error al actualizar solicitud", error }, { status: 500 });
   }

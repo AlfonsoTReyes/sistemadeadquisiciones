@@ -73,7 +73,7 @@ interface RepresentanteLegalOutput {
 
 
 // Interface para crear proveedor (ADAPTADA)
-interface CreateProveedorData {
+export interface CreateProveedorData {
     id_usuario_proveedor: number;
     rfc: string; giro_comercial: string; correo: string; calle: string; numero: string; colonia: string; codigo_postal: string; municipio: string; estado: string; telefono_uno: string; actividadSat: string;
     telefono_dos?: string | null; pagina_web?: string | null; camara_comercial?: string | null; numero_registro_camara?: string | null; numero_registro_imss?: string | null; proveedorEventos?: boolean;

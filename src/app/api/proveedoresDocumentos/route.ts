@@ -18,7 +18,6 @@ import { getProveedorByUserId } from "../../../services/proveedoresservice"; // 
 
 // --- GET: Obtener documentos O comentarios ---
 export async function GET(req: NextRequest) {
-  console.log("API GET /proveedoresDocumentos (SIN AUTH - ¡RIESGO!)");
   try {
     const { searchParams } = new URL(req.url);
     const idProveedor = searchParams.get("id_proveedor");
@@ -53,7 +52,6 @@ export async function GET(req: NextRequest) {
 // --- POST: Subir nuevo documento por el PROVEEDOR ---
 // (Asumiendo que el proveedor NO crea comentarios)
 export async function POST(req: NextRequest) {
-  console.log("API POST /proveedoresDocumentos (SIN AUTH - ¡RIESGO!): Handling file upload.");
   try {
       const formData = await req.formData();
       const file = formData.get("archivo") as File | null;
@@ -86,7 +84,6 @@ export async function POST(req: NextRequest) {
       const ruta_archivo = `uploads/${tipo_documento}/${id_proveedor_str}/${fileName}`;
       // --- Fin lógica guardar archivo ---
 
-      console.log(`API POST: Calling service guardarDocumentoProveedor with provided IDs`);
       // Llama al servicio pasando los IDs recibidos del formulario
       const savedDoc = await guardarDocumentoProveedor({
           id_proveedor: id_proveedor,
@@ -116,8 +113,6 @@ export async function DELETE(req: NextRequest) {
 
      const idDocumento = parseInt(idDocParam, 10);
      if (isNaN(idDocumento)) return NextResponse.json({ message: 'ID de documento inválido.' }, { status: 400 });
-
-     console.log(`API DELETE /proveedoresDocumentos (SIN AUTH): Request delete doc ID: ${idDocumento}`);
 
      // Obtener info del doc para borrar archivo físico
      const documento = await obtenerDocumentoProveedorPorId(idDocumento);

@@ -38,15 +38,12 @@ export default function PaginaPago() {
         setReferenciaPago(null);
 
         try {
-            console.log(`Frontend: Llamando a /api/pagos/iniciar para trámite: ${selectedTramite}`);
             const response = await fetchApi<IniciarPagoPHPResponse>('/pagos/iniciar', {
                 method: 'POST',
                 data: { tramite: selectedTramite },
             });
 
             if (response.success && response.paymentUrl && response.encryptedRequestData && response.reference) {
-                console.log("Frontend: URL de pago recibida:", response.paymentUrl);
-                console.log("Frontend: Referencia recibida:", response.reference);
                 setPaymentUrl(response.paymentUrl);
                 setEncryptedData(response.encryptedRequestData);
                 setReferenciaPago(response.reference);
@@ -69,7 +66,6 @@ export default function PaginaPago() {
         }
 
         const data = event.data;
-        console.log("Frontend: Mensaje recibido del iframe:", data);
 
         if (data === 'payment_success' || data?.status === 'success' || (typeof data === 'string' && data.includes('success'))) {
             if (!encryptedData || !referenciaPago) {
@@ -85,7 +81,6 @@ export default function PaginaPago() {
             setErrorMessage(null);
 
             try {
-                console.log(`Frontend: Llamando a /api/pagos/confirmar-pago para ref: ${referenciaPago}`);
                 const confirmacionResponse = await fetchApi('/pagos/confirmar-pago', {
                     method: 'POST',
                     data: {
@@ -94,12 +89,9 @@ export default function PaginaPago() {
                     },
                 });
 
-                console.log("Frontend: Respuesta de confirmación:", confirmacionResponse);
-
                 if (confirmacionResponse.status === 'success') {
                     setSuccessMessage(confirmacionResponse.message || "¡Pago confirmado y registrado exitosamente!");
                     setTimeout(() => {
-                        console.log("Simulando cierre de iframe...");
                         setPaymentUrl(null);
                     }, 8000); // Más tiempo para leer
                 } else {

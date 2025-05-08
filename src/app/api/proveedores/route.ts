@@ -22,13 +22,11 @@ export async function GET(req: NextRequest) {
 
         // --- CASO 1: Obtener lista para Select (sin búsqueda) ---
         if (forSelect === 'true') {
-            console.log(`${logPrefix} Request for select options (forSelect=true)`);
             const proveedoresOptions = await getProveedoresForSelect();
             return NextResponse.json(proveedoresOptions);
         }
         // --- CASO 2: Obtener por ID de Usuario Proveedor ---
         else if (id_usuario_proveedor) {
-            console.log(`${logPrefix} Request by user ID: ${id_usuario_proveedor}`);
             const userIdNum = parseInt(id_usuario_proveedor, 10);
             if (isNaN(userIdNum)) {
                 return NextResponse.json({ message: 'ID de usuario proveedor inválido' }, { status: 400 });
@@ -37,12 +35,10 @@ export async function GET(req: NextRequest) {
             if (!proveedor) {
                 return NextResponse.json({ message: 'Perfil de proveedor no encontrado para este usuario.' }, { status: 404 });
             }
-            console.log(`${logPrefix} Found profile for user ID: ${userIdNum}`);
             return NextResponse.json(proveedor);
         }
         // --- CASO 3: Obtener por ID de Proveedor ---
         else if (id_proveedor) {
-            console.log(`${logPrefix} Request by provider ID: ${id_proveedor}`);
             const providerIdNum = parseInt(id_proveedor, 10);
             if (isNaN(providerIdNum)) {
                 return NextResponse.json({ message: 'ID de proveedor inválido' }, { status: 400 });
@@ -51,24 +47,20 @@ export async function GET(req: NextRequest) {
             if (!proveedor) {
                 return NextResponse.json({ message: 'Proveedor no encontrado' }, { status: 404 });
             }
-            console.log(`${logPrefix} Found profile for provider ID: ${providerIdNum}`);
             return NextResponse.json(proveedor);
         }
         // --- ***** CASO 5: Búsqueda por Término ***** ---
         else if (searchTerm) {
-            console.log(`${logPrefix} Request for search term: "${searchTerm}"`);
             // Validar longitud mínima del término (opcional pero recomendado)
             if (searchTerm.trim().length < 3) {
                 return NextResponse.json({ message: 'El término de búsqueda debe tener al menos 3 caracteres.' }, { status: 400 });
             }
             // Llamar a la nueva función del servicio
             const proveedores: Proveedor[] = await buscarProveedoresPorTermino(searchTerm);
-            console.log(`${logPrefix} Found ${proveedores.length} providers matching search.`);
             return NextResponse.json(proveedores); // Devuelve la lista de proveedores básicos
         }
         // --- CASO 6: Sin parámetros válidos ---
         else {
-            console.log(`${logPrefix} No valid identifier provided (id_proveedor, id_usuario_proveedor, forSelect=true, or search).`);
             // Mensaje de error actualizado para incluir la nueva opción 'search'
             return NextResponse.json({ message: 'Se requiere un parámetro válido (forSelect=true, search, id_proveedor o id_usuario_proveedor)' }, { status: 400 });
         }
@@ -82,7 +74,6 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const data = await req.json();
-        console.log(`ROUTE PUT /api/proveedores - Received Data:`, JSON.stringify(data, null, 2)); // Log completo
 
         // Desestructura ID y el resto
         const { id_proveedor, ...proveedorData } = data;
@@ -128,7 +119,6 @@ export async function PUT(req: NextRequest) {
         // Se pasa el id_proveedor y el objeto proveedorData que incluye el array 'representantes' si es moral
         const proveedorActualizado = await updateProveedorCompleto(id_proveedor, proveedorData as any); // Usar interfaz si se importa
 
-        console.log(`ROUTE PUT /api/proveedores - Update successful for ID: ${id_proveedor}`);
         return NextResponse.json(proveedorActualizado); // Devuelve el proveedor actualizado con su array de representantes
 
     } catch (error: any) {
@@ -145,7 +135,6 @@ export async function PUT(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const data = await req.json(); // Contiene todos los campos, incluyendo el array 'representantes' si es moral
-        console.log("ROUTE POST /api/proveedores - Received data:", JSON.stringify(data, null, 2));
 
         // --- Validación Base ---
         if (!data.tipoProveedor || !['moral', 'fisica'].includes(data.tipoProveedor)) {
@@ -184,7 +173,6 @@ export async function POST(req: NextRequest) {
             }
         }
         const nuevoProveedor = await createProveedorCompleto(data as any); // Usar interfaz si se importa
-        console.log(`ROUTE POST /api/proveedores - Creation successful, new ID: ${nuevoProveedor.id_proveedor}`);
         return NextResponse.json(nuevoProveedor, { status: 201 }); // 201 Created
     } catch (error: any) {
         console.error("ROUTE ERROR POST /api/proveedores:", error);
@@ -200,12 +188,10 @@ export async function PATCH(req: NextRequest) {
     try {
         const data = await req.json();
         const { id_proveedor } = data;
-        console.log(`ROUTE PATCH /api/proveedores - Received request to request revision for ID: ${id_proveedor}`);
         if (!id_proveedor || typeof id_proveedor !== 'number') {
             return NextResponse.json({ message: 'ID de proveedor inválido o no proporcionado para solicitar revisión.' }, { status: 400 });
         }
         const resultado = await solicitarRevisionProveedor(id_proveedor);
-        console.log(`ROUTE PATCH /api/proveedores - Revision request successful for ID: ${id_proveedor}`);
         return NextResponse.json(resultado);
     } catch (error: any) {
         console.error("ROUTE ERROR PATCH /api/proveedores (solicitarRevision):", error);

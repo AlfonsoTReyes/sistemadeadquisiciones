@@ -75,7 +75,6 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
 
   const handleGenerarPDF = async (orden: OrdenDia) => {
     if (orden.estatus === "Cancelado") {
-      console.log("Estatus entro en cancelado:", orden.estatus);
       // Llama a la función de cancelación
       try {
         // Formatear fecha original (de la orden)
@@ -96,13 +95,6 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
           year: "numeric",
         }); // e.g., "25 de septiembre de 2024"
 
-        console.log("Generando PDF de Cancelación para:", orden.id_orden_dia);
-        console.log("Fecha Original:", fechaOriginalTexto);
-        console.log("No Oficio:", orden.no_oficio);
-        console.log("Estatus:", orden.estatus);
-
-        console.log("Fecha Actual:", fechaActualTexto);
-
         // Llama a la función de cancelación con los datos necesarios
         await generarPDFCancelacion(
           orden.id_orden_dia
@@ -113,7 +105,6 @@ const TablaOrdenesDia: React.FC<TablaOrdenesDiaProps> = ({ ordenes, onActualizar
       }
     } else {
       // Llama a la función original para órdenes activas o terminadas
-      console.log("Generando PDF normal para:", orden.id_orden_dia);
       try {
          // Asumimos que generarPDF podría ser async también
         await generarPDF(orden.id_orden_dia);
