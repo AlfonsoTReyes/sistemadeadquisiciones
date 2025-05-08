@@ -107,9 +107,10 @@ interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
     proveedorData: ProveedorDataFromAPI;
-    onSubmit: (payload: ModalUpdatePayload) => Promise<void>; // CORREGIDO: any -> ModalUpdatePayload
-    isLoading: boolean;
-    error: string | null;
+    onSubmit: (payload: ModalUpdatePayload) => Promise<void>; // <-- FALTA
+    isLoading: boolean;                                       // <-- FALTA
+    error: string | null;                                     // <-- FALTA
+    onUpdateSuccess?: () => void;
 }
 
 const ModalActualizarProveedor: React.FC<ModalProps> = ({

@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation';
 import PieP from "../../pie";
 import DynamicMenu from "../../menu_proveedor";
 import ProveedorInfo from './formularios/ProveedorInfo';
-import ModalActualizarProveedor from './formularios/modalActualizarProveedor';
+import ModalActualizarProveedor, { ModalUpdatePayload } from './formularios/modalActualizarProveedor';
 import { getProveedorForUser } from './formularios/fetchdashboard';
-import { ProveedorData as ProveedorCompletoData } from './formularios/ProveedorInfo';
+import {ProveedorDetallado} from '@/types/proveedor'
 
 const LOGIN_URL = '/proveedores/proveedoresusuarios';
 
 export default function PageProveedorDashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
-  const [providerData, setProviderData] = useState<ProveedorCompletoData | null>(null);
+  const [providerData, setProviderData] = useState<ProveedorDetallado | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,9 +30,9 @@ export default function PageProveedorDashboard() {
     console.log(`Dashboard: Fetching/Refreshing data for user ID: ${idUsuario}`);
     setError(null);
     try {
-      const data = await getProveedorForUser(idUsuario);
+      const data = await getProveedorForUser(idUsuario) as ProveedorDetallado;
       if (data && data.id_proveedor && data.tipo_proveedor) {
-        setProviderData(data as ProveedorCompletoData);
+        setProviderData(data as ProveedorDetallado);
         console.log("Dashboard: Provider data loaded/refreshed:", data);
         sessionStorage.setItem('proveedorId', data.id_proveedor.toString());
         sessionStorage.setItem('proveedorTipo', data.tipo_proveedor);
@@ -165,13 +165,10 @@ export default function PageProveedorDashboard() {
         <ModalActualizarProveedor
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          // initialData={providerData} // Assuming ModalActualizarProveedor fetches its own data or receives it differently
-          proveedorData={providerData} // Pass providerData if modal uses it directly
-          onUpdateSuccess={handleUpdateSuccess}
-          // Pass isLoading and error if the modal needs them as props
-          // isLoading={isUpdatingProfile} // Uncomment if state is used
-          // error={updateProfileError}    // Uncomment if state is used
-        />
+          proveedorData={providerData}
+          onUpdateSuccess={handleUpdateSuccess} onSubmit={function (payload: ModalUpdatePayload): Promise<void> {
+            throw new Error('Function not implemented.');
+          } } isLoading={false} error={null}        />
       )}
     </div>
   );

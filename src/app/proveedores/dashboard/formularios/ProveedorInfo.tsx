@@ -23,9 +23,18 @@ interface RepresentanteLegalOutput {
 
 interface ProveedorData {
     id_proveedor: number;
-    rfc: string;
+    rfc?: string;
     giro_comercial?: string | null;
     correo?: string | null;
+    camara_comercial?: string | null;
+    numero_registro_camara?: string | null;
+    numero_registro_imss?: string | null;
+    fecha_inscripcion?: string | null; // Considera usar Date si parseas
+    fecha_vigencia?: string | null;   // Considera usar Date si parseas
+    estatus?: boolean;
+    created_at?: string | null; // Considera usar Date si parseas
+    updated_at?: string | null; // Considera usar Date si parseas
+    fecha_solicitud?: string | null; // Considera usar Date si parseas
     calle?: string | null;
     numero?: string | null;
     colonia?: string | null;
@@ -35,21 +44,23 @@ interface ProveedorData {
     telefono_uno?: string | null;
     telefono_dos?: string | null;
     pagina_web?: string | null;
-    camara_comercial?: string | null;
-    numero_registro_camara?: string | null;
-    numero_registro_imss?: string | null;
-    estatus?: boolean;
-    estatus_revision?: string | null;
+    id_usuario_proveedor?: number | null;
     actividad_sat?: string | null;
     proveedor_eventos?: boolean | null;
+    estatus_revision?: string | null;
+    razon_social?: string | null; // Moral
+    nombre_representante?: string | null; // Moral
+    apellido_p_representante?: string | null; // Moral
+    apellido_m_representante?: string | null; // Moral
+    nombre_fisica?: string | null; // Fisica
+    apellido_p_fisica?: string | null; // Fisica
+    apellido_m_fisica?: string | null; // Fisica
+    curp?: string | null; // Fisica
     tipo_proveedor: 'moral' | 'fisica' | 'desconocido';
-    nombre_fisica?: string | null;
-    apellido_p_fisica?: string | null;
-    apellido_m_fisica?: string | null;
-    curp?: string | null;
-    razon_social?: string | null;
-    representantes?: RepresentanteLegalOutput[];
-    [key: string]: unknown; // CORREGIDO: any -> unknown
+    representantes?: RepresentanteLegalOutput[]; // Usamos una interfaz Output
+
+    // Corregido: Reemplazado 'any' con 'unknown' para mayor seguridad de tipos
+    [key: string]: unknown;
 }
 
 interface ProveedorInfoProps {
