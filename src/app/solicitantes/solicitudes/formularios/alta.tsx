@@ -2,6 +2,10 @@
 import React, { useState, useEffect } from "react";
 import { createSolicitud } from '../../../peticiones_api/peticionSolicitudes';
 import { getUserById } from '../../../peticiones_api/fetchUsuarios';
+import { getFoliosBySecretaria } from '../../../peticiones_api/peticionFolios';
+import { getDependenciaById } from '../../../peticiones_api/peticionSecretaria';
+
+
 
 interface AltaSolicitudProps {
   onClose: () => void;
@@ -15,6 +19,8 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
   const [monto, setMonto] = useState("");
   const [idAdjudicacion, setIdAdjudicacion] = useState("");
   const [secretaria, setSecretaria] = useState("");
+  const [nomenclatura, setNomenclatura] = useState("");
+  const [contador_oficio, setContador] = useState("");
   const [secretariaId, setSecretariId] = useState("");
   const [nombre, setNombre] = useState("");
   const [dependencia, setDependencia] = useState("");
@@ -31,22 +37,34 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]); // Fecha actual
 
   useEffect(() => {
-    // Obtener el ID de usuario desde sessionStorage
     const userId = sessionStorage.getItem("userId");
-
+  
     if (userId) {
-      // Llamar a la función para obtener datos del usuario
       getUserById(userId)
-        .then((userData) => {
+        .then(async (userData) => {
           if (userData) {
             setNombre(userData.nombre_u);
             setSecretaria(userData.nombre_s);
-            setSecretariId(userData.id_secretaria)
+            setSecretariId(userData.id_secretaria);
+            setNomenclatura(userData.nomenclatura);
+            setContador(userData.contador_oficio);
             setDependencia(userData.nombre_d);
             setDependenciaId(userData.id_dependencia);
             setNomina(userData.nomina);
             setUsuario(userData.id_usuario);
-            setLugar("San Juan del Río, Querétaro"); 
+            setLugar("San Juan del Río, Querétaro");
+  
+            try {
+              const ultimoFolio = await getFoliosBySecretaria(userData.id_secretaria);
+              const ultimoDependencia = await getDependenciaById(userData.id_dependencia);
+              const contador = (ultimoFolio?.contador || 0) + 1;
+              const year = new Date().getFullYear();
+              const folioGenerado = `${userData.nomenclatura}/${ultimoDependencia.nomenclatura}/0${contador}/${year}`;
+              setFolio(folioGenerado);
+            } catch (error) {
+              console.error("Error al generar folio:", error);
+              setError("No se pudo generar el folio.");
+            }
           }
         })
         .catch((err) => {
@@ -55,6 +73,7 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
         });
     }
   }, []);
+  
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -155,7 +174,14 @@ const AltaSolicitud: React.FC<AltaSolicitudProps> = ({ onClose, onSolicitudAdded
           </div>
           <div className="mb-4">
             <label>Folio: <span className="text-red-500">*</span></label>
-            <input type="text" name="folio" required className="border border-gray-300 p-2 rounded w-full" onChange={handleInputChange}/>
+            <input
+              type="text"
+              name="folio"
+              value={folio}
+              disabled
+              required
+              className="border border-gray-300 p-2 rounded w-full bg-gray-100"
+            />
           </div>
           <div className="mb-4">
             <label>Asunto: <span className="text-red-500">*</span></label>

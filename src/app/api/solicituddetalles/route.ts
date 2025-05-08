@@ -5,7 +5,7 @@ import { getDetallesSolicitudPorId } from "../../../services/solicituddetalleser
 import { updateSolicitudEstatus } from "../../../services/solicitudeservice";
 import { updateDocumentoEstatus } from "../../../services/documentosoliservice";
 import { updateJustificacionEstatus } from '../../../services/justificacionservice';
-import { updateSuficienciaEstatus } from "../../../services/suficienciaService";
+import { updateSuficienciaEstatus, updateSuficienciaEstatusEnvio } from "../../../services/suficienciaService";
 import { 
   getSolicitudById 
 } from "../../../services/solicitudeservice";
@@ -66,13 +66,14 @@ export async function PUT(req: NextRequest) {
         break;
 
       case "aquisicion":
-        resultado = await updateSuficienciaEstatus(idDoc, nuevoEstatus);
-        const solicitudAdquisicion = await getSolicitudById(resultado.id_solicitud);
-        usuarioDestino = solicitudAdquisicion.id_usuario;
-        folio = solicitudAdquisicion.folio;
 
         // 🚀 Notificación por roles específicos si el estatus es "Enviado para atender"
         if (nuevoEstatus === "Enviado para atender") {
+          resultado = await updateSuficienciaEstatusEnvio(idDoc, nuevoEstatus);
+          const solicitudAdquisicion = await getSolicitudById(resultado.id_solicitud);
+          usuarioDestino = solicitudAdquisicion.id_usuario;
+          folio = solicitudAdquisicion.folio;
+
           const rolesDestino = [1, 5];
 
           await enviarNotificacion({
@@ -83,6 +84,11 @@ export async function PUT(req: NextRequest) {
             id_rol_destino: rolesDestino,
             destino_tipo: "rol",
           });
+        }else{
+          resultado = await updateSuficienciaEstatus(idDoc, nuevoEstatus);
+          const solicitudAdquisicion = await getSolicitudById(resultado.id_solicitud);
+          usuarioDestino = solicitudAdquisicion.id_usuario;
+          folio = solicitudAdquisicion.folio;
         }
         break;
 

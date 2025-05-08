@@ -160,6 +160,86 @@ export const getSuficienciaBySolicitudDocumento = async (idSolicitud: number) =>
 
 /* CRUD PARA LA SUFICIENCIA APROBADA QUE SUBIRA FINANZAS */
 
+export const updateSuficienciaEstatusEnvio = async (
+  id: number,
+  estatus: string
+) => {
+  try {
+    const { rows: suf } = await sql`
+      SELECT id_solicitud, id_usuario, estatus FROM solicitud_suficiencia
+      WHERE id_suficiencia = ${id}
+    `;
+    const solicitud = suf[0];
+    if (!solicitud) throw new Error("Suficiencia no encontrada");
+
+    const { id_solicitud, id_usuario, estatus: estatusAnterior } = solicitud;
+
+    // Si el estatus anterior NO es 'Pendiente', solo actualiza estatus y regresa
+    if (estatusAnterior !== 'Pendiente') {
+      const result = await sql`
+        UPDATE solicitud_suficiencia SET
+          estatus = ${estatus},
+          updated_at = NOW()
+        WHERE id_suficiencia = ${id}
+        RETURNING *;
+      `;
+      return result.rows[0];
+    }
+
+    // Si sí es Pendiente, proceder a generar el folio
+    const { rows: datos } = await sql`
+      SELECT 
+        u.id_secretaria, 
+        u.id_dependencia, 
+        d.nomenclatura AS nom_d, 
+        s.nomenclatura AS nom_s
+      FROM usuarios u
+      JOIN dependencias d ON u.id_dependencia = d.id_dependencia
+      JOIN secretarias s ON u.id_secretaria = s.id_secretaria
+      WHERE u.id_usuario = ${id_usuario}
+    `;
+    const { id_secretaria, nom_s, nom_d } = datos[0];
+
+    const { rows: ultimos } = await sql`
+      SELECT contador FROM folio_secretarias
+      WHERE id_secretaria = ${id_secretaria}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const nuevoContador = (ultimos[0]?.contador || 0) + 1;
+    const year = new Date().getFullYear();
+    const nuevoFolio = `${nom_s}/${nom_d}/0${nuevoContador}/${year}`;
+    const descripcion = `Folio generado al firmar suficiencia ID ${id}`;
+
+    const result = await sql`
+      UPDATE solicitud_suficiencia SET
+        estatus = ${estatus},
+        oficio = ${nuevoFolio},
+        updated_at = NOW()
+      WHERE id_suficiencia = ${id}
+      RETURNING *;
+    `;
+
+    await sql`
+      INSERT INTO folio_secretarias (folio, descripcion, contador, id_secretaria, fecha)
+      VALUES (
+        ${nuevoFolio},
+        ${descripcion},
+        ${nuevoContador},
+        ${id_secretaria},
+        NOW()
+      )
+    `;
+
+    return result.rows[0];
+
+  } catch (error) {
+    console.error("error al actualizar suficiencia:", error);
+    throw error;
+  }
+};
+
+
 export const updateSuficienciaEstatus = async (
   id: number, estatus: string
 ) => {
@@ -177,7 +257,6 @@ export const updateSuficienciaEstatus = async (
     throw error;
   }
 };
-
 
 
 

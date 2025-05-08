@@ -15,3 +15,17 @@ export const getSecretarias = async () => {
   }
 };
 
+export const getSecretariaById = async (secretaria: number) => {
+  try {
+    
+    const result = await sql`
+      SELECT * FROM secretarias WHERE id_secretaria= ${secretaria};
+    `;
+    return result.rows[0]; 
+    
+  } catch (error) {
+    console.log(error);
+    throw error; 
+  }
+};
+

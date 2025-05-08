@@ -332,23 +332,102 @@ export const updateSolicitudEstatusFirma = async (
   idSolicitud: number
 ) => {
   try {
+    
+    const { rows: solicitudData } = await sql`
+      SELECT id_usuario FROM solicitud_adquisicion
+      WHERE id_solicitud = ${idSolicitud}
+    `;
+    const idUsuario = solicitudData[0]?.id_usuario;
+    if (!idUsuario) throw new Error("No se encontró id_usuario en solicitud.");
+
+    // 2. Obtener id_secretaria, id_dependencia y nomenclatura del usuario
+    const { rows: userData } = await sql`
+    SELECT 
+      u.id_secretaria, 
+      u.id_dependencia, 
+      d.nomenclatura AS nom_d,
+      s.nomenclatura AS nom_s
+    FROM usuarios u
+    JOIN dependencias d ON u.id_dependencia = d.id_dependencia
+    JOIN secretarias s ON u.id_secretaria = s.id_secretaria
+    WHERE u.id_usuario = ${idUsuario}
+  `;
+    const usuario = userData[0];
+    if (!usuario) throw new Error("Usuario no encontrado.");
+
+    const { id_secretaria, nom_s, nom_d } = usuario;
+
+    // 3. Obtener último contador de folio
+    const { rows: ultimo } = await sql`
+      SELECT contador FROM folio_secretarias
+      WHERE id_secretaria = ${id_secretaria}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const contador = (ultimo[0]?.contador || 0) + 1;
+    const year = new Date().getFullYear();
+    const nuevoFolio = `${nom_s}/${nom_d}/0${contador}/${year}`;
+
     const result = await sql`
       UPDATE solicitud_adquisicion 
       SET 
         estatus = 'Enviado para revisión',
+        folio = ${nuevoFolio},
         updated_at = NOW()
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
-/*
+    const descripciona = `Folio generado al firmar solicitud ID ${idSolicitud} para adquisiciones`;
+
+    await sql`
+      INSERT INTO folio_secretarias (folio, descripcion, contador, id_secretaria, fecha)
+      VALUES (
+        ${nuevoFolio},
+        ${descripciona},
+        ${contador},
+        ${id_secretaria},
+        NOW()
+      )
+    `;
+
+    const getNuevoFolio = async () => {
+      const { rows: ultimos } = await sql`
+        SELECT contador FROM folio_secretarias
+        WHERE id_secretaria = ${id_secretaria}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const nuevoContador = (ultimos[0]?.contador || 0) + 1;
+      const year = new Date().getFullYear();
+      const folioGenerado = `${nom_s}/${nom_d}/0${nuevoContador}/${year}`;
+      return { folioGenerado, nuevoContador };
+    };
+
+    const { folioGenerado, nuevoContador } = await getNuevoFolio();
+
     const resultj = await sql`
       UPDATE justificacion_solicitud
       SET 
         estatus = 'Enviado para revisión',
+        no_oficio = ${folioGenerado},
         updated_at = NOW()
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
+
+    const descripcion = `Folio generado al firmar la justificacion de la solicitud con ID ${idSolicitud} para adquisiciones`;
+
+    await sql`
+      INSERT INTO folio_secretarias (folio, descripcion, contador, id_secretaria, fecha)
+      VALUES (
+        ${folioGenerado},
+        ${descripcion},
+        ${nuevoContador},
+        ${id_secretaria},
+        NOW()
+      )
+    `;    
 
     const resulta = await sql`
       UPDATE documentos_solicitud
@@ -358,8 +437,6 @@ export const updateSolicitudEstatusFirma = async (
       WHERE id_solicitud = ${idSolicitud} 
       RETURNING *;
     `;
-
-  */
 
     return result.rows[0];
   } catch (error) {

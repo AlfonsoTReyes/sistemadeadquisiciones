@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { createSoliPreSuficiencia } from "../../peticiones_api/peticionPreSuficiencia";
 import { getUserById } from "../../peticiones_api/fetchUsuarios";
+import { getFoliosBySecretaria } from '../../peticiones_api/peticionFolios';
+import { getDependenciaById } from '../../peticiones_api/peticionSecretaria';
+
 
 interface AltaSuficienciaProps {
     onClose: () => void;
@@ -28,15 +31,27 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    
     const userId = sessionStorage.getItem("userId");
+  
     if (userId) {
       getUserById(userId)
-        .then((userData) => {
+        .then(async (userData) => {
           if (userData) {
             setIdSecretaria(userData.id_secretaria);
             setIdDependencia(userData.id_dependencia);
             setIdUsuario(userData.id_usuario);
+  
+            try {
+              const ultimoFolio = await getFoliosBySecretaria(userData.id_secretaria);
+              const ultimoDependencia = await getDependenciaById(userData.id_dependencia);
+              const contador = (ultimoFolio?.contador || 0) + 1;
+              const year = new Date().getFullYear();
+              const nuevoOficio = `${userData.nomenclatura}/${ultimoDependencia.nomenclatura}/0${contador}/${year}`;
+              setOficio(nuevoOficio);
+            } catch (err) {
+              console.error("Error al generar número de oficio:", err);
+              setError("No se pudo generar el número de oficio.");
+            }
           }
         })
         .catch(() => {
@@ -44,6 +59,7 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
         });
     }
   }, []);
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -102,7 +118,7 @@ const AltaSuficiencia: React.FC<AltaSuficienciaProps> = ({ onClose, onSubmit, id
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-lg md:max-w-2xl shadow-xl overflow-y-auto max-h-[90vh]">
-        <h1 className="text-lg font-bold mb-4">Alta de Solicitud de Suficiencia {idSolicitud}</h1>
+        <h1 className="text-lg font-bold mb-4">Alta de Solicitud de Suficiencia</h1>
 
         {isLoading && (
           <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">

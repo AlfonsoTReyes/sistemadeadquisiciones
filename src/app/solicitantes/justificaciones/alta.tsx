@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createJustificacion } from '../../peticiones_api/peticionJustificacion';
+import { getFoliosBySecretaria } from '../../peticiones_api/peticionFolios';
+import { getSecretariasById } from '../../peticiones_api/peticionSecretaria';
+import { getDependenciaById } from '../../peticiones_api/peticionSecretaria';
 
 interface JustificacionFormProps {
   onClose: () => void;
@@ -38,9 +41,34 @@ const FormularioJustificacion: React.FC<JustificacionFormProps> = ({ onClose, on
 
   useEffect(() => {
     const userId = sessionStorage.getItem("userId") || "";
+
     setUsuario(userId);
-    setFormData(prev => ({ ...prev, id_usuario: userId })); // asegúrate que también se guarda en formData
+    setFormData(prev => ({ ...prev, id_usuario: userId }));
+  
+    // Lógica para cargar el número de oficio automático
+    const fetchOficio = async () => {
+      try {
+        const userSecre = sessionStorage.getItem("userSecre") || "";
+        const userDepe = sessionStorage.getItem("userDepe") || "";
+
+        const ultimoFolio = await getFoliosBySecretaria(parseInt(userSecre));
+        const nomenclatura = await getSecretariasById(parseInt(userSecre));
+        const ultimoDependencia = await getDependenciaById(parseInt(userDepe));
+        
+        const contador = (ultimoFolio?.contador || 0) + 1;
+        const year = new Date().getFullYear();
+        const numeroOficio = `${nomenclatura.nomenclatura}/${ultimoDependencia.nomenclatura}/0${contador}/${year}`;
+  
+        setFormData(prev => ({ ...prev, no_oficio: numeroOficio }));
+      } catch (err) {
+        console.error("Error al generar el número de oficio:", err);
+        setError("No se pudo generar el número de oficio.");
+      }
+    };
+  
+    if (userId) fetchOficio();
   }, []);
+  
   
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
