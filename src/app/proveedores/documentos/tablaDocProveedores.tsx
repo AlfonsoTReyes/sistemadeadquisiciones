@@ -31,7 +31,7 @@ const DocumentoRowConComentarios: React.FC<DocumentoRowProps> = ({ documento }) 
         setLoadingComentarios(true);
         setErrorComentarios(null);
         try {
-            const fetchedComentarios = await fetchComentariosPorDocumentoParaProveedor(documento.id_documento_proveedor);
+            const fetchedComentarios = await fetchComentariosPorDocumentoParaProveedor(documento.id_documento_proveedor) as ComentarioDocProveedor[];
             setComentarios(fetchedComentarios || []);
         } catch (err) {
             console.error(`Error cargando comentarios para doc ${documento.id_documento_proveedor}:`, err);
