@@ -62,7 +62,7 @@ export default function GestionPartidasProveedorPage() {
                     fetchProveedorPartidas(idProveedor)
                 ]);
                 setCatalogoCompleto(catalogoData || []);
-                const codigos = seleccionadasData?.map(p => p.codigo_partida) || [];
+                const codigos = seleccionadasData?.map((p: { codigo_partida: any; }) => p.codigo_partida) || [];
                 setPartidasSeleccionadasCodigos(codigos);
             } catch (errUnknown: unknown) { // CORREGIDO: any -> unknown
                 console.error("Error al cargar datos:", errUnknown);
