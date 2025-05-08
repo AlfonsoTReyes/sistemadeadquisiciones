@@ -35,7 +35,7 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
         if (filtroDescripcion) {
             const descLower = filtroDescripcion.toLowerCase();
             itemsFiltrados = itemsFiltrados.filter(articulo =>
-                articulo.descripcion.toLowerCase().includes(descLower)
+                (articulo.descripcion_articulo || '').toLowerCase().includes(descLower)
             );
         }
 
@@ -132,9 +132,9 @@ const ModalVerArticulos: React.FC<ModalVerArticulosProps> = ({
                                     <tr key={articulo.id_articulo} className="bg-white border-b hover:bg-gray-50">
                                         {/* Celda de Partida Añadida */}
                                         <td className="px-4 py-2 text-xs text-gray-600">{articulo.codigo_partida}</td>
-                                        <td className="px-4 py-2 font-medium text-gray-900">{articulo.descripcion}</td>
+                                        <td className="px-4 py-2 font-medium text-gray-900">{articulo.descripcion_articulo}</td>
                                         <td className="px-4 py-2">{articulo.unidad_medida}</td>
-                                        <td className="px-4 py-2 text-right">{formatCurrency(articulo.precio_unitario)}</td>
+                                        <td className="px-4 py-2 text-right">{articulo.precio_unitario}</td>
                                     </tr>
                                 ))}
                             </tbody>
