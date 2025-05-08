@@ -17,21 +17,17 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const idProveedorParam = searchParams.get('idProveedor');
     const userIdParam = searchParams.get('userId');
-    console.log(`API Route GET /api/contratos called. idProveedorParam: ${idProveedorParam}, userIdParam: ${userIdParam}`);
     try {
         const filters: Parameters<typeof getContracts>[0] = {};
         let idProveedorFiltrar: number | null = null;
         if (userIdParam) {
             const userId = parseInt(userIdParam, 10);
             if (isNaN(userId)) return NextResponse.json({ message: 'Parámetro "userId" inválido.' }, { status: 400 });
-            console.log(`API GET /contratos: Buscando perfil User ID: ${userId}`);
             try {
                 const perfilProveedor = await getProveedorByUserId(userId);
                 if (perfilProveedor?.id_proveedor != null) {
                     idProveedorFiltrar = perfilProveedor.id_proveedor;
-                    console.log(`API GET /contratos: Filtrando por Proveedor ID: ${idProveedorFiltrar}`);
                 } else {
-                    console.log(`API GET /contratos: No se encontró perfil para User ID: ${userId}. Lista vacía.`);
                     return NextResponse.json([]);
                 }
             } catch (profileError: any) {
@@ -42,9 +38,7 @@ export async function GET(req: NextRequest) {
             const idProveedor = parseInt(idProveedorParam, 10);
             if (isNaN(idProveedor)) return NextResponse.json({ message: 'Parámetro "idProveedor" inválido.' }, { status: 400 });
             idProveedorFiltrar = idProveedor;
-            console.log(`API GET /contratos: Filtrando por Proveedor ID ${idProveedorFiltrar}.`);
         } else {
-            console.log("API GET /contratos: Obteniendo todos.");
         }
         if (idProveedorFiltrar !== null) filters.id_proveedor = idProveedorFiltrar;
         const contratos = await getContracts(filters);
@@ -57,11 +51,9 @@ export async function GET(req: NextRequest) {
 
 // --- POST (ADAPTADO PARA MANEJAR AMBOS FORMATOS) ---
 export async function POST(req: NextRequest) {
-    console.log("API Route POST /api/contratos called");
     let body: any;
     try {
         body = await req.json();
-        console.log("API Route POST: Received raw data:", JSON.stringify(body, null, 2));
     } catch (jsonError) {
         return NextResponse.json({ message: 'Error en el formato JSON.' }, { status: 400 });
     }
@@ -79,7 +71,6 @@ export async function POST(req: NextRequest) {
 
     if (isTemplateFormat) {
         // --- PROCESAR CON LA NUEVA LÓGICA (ContratoInputData) ---
-        console.log("API Route POST: Detected Template-based format.");
         const inputData = body as ContratoInputData;
 
         // Validación adicional específica de ContratoInputData si es necesaria aquí
@@ -128,7 +119,6 @@ export async function POST(req: NextRequest) {
             // Llamar al NUEVO servicio
             const nuevoContrato = await createContractWithTemplateData(coreData, templateSpecificData);
 
-            console.log("API Route POST: Contrato (template based) creado con ID:", nuevoContrato.id_contrato);
             return NextResponse.json(nuevoContrato, { status: 201 });
 
         } catch (error: any) {
@@ -143,7 +133,6 @@ export async function POST(req: NextRequest) {
 
     } else {
         // --- PROCESAR CON LA LÓGICA ORIGINAL (ContratoCreateData) ---
-        console.log("API Route POST: Detected legacy format (ContratoCreateData).");
         const legacyData = body as ContratoCreateData; // Castear al tipo original
 
         // Validación original
@@ -158,7 +147,6 @@ export async function POST(req: NextRequest) {
             // Llamar al servicio ORIGINAL
             const nuevoContrato = await createContract(legacyData);
 
-            console.log("API Route POST: Contrato (legacy) creado con ID:", nuevoContrato.id_contrato);
             return NextResponse.json(nuevoContrato, { status: 201 });
 
         } catch (error: any) {

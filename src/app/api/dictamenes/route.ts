@@ -8,12 +8,10 @@ export async function GET(req: NextRequest) {
 
     try {
         if (forSelect === 'true') {
-            console.log("API GET /dictamenes: Request for select options");
             const options = await getDictamenesForSelect();
             return NextResponse.json(options);
         }
 
-        console.log("API GET /dictamenes: Invalid or missing parameters.");
         return NextResponse.json({ message: 'Parámetro ?forSelect=true requerido o endpoint no implementado.' }, { status: 400 });
 
     } catch (error: any) {

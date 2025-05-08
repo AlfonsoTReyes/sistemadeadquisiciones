@@ -83,9 +83,7 @@ export async function POST(req: NextRequest) {
       Number(id_solicitud),
       "Atendido"
     );
-    console.log("aaaa", resp.id_solicitud);
     const solicitud = await getSolicitudById(Number(resp.id_solicitud));
-    console.log(solicitud);
 
 
     await enviarNotificacionUsuario({

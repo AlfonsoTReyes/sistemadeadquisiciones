@@ -7,7 +7,6 @@ import { JWT_SECRET, JWT_EXPIRATION } from "../../../config/jwtConfig";
 export async function POST(req: NextRequest) {
     try {
         const { email, password, operacion, tabla_afectada, datos_nuevos } = await req.json();
-        console.log(email, password, operacion, tabla_afectada, datos_nuevos);
         const usuario = await getUserByEmail(email);
 
         if (!usuario) {

@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
     try {
       const body = await req.json();
       const { id_usuario, id_concurso } = body;
-      console.log(id_usuario, id_concurso);
   
       if (!id_usuario || !id_concurso) {
         return NextResponse.json({ message: "Faltan parámetros requeridos" }, { status: 400 });

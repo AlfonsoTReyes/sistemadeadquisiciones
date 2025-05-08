@@ -29,7 +29,6 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const templateType = searchParams.get('template') as 'servicio' | 'adquisicion' | null;
 
-    console.log(`API Generar Word: Request for Contrato ID ${idContratoStr} (from pathname), Template: ${templateType}`);
 
     if (!templateType || (templateType !== 'servicio' && templateType !== 'adquisicion')) {
         return NextResponse.json({ message: "Parámetro 'template' (servicio o adquisicion) es requerido." }, { status: 400 });
@@ -47,11 +46,9 @@ export async function GET(
         }
 
         const dataForTemplate = mapContratoToTemplateData(contratoData);
-        console.log("API Generar Word: Data mapped for template:", Object.keys(dataForTemplate).length > 0 ? "Data present" : "Data EMPTY");
 
         const templateFileName = templateType === 'servicio' ? 'plantilla_servicio.docx' : 'plantilla_adquisicion.docx';
         const templatePath = path.resolve(process.cwd(), 'templates', templateFileName);
-        console.log(`API Generar Word: Using template path: ${templatePath}`);
 
         if (!fs.existsSync(templatePath)) {
              console.error(`API Generar Word: Template file not found at ${templatePath}`);

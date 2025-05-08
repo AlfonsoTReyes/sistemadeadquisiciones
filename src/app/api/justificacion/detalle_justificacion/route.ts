@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
 
     if (id) {
       const justificacion = await getJustificacionDetalledByDOCS(id);
-      console.log(justificacion);
       if (!justificacion) {
         return NextResponse.json({ message: 'Justificación no encontrada' }, { status: 404 });
       }
@@ -77,7 +76,6 @@ export async function POST(req: NextRequest) {
   
       return NextResponse.json({ message: "Tipo de contenido no soportado" }, { status: 400 });
     } catch (error) {
-        console.log(error);
       console.error("❌ Error al subir archivo:", error);
       return NextResponse.json({ message: "Error interno", error }, { status: 500 });
     }

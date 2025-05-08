@@ -91,7 +91,7 @@ export function usePusherNotifications({
                     (t) => (
                         <div onClick={() => toast.dismiss(t.id)} style={{ cursor: 'pointer' }}>
                             <p className="font-semibold">Notificación</p>
-                            <p>{displayMessage}{statusUpdate}</p>
+                            <p>{data.mensaje}</p>
                         </div>
                     ),
                     {

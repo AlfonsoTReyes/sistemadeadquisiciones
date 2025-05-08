@@ -9,7 +9,6 @@ export async function GET(req: NextRequest) {
         const idRolParam = searchParams.get("idrol");
 
         // Log para ver qué parámetros llegan
-        console.log(`API GET Notificaciones - Received params: idusuario=${idUsuarioParam}, idrol=${idRolParam}`);
 
         // Convertir a número si existen, manejar NaN. Usar null si no viene o es inválido.
         const idUsuario = idUsuarioParam ? parseInt(idUsuarioParam, 10) : null;
@@ -32,7 +31,6 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: "Se requiere un ID de usuario o de rol válido." }, { status: 400 });
         }
 
-        console.log(`API GET Notificaciones: Buscando para Usuario ${idUsuario}, Rol ${idRol}`);
 
         // Construir condiciones WHERE dinámicamente
         const conditions: string[] = [];
@@ -67,9 +65,7 @@ export async function GET(req: NextRequest) {
       LIMIT 50;
     `;
 
-        console.log("API GET Notificaciones Query:", query, "Params:", params);
         const result = await sql.query(query, params);
-        console.log(`API GET Notificaciones: Encontradas ${result.rows.length} notificaciones.`);
 
         return NextResponse.json({ notificaciones: result.rows });
 
@@ -90,7 +86,6 @@ export async function PUT(req: NextRequest) {
         const id = parseInt(idParam, 10);
         if (isNaN(id)) return NextResponse.json({ message: "ID de notificación inválido" }, { status: 400 });
 
-        console.log(`API PUT Notificaciones: Marcando como leída ID ${id}`);
 
         const result = await sql`
           UPDATE notificaciones
@@ -101,7 +96,6 @@ export async function PUT(req: NextRequest) {
 
         if (result.rowCount === 0) return NextResponse.json({ message: "Notificación no encontrada" }, { status: 404 });
 
-        console.log(`API PUT Notificaciones: Notificación ${id} marcada como leída.`);
         return NextResponse.json({ message: "Notificación marcada como leída" });
 
     } catch (error) {

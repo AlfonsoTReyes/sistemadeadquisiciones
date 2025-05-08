@@ -8,14 +8,12 @@ export async function GET(req: NextRequest) {
 
     try {
         if (forSelect === 'true') {
-            console.log("API GET /solicitudes: Request for select options");
             const options = await getSolicitudesForSelect();
             return NextResponse.json(options);
         }
 
         // Aquí iría la lógica para otras solicitudes GET (ej: obtener detalles por ID)
         // Si no es para select, indicar que falta parámetro o no implementado
-        console.log("API GET /solicitudes: Invalid or missing parameters.");
         return NextResponse.json({ message: 'Parámetro ?forSelect=true requerido o endpoint no implementado.' }, { status: 400 });
 
     } catch (error: any) {
