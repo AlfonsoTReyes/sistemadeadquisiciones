@@ -146,7 +146,10 @@ export default function DetalleTablaComparativaPage() {
             const proveedorSnapshotData: AgregarProveedorInput = {
                 id_tabla_comparativa: tablaData.id,
                 id_proveedor: proveedorCompleto.id_proveedor,
-                nombre_empresa_snapshot: proveedorCompleto.nombre_o_razon_social || 'Nombre Desconocido',
+                nombre_empresa_snapshot:
+  proveedorCompleto.razon_social ??
+  (proveedorCompleto.nombre_fisica ? `${proveedorCompleto.nombre_fisica} ${proveedorCompleto.apellido_p_fisica ?? ''} ${proveedorCompleto.apellido_m_fisica ?? ''}`.trim() :
+  'Nombre Desconocido'),
                 rfc_snapshot: proveedorCompleto.rfc,
                 giro_comercial_snapshot: proveedorCompleto.giro_comercial || null,
                 // atencion_de_snapshot: null, // ELIMINADO (no en AgregarProveedorInput)
