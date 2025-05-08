@@ -16,13 +16,18 @@ export interface PartidaConArticulos {
 
 // --- Proveedor en el catálogo ---
 export interface ProveedorCatalogo {
-  id_proveedor: number; // ← usamos siempre número para consistencia
+  id_proveedor: number;
   nombre_empresa: string;
   rfc: string;
   nombre_o_razon_social: string;
   giro_comercial: string;
   correo: string;
-  partidas_asignadas: PartidaConArticulos[];
+  telefono_uno?: string;
+  pagina_web?: string;
+
+  partidas_asignadas: PartidaConArticulos[]; // Este es el campo real
+  partidas?: PartidaConArticulos[]; // Este es alias opcional usado en el componente
+  articulos?: ArticuloCatalogo[]; // Para compatibilidad con el botón “Ver Artículos”
 }
 
 // --- Filtro de partidas para dropdown ---

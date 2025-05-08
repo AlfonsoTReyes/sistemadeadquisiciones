@@ -63,7 +63,7 @@ const ListaProveedoresCatalogo: React.FC<ListaProps> = ({
                                 <h4 className="text-sm font-medium text-gray-800 mb-1">Partidas/Giros:</h4>
                                 <div className="flex flex-wrap gap-1">
                                     {proveedor.partidas.map(partida => (
-                                        <span key={partida.codigo_partida} title={partida.descripcion} className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded">
+                                        <span key={partida.codigo_partida} title={partida.descripcion_partida} className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded">
                                             {partida.codigo_partida}
                                         </span>
                                     ))}
