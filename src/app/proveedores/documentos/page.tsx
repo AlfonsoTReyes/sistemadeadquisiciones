@@ -66,7 +66,7 @@ const DocumentosProveedorPage = () => {
         setErrorPage(null);
         try {
             // Llama a la función fetch que devuelve el perfil completo
-            const profileData = await getProveedorForUser(userId);
+            const profileData = await getProveedorForUser(userId) as ProveedorCompletoData;
 
             if (profileData && profileData.id_proveedor && profileData.tipo_proveedor) {
                 console.log("DocumentosPage: Perfil cargado:", profileData); // Verificar que vengan los nuevos campos
