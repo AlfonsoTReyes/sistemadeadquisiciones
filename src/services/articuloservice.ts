@@ -279,15 +279,13 @@ export const deleteArticuloProveedor = async (idArticulo: number, idProveedor: n
             DELETE FROM articulos_proveedor
             WHERE id_articulo = ${idArticulo} AND id_proveedor = ${idProveedor};
         `;
-
-        if (result.rowCount > 0) {
+        if ((result.rowCount ?? 0) > 0) {
             console.log(`SERVICE: Article ID ${idArticulo} deleted successfully.`);
             return true;
         } else {
             console.warn(`SERVICE: Article ID ${idArticulo} not found for deletion or does not belong to proveedor ID ${idProveedor}.`);
             return false;
         }
-
     } catch (error: any) {
         console.error(`SERVICE ERROR in deleteArticuloProveedor (Article: ${idArticulo}, Prov: ${idProveedor}):`, error);
         throw new Error(`Error al eliminar el artículo: ${error.message}`);

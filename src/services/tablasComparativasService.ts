@@ -163,13 +163,13 @@ export const getTablaComparativaPorId = async (idTablaComparativa: number): Prom
         if (idProveedoresEnTabla.length > 0) {
             const itemsResult = await sql<ItemDbRow>`
                 SELECT * FROM tabla_comparativa_items
-                WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla})
+                WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla as any})
                 ORDER BY id_tabla_comparativa_proveedor, id ASC;
             `;
             items = itemsResult.rows;
             const observacionesResult = await sql<ObservacionDbRow>`
                 SELECT * FROM tabla_comparativa_observaciones
-                WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla})
+                WHERE id_tabla_comparativa_proveedor = ANY (${idProveedoresEnTabla as any})
                 ORDER BY id_tabla_comparativa_proveedor, id ASC;
             `;
             observaciones = observacionesResult.rows;
@@ -407,7 +407,7 @@ export const actualizarItem = async (idItem: number, data: ActualizarItemInput):
         const updateResult = await client.sql<ItemDbRow>`
             UPDATE tabla_comparativa_items SET
                 descripcion_item = COALESCE(${descripcion_item}, descripcion_item),
-                caracteristicas_tecnicas = ${caracteristicas_tecnicas === undefined ? sql`caracteristicas_tecnicas` : JSON.stringify(caracteristicas_tecnicas || null)},
+                caracteristicas_tecnicas = COALESCE(${caracteristicas_tecnicas !== undefined ? JSON.stringify(caracteristicas_tecnicas || null) : null}, caracteristicas_tecnicas),
                 udm = COALESCE(${udm}, udm),
                 cantidad = COALESCE(${cantidad?.toString()}, cantidad::text),
                 precio_unitario = COALESCE(${precio_unitario?.toString()}, precio_unitario::text),
@@ -644,7 +644,7 @@ export const actualizarObservacion = async (idObservacion: number, data: Actuali
     console.log(`SERVICE: Updating observation ID: ${idObservacion}`);
     const { descripcion_validacion, cumple, comentario_adicional } = data;
     const fieldsToUpdate: string[] = [];
-    const values: (string | boolean | null | undefined)[] = [];
+    const values: (string | number | boolean | null | undefined)[] = [];
     let paramIndex = 1;
 
     if (descripcion_validacion !== undefined) { fieldsToUpdate.push(`descripcion_validacion = $${paramIndex++}`); values.push(descripcion_validacion); }

@@ -146,7 +146,7 @@ export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | nu
         const partidasResult = await sql`
             SELECT pp.id_proveedor, pp.codigo_partida, cp.descripcion
             FROM proveedor_partidas pp JOIN catalogo_partidas_presupuestarias cp ON pp.codigo_partida = cp.codigo
-            WHERE pp.id_proveedor = ANY (${proveedorIds})
+            WHERE pp.id_proveedor = ANY (${proveedorIds as any})
             ORDER BY pp.id_proveedor, pp.codigo_partida;
         `;
         const todasLasPartidas = partidasResult.rows;
@@ -157,7 +157,7 @@ export const getProveedoresConDetalles = async (codigoPartidaFiltro: string | nu
         const articulosResult = await sql<ArticuloDbRow>`
             SELECT id_articulo, id_proveedor, codigo_partida, descripcion, unidad_medida, precio_unitario
             FROM articulos_proveedor
-            WHERE id_proveedor = ANY (${proveedorIds}) AND estatus = TRUE
+            WHERE id_proveedor = ANY (${proveedorIds as any}) AND estatus = TRUE
             ORDER BY id_proveedor, codigo_partida, descripcion ASC;
         `;
         const todosLosArticulosDb = articulosResult.rows;

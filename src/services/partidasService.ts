@@ -133,7 +133,7 @@ export const deleteProveedorPartida = async (idProveedor: number, codigoPartida:
             WHERE id_proveedor = ${idProveedor} AND codigo_partida = ${codigoPartida};
         `;
 
-        if (result.rowCount > 0) {
+        if (result.rowCount && result.rowCount > 0) {
             console.log(`SERVICE: Partida ${codigoPartida} deleted successfully for proveedor ${idProveedor}.`);
             return true;
         } else {

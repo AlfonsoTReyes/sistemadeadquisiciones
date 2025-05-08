@@ -120,16 +120,16 @@ export const getContractById = async (idContrato: number): Promise<ContratoDetal
         if (!proveedorDetallado) throw new Error(`Proveedor asociado no encontrado para el contrato ID: ${idContrato}. ID Proveedor: ${row.id_proveedor}`);
 
 
-        let parsedTemplateData: Partial<ContratoInputData> | undefined = undefined;
+        let parsedTemplateData: (Partial<ContratoInputData> & { tipoContrato: 'servicio' | 'adquisicion' }) | undefined = undefined;
         if (row.template_data && typeof row.template_data === 'object') {
-            parsedTemplateData = row.template_data as Partial<ContratoInputData>; // Cast es seguro si la estructura coincide
-            console.log("SERVICE Contratos: Parsed template_data (from object):", parsedTemplateData);
-        } else if (typeof row.template_data === 'string') {
-            try {
-                parsedTemplateData = JSON.parse(row.template_data);
-                console.log("SERVICE Contratos: Parsed template_data (from string):", parsedTemplateData);
-            } catch (e: unknown) { // CORREGIDO
-                console.error(`SERVICE Contratos: Error parsing template_data JSON for contract ${idContrato}:`, e);
+            const tempParsed = row.template_data as Partial<ContratoInputData>;
+            if (tempParsed.tipoContrato === 'servicio' || tempParsed.tipoContrato === 'adquisicion') {
+                parsedTemplateData = {
+                    ...tempParsed,
+                    tipoContrato: tempParsed.tipoContrato // Asegura el campo
+                };
+            } else {
+                throw new Error("template_data no contiene un tipoContrato válido.");
             }
         }
 

@@ -313,21 +313,21 @@ export const crearComentarioDocumento = async (
   if (!comentario || comentario.trim() === '') throw new Error("El comentario no puede estar vacío.");
 
   try {
-      const result = await sql`
+      const result = await sql<Omit<ComentarioDocProveedor, 'nombre_admin' | 'apellidos_admin' | 'email_admin'>>`
           INSERT INTO comentarios_doc_proveedor (
               id_documento_proveedor,
-              id_usuario, -- Columna se llama id_usuario en la tabla
+              id_usuario,
               comentario,
               created_at,
               updated_at
           ) VALUES (
               ${id_documento_proveedor},
-              ${id_usuario_admin}, -- Valor del admin que comenta
+              ${id_usuario_admin},
               ${comentario},
               NOW(),
               NOW()
           )
-          RETURNING id_comentario, id_documento_proveedor, id_usuario, comentario, created_at, updated_at; -- Devolver el comentario creado
+          RETURNING id_comentario, id_documento_proveedor, id_usuario, comentario, created_at, updated_at;
       `;
 
       if (result.rowCount === 0) {
