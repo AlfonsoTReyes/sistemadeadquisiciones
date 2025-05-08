@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchDocsPreSuficiencia, deleteDocumento} from "../peticiones_api/peticionPreSuficiencia";
+import { fetchDocsPreSuficiencia, deleteDocumento } from "../peticiones_api/peticionPreSuficiencia";
 import ModalEliminarDocumento from "./formularios/eliminar";
 
 interface Documento {
