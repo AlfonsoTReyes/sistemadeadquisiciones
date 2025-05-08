@@ -1,9 +1,13 @@
 // app/pre_suficiencia/page.tsx
-import dynamic from "next/dynamic";
+'use client';
 
-// Cargamos tu componente de cliente sin SSR
-const SolicitudPage = dynamic(() => import("./SolicitudPage"), { ssr: false });
+import { Suspense } from 'react';
+import SolicitudPage from './SolicitudPage';
 
 export default function Page() {
-  return <SolicitudPage />;
+  return (
+    <Suspense fallback={<div className="p-4 text-center">Cargando...</div>}>
+      <SolicitudPage />
+    </Suspense>
+  );
 }
