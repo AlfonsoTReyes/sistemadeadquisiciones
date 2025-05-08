@@ -5,7 +5,7 @@ import { ContratoDetallado } from '@/types/contrato';
 import ContractProviderInfo from './ContractProviderInfo';
 import { SuficienciaInput, AreaRequirenteInput } from '@/types/contratoTemplateData'; // Para leer datos específicos
 import { FaFileContract, FaFileInvoiceDollar, FaRegBuilding, FaUserTie, FaCalendarAlt, FaMoneyBillWave, FaShieldAlt, FaInfoCircle } from 'react-icons/fa'; // Iconos de ejemplo
-
+import { ContratoInputData } from '@/types/contratoTemplateData';
 interface ContractDetailViewProps {
     contrato: ContratoDetallado | null | undefined;
     isLoading?: boolean;
@@ -89,9 +89,9 @@ const ContractDetailView: React.FC<ContractDetailViewProps> = ({
     };
 
     // --- Acceso seguro a template_data ---
-    const td = contrato.template_data ?? {};
-    const suficiencia = td.suficiencia as SuficienciaInput | undefined ?? {};
-    const areaRequirente = td.areaRequirente as AreaRequirenteInput | undefined ?? {};
+    const td = (contrato.template_data ?? {}) as Partial<ContratoInputData> & { tipoContrato: 'servicio' | 'adquisicion' };
+    const suficiencia = (contrato.template_data?.suficiencia ?? {}) as SuficienciaInput;
+    const areaRequirente = (contrato.template_data?.areaRequirente ?? {}) as AreaRequirenteInput;
 
     return (
         // Contenedor principal con sombra y bordes redondeados
@@ -140,7 +140,13 @@ const ContractDetailView: React.FC<ContractDetailViewProps> = ({
                     <DetailItem label="Fecha Fin" value={formatDate(td.fechaFin ?? contrato.fecha_fin)} />
                     {/* Mostrar Monto Mínimo si es Adquisición */}
                     {td.tipoContrato === 'adquisicion' && (
-                        <DetailItem label="Monto Mínimo" value={formatCurrency(td.montoMinimo, td.moneda ?? contrato.moneda)} />
+                        <DetailItem
+                            label="Monto Mínimo"
+                            value={formatCurrency(
+                                td.montoMinimo != null ? td.montoMinimo.toString() : null,
+                                td.moneda ?? contrato.moneda
+                            )}
+                        />
                     )}
                     <DetailItem
                         label={`Monto ${td.tipoContrato === 'adquisicion' ? 'Máximo' : 'Total'}`}
@@ -203,8 +209,27 @@ const ContractDetailView: React.FC<ContractDetailViewProps> = ({
                         <div>
                             <h4 className="text-md font-semibold text-gray-600 mb-1">Garantías:</h4>
                             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm mb-2">
-                                {td.montoGarantiaCumplimiento && <DetailItem label="Cumplimiento" value={formatCurrency(td.montoGarantiaCumplimiento, td.moneda ?? contrato.moneda)} className='mb-0' />}
-                                {td.montoGarantiaVicios && <DetailItem label="Vicios Ocultos" value={formatCurrency(td.montoGarantiaVicios, td.moneda ?? contrato.moneda)} className='mb-0' />}
+                                {td.montoGarantiaCumplimiento &&
+                                    <DetailItem
+                                        label="Cumplimiento"
+                                        value={formatCurrency(
+                                            td.montoGarantiaCumplimiento?.toString() ?? null,
+                                            td.moneda ?? contrato.moneda
+                                        )}
+                                        className="mb-0"
+                                    />
+                                }
+                                {td.montoGarantiaVicios &&
+                                    <DetailItem
+                                        label="Vicios Ocultos"
+                                        value={formatCurrency(
+                                            td.montoGarantiaVicios?.toString() ?? null,
+                                            td.moneda ?? contrato.moneda
+                                        )}
+                                        className="mb-0"
+                                    />
+
+                                }
                             </dl>
                             {td.garantiasTexto && <p className="text-sm text-gray-700 bg-gray-50 p-3 border border-gray-200 rounded whitespace-pre-wrap">{td.garantiasTexto}</p>}
                         </div>

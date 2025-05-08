@@ -1,6 +1,12 @@
-// src/types/contratoTemplateData.ts (NUEVO ARCHIVO)
+// src/types/contratoTemplateData.ts
 
-// Interfaz para los datos de suficiencia que ingresará el admin
+// ================================
+// Sub-Estructuras
+// ================================
+
+/**
+ * Información sobre la suficiencia presupuestal del contrato.
+ */
 export interface SuficienciaInput {
     fecha: string; // YYYY-MM-DD
     numeroOficio: string;
@@ -8,64 +14,121 @@ export interface SuficienciaInput {
     tipoRecurso: string;
 }
 
-// Interfaz para los datos del área requirente que ingresará el admin (o seleccionará)
+/**
+ * Información sobre el área requirente del contrato.
+ */
 export interface AreaRequirenteInput {
     nombreFuncionario: string;
     cargoFuncionario: string;
-    // Podrías añadir id_secretaria, id_dependencia si se selecciona de una lista
+    // Si se desea integrar a catálogos:
+    id_secretaria?: number;
+    id_dependencia?: number;
 }
 
-// Interfaz base con datos que el admin debe PROPORCIONAR
-// (excluye datos que vienen automáticamente del proveedor seleccionado)
-interface ContratoBaseInputData {
-    // Selección principal
-    tipoContrato: 'servicio' | 'adquisicion';
-    idProveedor: number; // ID del proveedor seleccionado
+// ================================
+// Estructura Base
+// ================================
 
-    // Datos generales del CONTRATO (no del proveedor)
-    numeroProcedimiento?: string | null; // El número tipo ADE.MSJR.XXX.YYYYYY (¿autogenerado o manual?)
-    objetoPrincipal: string; // Descripción corta/principal para objeto/nombre
-    descripcionDetallada: string; // Descripción larga (Cláusula Primera, etc.)
+/**
+ * Estructura base común a todos los contratos (servicio o adquisición).
+ */
+export interface ContratoBaseInputData {
+    // Identificación del tipo de contrato y proveedor
+    tipoContrato: 'servicio' | 'adquisicion';
+    idProveedor: number;
+
+    // Información general del contrato
+    numeroProcedimiento?: string | null;
+    objetoPrincipal: string;
+    descripcionDetallada: string;
     articuloFundamento: string;
-    montoTotal: number; // Usar número para cálculos
-    moneda?: string; // Default MXN
+    montoTotal: number;
+    moneda?: string;
     fechaInicio: string; // YYYY-MM-DD
     fechaFin: string; // YYYY-MM-DD
-    fechaFirma?: string | null; // Fecha de elaboración/firma del documento final
+    fechaFirma?: string | null; // Opcional, puede llenarse más adelante
 
-    // Datos relacionados (opcionales, seleccionados de listas)
+    // Relaciones externas
     idConcurso?: number | null;
     idSolicitud?: number | null;
     idDictamen?: number | null;
 
-    // Datos específicos ingresados por admin
+    // Datos administrativos proporcionados por el usuario
     suficiencia: SuficienciaInput;
     areaRequirente: AreaRequirenteInput;
-    montoGarantiaCumplimiento?: number | null; // O calcular como % del montoTotal?
-    montoGarantiaVicios?: number | null;    // O calcular como % del montoTotal?
-    numeroHojas?: number | null; // ¿Manual o calculado?
 
-    // Datos extra SOLO para Adquisición
-    nombreContratoAdquisicion?: string | null; // El nombre específico en el título
+    // Garantías (pueden ser nulas si no aplica)
+    montoGarantiaCumplimiento?: number | null;
+    montoGarantiaVicios?: number | null;
+    numeroHojas?: number | null;
+
+    // Exclusivos de tipo adquisición
+    nombreContratoAdquisicion?: string | null;
     montoMinimo?: number | null;
     oficioPeticionNumero?: string | null;
-    oficioPeticionFecha?: string | null; // YYYY-MM-DD
-    // ¿Nombres de funcionarios fijos o parte del área requirente?
-    // funcionarioRecibeOficio?: string;
-    // funcionarioDirigeOficio?: string;
+    oficioPeticionFecha?: string | null;
 
-    // ¿Condiciones de pago y garantías se capturan aquí o se heredan de la plantilla?
+    // Información adicional opcional
     condicionesPago?: string | null;
-    garantiasTexto?: string | null; // Diferente de los montos
-
+    garantiasTexto?: string | null;
 }
 
-// Tipos específicos si necesitas validación más estricta
-export type ContratoServicioInputData = Omit<ContratoBaseInputData, 'nombreContratoAdquisicion' | 'montoMinimo' | 'oficioPeticionNumero' | 'oficioPeticionFecha'> & { tipoContrato: 'servicio'; };
-export type ContratoAdquisicionInputData = ContratoBaseInputData & { tipoContrato: 'adquisicion'; };
-type ContratoCoreUpdateData = Partial<Omit<ContratoBaseInputData, 'id_contrato'>>;
-export type ContratoUpdateData = ContratoCoreUpdateData & {
-    template_data?: Partial<ContratoInputData> | object; // Añadir aquí
+// ================================
+// Tipos Especializados
+// ================================
+// src/types/contratoTemplateData.ts
+export interface TemplateDataContrato {
+  tipoContrato?: 'servicio' | 'adquisicion';
+  objetoPrincipal?: string;
+  descripcionDetallada?: string;
+  articuloFundamento?: string;
+  numeroProcedimiento?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  moneda?: string;
+  montoMinimo?: string;
+  montoGarantiaCumplimiento?: string;
+  montoGarantiaVicios?: string;
+  condicionesPago?: string;
+  garantiasTexto?: string;
+  numeroHojas?: string;
+  fechaFirma?: string;
+  oficioPeticionNumero?: string;
+  oficioPeticionFecha?: string;
+  nombreContratoAdquisicion?: string;
+
+  // Campos compuestos
+  suficiencia?: SuficienciaInput;
+  areaRequirente?: AreaRequirenteInput;
+}
+
+/**
+ * Datos requeridos para un contrato de tipo servicio.
+ */
+export type ContratoServicioInputData = Omit<
+    ContratoBaseInputData,
+    'nombreContratoAdquisicion' | 'montoMinimo' | 'oficioPeticionNumero' | 'oficioPeticionFecha'
+> & {
+    tipoContrato: 'servicio';
 };
-// Tipo unión para usar en el formulario
+
+/**
+ * Datos requeridos para un contrato de tipo adquisición.
+ */
+export type ContratoAdquisicionInputData = ContratoBaseInputData & {
+    tipoContrato: 'adquisicion';
+};
+
+/**
+ * Unión de tipos para usar en formularios dinámicos.
+ */
 export type ContratoInputData = ContratoServicioInputData | ContratoAdquisicionInputData;
+
+/**
+ * Tipo parcial para actualizaciones.
+ */
+type ContratoCoreUpdateData = Partial<Omit<ContratoBaseInputData, 'id_contrato'>>;
+
+export type ContratoUpdateData = ContratoCoreUpdateData & {
+    template_data?: Partial<ContratoInputData> | object;
+};
