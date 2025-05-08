@@ -24,7 +24,6 @@ export async function GET(
     const searchTerm = searchParams.get('search');
 
     const logPrefix = `API GET /proveedores/${idProveedor}/articulos (Search: ${searchTerm}):`;
-    console.log(logPrefix);
 
     const proveedorIdNum = parseInt(idProveedor, 10);
     if (isNaN(proveedorIdNum)) {
@@ -32,13 +31,11 @@ export async function GET(
     }
 
     if (!searchTerm || searchTerm.trim().length < 3) {
-        console.log(`${logPrefix} Search term too short, returning empty array.`);
         return NextResponse.json([]);
     }
 
     try {
         const articulos: Partial<ArticuloCatalogo>[] = await buscarArticulosPorProveedorYTermino(proveedorIdNum, searchTerm);
-        console.log(`${logPrefix} Found ${articulos.length} articles.`);
         return NextResponse.json(articulos);
 
     } catch (error: unknown) {

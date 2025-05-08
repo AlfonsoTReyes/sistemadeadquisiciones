@@ -75,7 +75,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // 2. Obtener Monto (Localmente)
         const monto = TRAMITES_COSTOS_NEXT[tramite].costo;
-        console.log(`API /api/pagos/iniciar: Iniciando pago para trámite "${tramite}" (Monto: ${monto})`);
 
         // 3. Preparar y Realizar Llamada al Módulo PHP
         const params = new URLSearchParams({
@@ -84,7 +83,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
         const urlConParam = `${PHP_MODULE_INICIAR_URL}?${params.toString()}`;
 
-        console.log(`API /api/pagos/iniciar: Llamando a PHP en: [${urlConParam}]`);
 
         const responsePHP = await fetch(urlConParam, {
             method: 'GET', // El PHP espera GET
@@ -92,7 +90,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             cache: 'no-store', // Evitar cacheo de esta llamada
         });
 
-        console.log(`API /api/pagos/iniciar: Respuesta PHP Status: ${responsePHP.status}`);
         const responsePHPText = await responsePHP.text();
 
         // 4. Parsear Respuesta del PHP
@@ -104,14 +101,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             throw new Error("Respuesta inválida (no JSON) del módulo de pago PHP."); // Lanzar error para el catch general
         }
 
-        console.log("API /api/pagos/iniciar: Respuesta JSON de PHP:", responsePHPData);
 
         // 5. Procesar Respuesta del PHP y Registrar Localmente
         if (responsePHP.ok && responsePHPData.success && responsePHPData.reference && responsePHPData.paymentUrl && responsePHPData.encryptedRequestData) {
             // Respuesta exitosa del PHP, proceder a registrar localmente
             referenciaGenerada = responsePHPData.reference;
 
-            console.log(`API /api/pagos/iniciar: Intentando registrar localmente ref: ${referenciaGenerada} con monto: ${monto}`);
             const localId = await registrarIntentoPago(
                 responsePHPData.reference,
                 tramite,
@@ -121,7 +116,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             );
 
             if (localId !== null) {
-                console.log(`API /api/pagos/iniciar: Registro local exitoso con ID: ${localId}`);
             } else {
                 // Fallo en el registro local - Loguear pero NO detener el flujo hacia el usuario
                 console.error(`API /api/pagos/iniciar: ¡FALLÓ el registro local para ref: ${referenciaGenerada}! El webhook podría no encontrar el registro para actualizar.`);

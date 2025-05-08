@@ -1,8 +1,8 @@
 // src/lib/contratoTemplateMapper.ts
 
 import { ContratoDetallado } from '@/types/contrato';
-import { ContratoInputData, SuficienciaInput, AreaRequirenteInput, ContratoAdquisicionInputData } from '@/types/contratoTemplateData';
-import numeroALetras from 'numero-a-letras';
+import { ContratoInputData, SuficienciaInput, AreaRequirenteInput } from '@/types/contratoTemplateData';
+import * as numeroALetrasModule from 'numero-a-letras'; // Importar todo el módulo
 
 // --- Interfaz TemplateData ---
 interface TemplateData {
@@ -68,7 +68,7 @@ const formatDate = (dateString: string | null | undefined, format: 'long' | 'sho
         if (format === 'long') {
             return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
         } else {
-            return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+             return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
         }
     } catch (e) { return 'Fecha inválida'; }
 };
@@ -89,17 +89,24 @@ const formatCurrencyToWords = (amount: string | number | null | undefined, curre
         const currencyName = currency?.toUpperCase() === 'USD' ? 'DÓLARES AMERICANOS' : 'PESOS';
 
         // Attempt to get the function, prioritizing 'NumerosALetras' then 'default'
-        const conversorFunc = numeroALetras;
+        let conversorFunc: ((num: number | string) => string) | undefined | null = null;
 
+        if (typeof (numeroALetrasModule as any).NumerosALetras === 'function') {
+            conversorFunc = (numeroALetrasModule as any).NumerosALetras;
+        } else if (typeof numeroALetrasModule.default === 'function') {
+            conversorFunc = numeroALetrasModule.default;
+        } else if (typeof numeroALetrasModule === 'function') { // Less likely for namespace import
+            conversorFunc = numeroALetrasModule as any;
+        }
 
 
         if (!conversorFunc) {
-            console.error("numero-a-letras function not found. Module content:", numeroALetras);
-            // Try to log the keys to see what's available if the above fails
-            if (numeroALetras) {
-                console.log("Keys in numeroALetras:", Object.keys(numeroALetras));
-            }
-            return '(Error: Conversor no encontrado)';
+           console.error("numero-a-letras function not found. Module content:", numeroALetrasModule);
+           // Try to log the keys to see what's available if the above fails
+           if (numeroALetrasModule) {
+               console.log("Keys in numeroALetrasModule:", Object.keys(numeroALetrasModule));
+           }
+           return '(Error: Conversor no encontrado)';
         }
 
         const letras = conversorFunc(parseInt(integerPart));
@@ -113,12 +120,9 @@ const formatCurrencyToWords = (amount: string | number | null | undefined, curre
 
 
 export function mapContratoToTemplateData(contrato: ContratoDetallado): TemplateData {
-    const td = (contrato.template_data as Partial<ContratoInputData>) ?? {};
-
-    const suf = (td.suficiencia as Partial<SuficienciaInput>) ?? {};
-
-    const areaReq = (td.areaRequirente as Partial<AreaRequirenteInput>) ?? {};
-
+    const td = contrato.template_data ?? {};
+    const suf = td.suficiencia as SuficienciaInput | undefined ?? {}; // Cast if necessary
+    const areaReq = td.areaRequirente as AreaRequirenteInput | undefined ?? {}; // Cast if necessary
     const tipoPlantilla = td.tipoContrato;
 
     if (!tipoPlantilla) throw new Error("Tipo de contrato no definido en template_data");
@@ -151,10 +155,11 @@ export function mapContratoToTemplateData(contrato: ContratoDetallado): Template
         notaria: proveedor?.tipo_proveedor === 'moral' ? (td.poderNotarial_numeroNotaria || '') : 'N/A',
     };
     const ineRepLegal = proveedor?.tipo_proveedor === 'moral' ? (td.identificacionOficialRepLegal_idmex_ocr || '_________________________') : 'N/A';
-    const isAdquisicion = td.tipoContrato === 'adquisicion';
+
+
     const data: Partial<TemplateData> = {
         TIPO_CONTRATO: tipoPlantilla === 'servicio' ? 'CONTRATO DE PRESTACIÓN DE SERVICIOS' : 'CONTRATO DE ADQUISICIÓN DE BIENES',
-        NOMBRE_CONTRATO: td.nombreContratoServicio || td.nombreContratoServicio || contrato.objeto_contrato,
+        NOMBRE_CONTRATO: td.nombreContratoAdquisicion || td.nombreContratoServicio || contrato.objeto_contrato,
         RAZON_SOCIAL_PROVEEDOR: razonSocialNombre,
         NOMBRE_PROVEEDOR_PF: proveedor?.tipo_proveedor === 'fisica' ? `${proveedor.nombre_fisica || ''} ${proveedor.apellido_p_fisica || ''} ${proveedor.apellido_m_fisica || ''}`.trim() : undefined,
         NUMERO_PROCEDIMIENTO: td.numeroProcedimiento || `PENDIENTE_${contrato.id_contrato}`,
@@ -168,10 +173,10 @@ export function mapContratoToTemplateData(contrato: ContratoDetallado): Template
         ARTICULO_FUNDAMENTO: td.articuloFundamento || '_________________________',
         RFC_PROVEEDOR: proveedor?.rfc || '________________',
         DOMICILIO_PROVEEDOR: domicilioFiscal,
-        NUMERO_OFICIO_PETICION: isAdquisicion ? (td as Partial<ContratoAdquisicionInputData>).oficioPeticionNumero || '_______' : undefined,
-        FECHA_OFICIO_PETICION: isAdquisicion ? formatDate((td as Partial<ContratoAdquisicionInputData>).oficioPeticionFecha) : undefined,
-        FUNCIONARIO_RECIBE_OFICIO: (areaReq as any).nombreFuncionarioDirigeOficio || 'Lic. José Miguel Valencia Molina',
-        FUNCIONARIO_DIRIGE_OFICIO: (areaReq as any).nombreFuncionarioFirmaOficio || 'Lic. Ernesto Mora Rico',
+        NUMERO_OFICIO_PETICION: td.oficioPeticionNumero || '_______',
+        FECHA_OFICIO_PETICION: formatDate(td.oficioPeticionFecha),
+        FUNCIONARIO_RECIBE_OFICIO: areaReq.nombreFuncionarioDirigeOficio || 'Lic. José Miguel Valencia Molina', // Example, adjust
+        FUNCIONARIO_DIRIGE_OFICIO: areaReq.nombreFuncionarioFirmaOficio || 'Lic. Ernesto Mora Rico', // Example, adjust
         INE_OCR_PF: ineOcrPf,
         ACTIVIDAD_ECONOMICA_PF: actividadPf,
         CURP_PF: curpPf,
@@ -191,8 +196,8 @@ export function mapContratoToTemplateData(contrato: ContratoDetallado): Template
         FECHA_FIN_CONTRATO: formatDate(td.fechaFin || contrato.fecha_fin),
         MONTO_TOTAL_NUMERO: formatCurrency(td.montoTotal || contrato.monto_total, td.moneda || contrato.moneda),
         MONTO_TOTAL_LETRAS: formatCurrencyToWords(td.montoTotal || contrato.monto_total, td.moneda || contrato.moneda),
-MONTO_MINIMO_NUMERO: isAdquisicion ? formatCurrency((td as Partial<ContratoAdquisicionInputData>).montoMinimo, td.moneda || contrato.moneda) : undefined,
-MONTO_MINIMO_LETRAS: isAdquisicion ? formatCurrencyToWords((td as Partial<ContratoAdquisicionInputData>).montoMinimo, td.moneda || contrato.moneda) : undefined,
+        MONTO_MINIMO_NUMERO: formatCurrency(td.montoMinimo, td.moneda || contrato.moneda),
+        MONTO_MINIMO_LETRAS: formatCurrencyToWords(td.montoMinimo, td.moneda || contrato.moneda),
         MONTO_GARANTIA_CUMPLIMIENTO: formatCurrency(td.montoGarantiaCumplimiento, td.moneda || contrato.moneda),
         MONTO_GARANTIA_VICIOS: formatCurrency(td.montoGarantiaVicios, td.moneda || contrato.moneda),
         TEXTO_GARANTIA: td.garantiasTexto || '_________________________',

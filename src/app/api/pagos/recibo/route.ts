@@ -71,7 +71,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             urlConParam += `&id=${encodeURIComponent(pagoId!)}`;
         }
 
-        console.log(`API Proxy Recibo: Obteniendo recibo para ${identifier} via PHP (${format}) - URL: ${urlConParam}`);
 
         // 3. Realizar Llamada Fetch al Módulo PHP
         const responsePHP = await fetch(urlConParam, {
@@ -83,7 +82,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             cache: 'no-store', // No cachear respuestas de recibos específicos
         });
 
-        console.log(`API Proxy Recibo: Respuesta PHP Status para ${identifier}: ${responsePHP.status}`);
 
         // 4. Manejar Respuesta del PHP
         if (!responsePHP.ok) { // Error (4xx, 5xx) desde PHP
@@ -108,7 +106,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
         // 5. Procesar Respuesta Exitosa (PDF o JSON)
         if (format === 'pdf') {
-            console.log(`API Proxy Recibo: Reenviando respuesta PDF para ${identifier}...`);
             // Obtener el contenido como Blob (eficiente para binarios)
             const pdfBlob = await responsePHP.blob();
             // Crear nuevas cabeceras para la respuesta
@@ -123,11 +120,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             // Devolver el Blob PDF con las cabeceras correctas
             return new NextResponse(pdfBlob, { status: 200, headers });
         } else { // format === 'json'
-            console.log(`API Proxy Recibo: Procesando respuesta JSON para ${identifier}...`);
             // Reenviar la respuesta JSON directamente
             // Asumimos que si el status es OK, es JSON válido (el PHP debería garantizarlo)
             const responsePHPData = await responsePHP.json(); // Parsear como JSON
-            console.log(`API Proxy Recibo: Respuesta JSON de PHP para ${identifier} procesada.`);
             // Opcional: Podrías guardar el recibo en la caché local aquí si quisieras
             // await guardarReciboLocal(referencia, JSON.stringify(responsePHPData));
             return NextResponse.json(responsePHPData, { status: 200 });

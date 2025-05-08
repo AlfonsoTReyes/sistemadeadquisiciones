@@ -52,7 +52,6 @@ export function usePusherNotifications({
         const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
         const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
-        console.log(`PusherNotifications Hook: Inicializando Pusher para canal ${targetChannel}...`);
 
         try {
             const client = new PusherClient(pusherKey, { cluster: pusherCluster });
@@ -63,7 +62,6 @@ export function usePusherNotifications({
             currentSubscription.current = targetChannel;
 
             channel.bind('pusher:subscription_succeeded', () => {
-                console.log(`PusherNotifications Hook: Suscrito exitosamente a ${targetChannel}`);
             });
 
             channel.bind('pusher:subscription_error', (status: any) => {
@@ -77,7 +75,6 @@ export function usePusherNotifications({
             });
 
             const handleEvent = (data: any) => {
-                console.log(`PusherNotifications Hook: Evento '${eventName}' recibido en ${targetChannel}:`, data);
                 if (!data || typeof data.id_notificacion !== 'number' || typeof data.mensaje !== 'string') {
                     console.warn("PusherNotifications Hook: Payload inválido:", data); return;
                 }

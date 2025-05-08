@@ -10,12 +10,10 @@ import {
     deleteArticuloProveedor
 } from '@/services/articuloservice'; // Ajusta la ruta si es necesario
 
-console.log("***** MODULE LOADED: /api/proveedor/articulos/route.ts *****");
 
 // --- GET: Obtener todos los artículos de un proveedor específico ---
 // Espera: /api/proveedor/articulos?id_proveedor=NUMERO[&activoOnly=true|false]
 export async function GET(req: NextRequest) {
-    console.log("--- HIT: GET /api/proveedor/articulos ---");
     try {
         const { searchParams } = req.nextUrl;
         const idProveedorParam = searchParams.get("id_proveedor");
@@ -38,11 +36,9 @@ export async function GET(req: NextRequest) {
 
         const activoOnly = activoOnlyParam !== 'false';
 
-        console.log(`API ROUTE GET /proveedor/articulos: Fetching articles for supplier ID: ${idProveedor}. Active only: ${activoOnly}`);
         // 2. Llamar al servicio (que ahora devuelve partida_descripcion)
         const articulos = await getArticulosByProveedorId(idProveedor, activoOnly);
 
-        console.log(`API ROUTE GET /proveedor/articulos: Found ${articulos.length} articles.`);
         return NextResponse.json(articulos);
 
     } catch (error: any) {
@@ -58,11 +54,9 @@ export async function GET(req: NextRequest) {
 // --- POST: Crear un nuevo artículo para un proveedor específico ---
 // Espera en el cuerpo: { id_proveedor: number, codigo_partida: string, descripcion, unidad_medida, stock, precio_unitario, [estatus] }
 export async function POST(req: NextRequest) {
-    console.log("--- HIT: POST /api/proveedor/articulos ---");
     let requestData;
     try {
         requestData = await req.json();
-        console.log(`API ROUTE POST /proveedor/articulos: Received payload:`, JSON.stringify(requestData, null, 2));
 
         // 1. Validar el payload (incluyendo id_proveedor y codigo_partida)
         const { id_proveedor, codigo_partida, descripcion, unidad_medida, stock, precio_unitario } = requestData;
@@ -82,11 +76,9 @@ export async function POST(req: NextRequest) {
         // **********************************************
 
         // 2. Llamar al servicio
-        console.log(`API ROUTE POST /proveedor/articulos: Calling createArticuloProveedor for supplier ${id_proveedor}...`);
         // Pasamos requestData completo, ya que incluye todos los campos necesarios
         const nuevoArticulo = await createArticuloProveedor(requestData);
 
-        console.log(`API ROUTE POST /proveedor/articulos: Article created with ID: ${nuevoArticulo.id_articulo}`);
         return NextResponse.json(nuevoArticulo, { status: 201 }); // 201 Created
 
     } catch (error: any) {
@@ -106,7 +98,6 @@ export async function POST(req: NextRequest) {
 // Espera: /api/proveedor/articulos?id_articulo=NUMERO
 // Y en el cuerpo: { id_proveedor: number, [codigo_partida], [descripcion], [unidad_medida], [stock], [precio_unitario], [estatus] }
 export async function PUT(req: NextRequest) {
-    console.log("--- HIT: PUT /api/proveedor/articulos ---");
     let requestData;
     try {
         // 1. Obtener id_articulo de la URL
@@ -123,7 +114,6 @@ export async function PUT(req: NextRequest) {
 
         // 2. Leer el cuerpo con los datos
         requestData = await req.json();
-        console.log(`API ROUTE PUT /proveedor/articulos: Received payload for article ${idArticulo}:`, JSON.stringify(requestData, null, 2));
 
         // 3. Validar que id_proveedor venga en el cuerpo (necesario para la verificación en el servicio)
         const { id_proveedor } = requestData;
@@ -138,10 +128,8 @@ export async function PUT(req: NextRequest) {
 
         // 4. Llamar al servicio de actualización
         // Pasamos idArticulo, idProveedor (para verificación) y el resto de requestData
-        console.log(`API ROUTE PUT /proveedor/articulos: Calling updateArticuloProveedor for article ${idArticulo}, supplier ${id_proveedor}...`);
         const articuloActualizado = await updateArticuloProveedor(idArticulo, id_proveedor, requestData);
 
-        console.log(`API ROUTE PUT /proveedor/articulos: Article ${idArticulo} updated successfully.`);
         return NextResponse.json(articuloActualizado); // El servicio ya devuelve los detalles actualizados
 
     } catch (error: any) {
@@ -162,7 +150,6 @@ export async function PUT(req: NextRequest) {
 // --- DELETE: Eliminar un artículo ---
 // Espera: /api/proveedor/articulos?id_articulo=NUMERO&id_proveedor=NUMERO
 export async function DELETE(req: NextRequest) {
-    console.log("--- HIT: DELETE /api/proveedor/articulos ---");
     try {
         const { searchParams } = req.nextUrl;
         const idArticuloParam = searchParams.get("id_articulo");
@@ -182,13 +169,11 @@ export async function DELETE(req: NextRequest) {
         // ¡Verificar aquí que el usuario autenticado tiene permiso para ELIMINAR para este id_proveedor!
         // **********************************************
 
-        console.log(`API ROUTE DELETE /proveedor/articulos: Attempting to delete article ${idArticulo} for supplier ${idProveedor}`);
 
         // 2. Llamar al servicio de eliminación (que verifica pertenencia)
         const deleted = await deleteArticuloProveedor(idArticulo, idProveedor);
 
         if (deleted) {
-            console.log(`API ROUTE DELETE /proveedor/articulos: Article ${idArticulo} deleted successfully.`);
             return NextResponse.json({ success: true, message: "Artículo eliminado correctamente." });
         } else {
             // El servicio devolvió false, lo que significa que no se encontró o no pertenecía

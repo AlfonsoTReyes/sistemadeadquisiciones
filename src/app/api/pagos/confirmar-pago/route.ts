@@ -67,7 +67,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
         requestReference = body.reference; // Guardar referencia para logs de error
 
-        console.log(`API Proxy Confirmar: Recibido intento de confirmación para referencia "${requestReference}"`);
 
         // 2. Preparar Cuerpo para el Webhook PHP Real
         // El webhook PHP (según el análisis) espera los datos como application/x-www-form-urlencoded
@@ -82,7 +81,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // webhookBodyParams.append('referencia_nextjs', body.reference);
         // webhookBodyParams.append('id_ciudadano', String(body.id_ciudadano ?? '')); // Convertir a string
 
-        console.log(`API Proxy Confirmar: Enviando datos form-urlencoded a PHP Webhook: [strResponse=${body.encryptedRequestData.substring(0, 30)}...]`);
 
         // 3. Llamar al webhook.php en cPanel usando POST y form-urlencoded
         const responsePHP = await fetch(PHP_MODULE_WEBHOOK_URL, {
@@ -97,7 +95,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             cache: 'no-store',
         });
 
-        console.log(`API Proxy Confirmar: Respuesta Webhook PHP Status: ${responsePHP.status}`);
         const responsePHPText = await responsePHP.text();
 
         // 4. Parsear Respuesta del Webhook PHP
@@ -114,7 +111,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             throw new Error("Respuesta inválida (no JSON) del webhook de pago PHP.");
         }
 
-        console.log(`API Proxy Confirmar: Respuesta JSON de Webhook PHP para ref ${requestReference}:`, responsePHPData);
 
         // 5. Opcional: Actualizar BD local (si se desea marcar el intento de proxy)
         // if (responsePHP.ok && responsePHPData.status === 'success') {

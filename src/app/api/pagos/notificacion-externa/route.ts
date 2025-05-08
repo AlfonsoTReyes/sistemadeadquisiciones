@@ -6,7 +6,6 @@ import { marcarPagoConfirmadoExternamente } from '@/services/pago/pagoLocalServi
 const SHARED_SECRET = process.env.NEXTJS_NOTIFICATION_SECRET; // Secreto opcional para validar
 
 export async function POST(request: NextRequest) {
-    console.log("Notificación Externa: Petición recibida");
 
     // 1. Validación de Seguridad (Opcional pero recomendado)
     if (SHARED_SECRET) {
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        console.log("Notificación Externa: Body recibido:", body);
 
         const { referencia, estado, pago_id_modulo_php, /* otros datos */ } = body;
 
@@ -43,7 +41,6 @@ export async function POST(request: NextRequest) {
              return NextResponse.json({ status: 'error', message: 'Error al actualizar BD local' }, { status: 500 });
         }
 
-        console.log(`Notificación Externa: BD local actualizada para ref ${referencia}, estado ${estado}`);
 
         // 3. (Opcional) Notificar al cliente via Pusher
         // if (pusherServer && estado === 'Pagado') { // O el estado de éxito
@@ -55,7 +52,6 @@ export async function POST(request: NextRequest) {
         //             referencia: referencia,
         //             message: 'Tu pago ha sido confirmado.'
         //         });
-        //          console.log(`Notificación Externa: Evento Pusher enviado a ${channelName}`);
         //     } catch (pusherError: any) {
         //         console.error("Notificación Externa: Error enviando evento Pusher:", pusherError);
         //     }

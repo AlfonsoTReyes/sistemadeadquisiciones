@@ -71,6 +71,23 @@ export interface ContratoBaseInputData {
     // Información adicional opcional
     condicionesPago?: string | null;
     garantiasTexto?: string | null;
+    // NUEVOS CAMPOS EXTRA (opcionales)
+    identificacionOficialPf_ocr?: string;
+    actaConstitutiva_numeroEscritura?: string;
+    actaConstitutiva_fechaEscritura?: string;
+    actaConstitutiva_notario?: string;
+    actaConstitutiva_numeroNotaria?: string;
+    actaConstitutiva_demarcacionNotarial?: string;
+
+    poderNotarial_numeroEscritura?: string;
+    poderNotarial_fechaEscritura?: string;
+    poderNotarial_notario?: string;
+    poderNotarial_numeroNotaria?: string;
+
+    identificacionOficialRepLegal_idmex_ocr?: string;
+    nombreFuncionarioDirigeOficio?: string;
+    nombreFuncionarioFirmaOficio?: string;
+    nombreContratoServicio?: string | null;
 }
 
 // ================================
@@ -78,28 +95,28 @@ export interface ContratoBaseInputData {
 // ================================
 // src/types/contratoTemplateData.ts
 export interface TemplateDataContrato {
-  tipoContrato?: 'servicio' | 'adquisicion';
-  objetoPrincipal?: string;
-  descripcionDetallada?: string;
-  articuloFundamento?: string;
-  numeroProcedimiento?: string;
-  fechaInicio?: string;
-  fechaFin?: string;
-  moneda?: string;
-  montoMinimo?: string;
-  montoGarantiaCumplimiento?: string;
-  montoGarantiaVicios?: string;
-  condicionesPago?: string;
-  garantiasTexto?: string;
-  numeroHojas?: string;
-  fechaFirma?: string;
-  oficioPeticionNumero?: string;
-  oficioPeticionFecha?: string;
-  nombreContratoAdquisicion?: string;
+    tipoContrato?: 'servicio' | 'adquisicion';
+    objetoPrincipal?: string;
+    descripcionDetallada?: string;
+    articuloFundamento?: string;
+    numeroProcedimiento?: string;
+    fechaInicio?: string;
+    fechaFin?: string;
+    moneda?: string;
+    montoMinimo?: string;
+    montoGarantiaCumplimiento?: string;
+    montoGarantiaVicios?: string;
+    condicionesPago?: string;
+    garantiasTexto?: string;
+    numeroHojas?: string;
+    fechaFirma?: string;
+    oficioPeticionNumero?: string;
+    oficioPeticionFecha?: string;
+    nombreContratoAdquisicion?: string;
 
-  // Campos compuestos
-  suficiencia?: SuficienciaInput;
-  areaRequirente?: AreaRequirenteInput;
+    // Campos compuestos
+    suficiencia?: SuficienciaInput;
+    areaRequirente?: AreaRequirenteInput;
 }
 
 /**
