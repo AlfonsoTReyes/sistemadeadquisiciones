@@ -27,7 +27,6 @@ interface ApiErrorResponse {
  * @returns {Promise<Proveedor[]>} - Una promesa que resuelve a un array de proveedores.
  */
 export const fetchAllProveedores = async (): Promise<Proveedor[]> => {
-  console.log("DEBUG Fetch: Calling fetchAllProveedores");
   try {
     const response = await fetch(ADMIN_PROVEEDORES_API_URL, {
       method: 'GET',
@@ -45,7 +44,6 @@ export const fetchAllProveedores = async (): Promise<Proveedor[]> => {
     }
 
     const data: Proveedor[] = await response.json();
-    console.log("DEBUG Fetch: fetchAllProveedores successful, received", data.length, "providers");
     return data;
 
   } catch (err: unknown) {
@@ -100,7 +98,6 @@ export const updateProveedorStatus = async (idProveedor: number, newStatus: bool
  * @returns {Promise<Proveedor | null>} - Una promesa que resuelve con los datos del proveedor o null si no se encuentra.
  */
 export const getProveedorProfileById = async (idProveedor: number): Promise<Proveedor | null> => {
-  console.log(`DEBUG Fetch: Calling getProveedorProfileById for ID ${idProveedor}`);
   const apiUrl = `${ADMIN_PROVEEDORES_API_URL}?id_proveedor=${idProveedor}`;
 
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
@@ -130,7 +127,6 @@ export const getProveedorProfileById = async (idProveedor: number): Promise<Prov
     }
 
     const data: Proveedor = await response.json();
-    console.log(`DEBUG Fetch: getProveedorProfileById successful for ID ${idProveedor}`);
     return data;
 
   } catch (err: unknown) {
@@ -146,7 +142,6 @@ export const getProveedorProfileById = async (idProveedor: number): Promise<Prov
  * @returns {Promise<any>} - Una promesa que resuelve con la respuesta de la API. (Ajusta 'any')
  */
 export const updateProveedorProfile = async (proveedorData: Partial<Proveedor> & { id_proveedor: number }): Promise<any> => {
-  console.log(`DEBUG Fetch: Calling updateProveedorProfile for ID ${proveedorData?.id_proveedor}`);
   const apiUrl = ADMIN_PROVEEDORES_API_URL;
 
   if (!proveedorData || typeof proveedorData.id_proveedor !== 'number' || isNaN(proveedorData.id_proveedor)) {
@@ -170,7 +165,6 @@ export const updateProveedorProfile = async (proveedorData: Partial<Proveedor> &
     }
 
     const data: any = await response.json(); // Ajusta 'any'
-    console.log(`DEBUG Fetch: updateProveedorProfile successful for ID ${proveedorData.id_proveedor}`);
     return data;
 
   } catch (err: unknown) {
@@ -186,9 +180,7 @@ export const updateProveedorProfile = async (proveedorData: Partial<Proveedor> &
  * @returns {Promise<UsuarioProveedor | null>} - Una promesa que resuelve con los datos del usuario o null si no se encuentra.
  */
 export const getUsuarioProveedorAsociado = async (idDelProveedor: number): Promise<UsuarioProveedor | null> => {
-  console.log(`DEBUG Fetch: Fetching associated user for proveedor ID ${idDelProveedor}`);
   const apiUrl = `/api/admin/proveedores?getUsuarioForProveedorId=${idDelProveedor}`;
-  console.log(`DEBUG Fetch: Target API URL for user: ${apiUrl}`);
 
   if (typeof idDelProveedor !== 'number' || isNaN(idDelProveedor)) {
     throw new Error('Fetch Error: ID de proveedor inválido');
@@ -200,7 +192,6 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor: number): Promi
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
-    console.log(`DEBUG Fetch: Response status for user request: ${response.status}`);
 
     if (!response.ok) {
       let errorData: ApiErrorResponse = {};
@@ -218,7 +209,6 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor: number): Promi
     }
 
     const data: UsuarioProveedor = await response.json();
-    console.log(`DEBUG Fetch: Successfully fetched associated user data for provider ${idDelProveedor}:`, data);
     return data;
 
   } catch (err: unknown) {
@@ -234,8 +224,6 @@ export const getUsuarioProveedorAsociado = async (idDelProveedor: number): Promi
  * @returns {Promise<UsuarioProveedor>} - Una promesa que resuelve con los datos del usuario actualizado.
  */
 export const updateUsuarioProveedor = async (usuarioData: Partial<UsuarioProveedor> & { id_usuario: number }): Promise<UsuarioProveedor> => {
-  console.log(`FETCH: Iniciando actualización para usuario ID: ${usuarioData?.id_usuario}`);
-  console.log(`FETCH: Payload a enviar:`, JSON.stringify(usuarioData, null, 2));
 
   const apiUrl = '/api/adminProveedores';
 
@@ -268,7 +256,6 @@ export const updateUsuarioProveedor = async (usuarioData: Partial<UsuarioProveed
     }
 
     const updatedUserData: UsuarioProveedor = await response.json();
-    console.log(`FETCH: Actualización de usuario ID ${usuarioData.id_usuario} exitosa. Respuesta recibida:`, updatedUserData);
     return updatedUserData;
 
   } catch (error: unknown) {
@@ -284,7 +271,6 @@ export const updateUsuarioProveedor = async (usuarioData: Partial<UsuarioProveed
  * @returns {Promise<UsuarioProveedor | null>} - Una promesa que resuelve con los datos del usuario o null si no se encuentra.
  */
 export const getUsuarioProveedorByProveedorId = async (idProveedor: number): Promise<UsuarioProveedor | null> => {
-  console.log(`DEBUG Fetch: Calling getUsuarioProveedorByProveedorId for proveedor ID ${idProveedor}`);
 
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
     throw new Error('Fetch Error: ID del proveedor inválido para getUsuarioProveedorByProveedorId');
@@ -312,7 +298,6 @@ export const getUsuarioProveedorByProveedorId = async (idProveedor: number): Pro
     }
 
     const data: UsuarioProveedor = await response.json();
-    console.log(`DEBUG Fetch: getUsuarioProveedorByProveedorId exitoso para proveedor ID ${idProveedor}`);
     return data;
 
   } catch (err: unknown) {
@@ -333,7 +318,6 @@ export const updateAdminRevisionStatus = async (
   nuevoEstatusRevision: string,
   adminUserId: number // <--- AÑADIR ESTE PARÁMETRO
 ): Promise<any> => {
-  console.log(`FETCH: Calling API to update revision status for ID ${idProveedor} to ${nuevoEstatusRevision} by admin ID ${adminUserId}`);
 
   if (typeof idProveedor !== 'number' || isNaN(idProveedor)) {
       throw new Error("Fetch Error: ID de proveedor inválido.");
@@ -346,11 +330,6 @@ export const updateAdminRevisionStatus = async (
   }
 
   try {
-    console.log("BODY QUE SE ENVÍA A LA API:", JSON.stringify({
-      id_proveedor: idProveedor,
-      estatus_revision: nuevoEstatusRevision,
-      id_admin_revisor: adminUserId
-    }, null, 2));
       const response = await fetch(ADMIN_PROVEEDORES_API_URL, { // Asegúrate que este es el endpoint correcto para esta acción
           method: 'PUT', // O 'PATCH' si es más apropiado para tu API
           headers: { 'Content-Type': 'application/json' },
@@ -374,7 +353,6 @@ export const updateAdminRevisionStatus = async (
           throw new Error(data?.message || `Error ${response.status}: ${response.statusText || 'No se pudo actualizar el estado de revisión.'}`);
       }
 
-      console.log(`FETCH: API call for updateAdminRevisionStatus successful for ID ${idProveedor}`);
       return data ?? { message: "Estado de revisión actualizado." };
 
   } catch (err: unknown) {

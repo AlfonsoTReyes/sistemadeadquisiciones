@@ -61,7 +61,6 @@ const DocumentosProveedorPage = () => {
 
     // --- 2. Función para cargar el PERFIL COMPLETO del proveedor ---
     const fetchProfileData = useCallback(async (userId: number) => {
-        console.log(`DocumentosPage: Cargando perfil para usuario ID: ${userId}`);
         setLoadingPage(true); // Iniciar estado de carga general
         setErrorPage(null);
         try {
@@ -69,7 +68,6 @@ const DocumentosProveedorPage = () => {
             const profileData = await getProveedorForUser(userId) as ProveedorCompletoData;
 
             if (profileData && profileData.id_proveedor && profileData.tipo_proveedor) {
-                console.log("DocumentosPage: Perfil cargado:", profileData); // Verificar que vengan los nuevos campos
                 setProviderProfileData(profileData as ProveedorCompletoData); // Guardar perfil completo
                 // Ahora que tenemos el perfil (y el id_proveedor), cargamos los documentos
                 fetchDocsCallback(profileData.id_proveedor);
@@ -94,13 +92,11 @@ const DocumentosProveedorPage = () => {
             setLoadingPage(false); // Termina la carga si no hay ID para buscar docs
             return;
         }
-        console.log(`DocumentosPage: Cargando documentos para proveedor ID: ${idProveedor}`);
         // No resetear errorPage aquí, solo error específico de docs si hubiera
         // setLoadingDocs(true); // Podríamos usar un loading específico para docs si quisiéramos
         try {
             const data = await fetchDocumentosPorProveedor(idProveedor);
             setDocumentos(data || []);
-            console.log(`DocumentosPage: Documentos cargados (${data?.length || 0}).`);
         } catch (err: any) {
             console.error("Error al obtener documentos del proveedor:", err);
             setErrorPage((prevError) => prevError ? `${prevError} Y Error al cargar documentos: ${err.message}` : `Error al cargar documentos: ${err.message}`); // Añadir al error existente si lo hay
@@ -116,7 +112,6 @@ const DocumentosProveedorPage = () => {
     const handleOpenDocumentsModal = () => {
         // Necesita el perfil completo para pasar esProveedorEventos
         if (providerProfileData?.id_proveedor && providerProfileData?.tipo_proveedor) {
-            console.log(`Opening documents modal for ID: ${providerProfileData.id_proveedor}, Type: ${providerProfileData.tipo_proveedor}, Eventos: ${providerProfileData.proveedor_eventos}`);
             openModal();
         } else {
             console.error("Faltan datos del perfil para abrir modal de documentos.", providerProfileData);

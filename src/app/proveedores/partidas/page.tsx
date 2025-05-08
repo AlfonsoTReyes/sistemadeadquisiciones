@@ -116,7 +116,6 @@ export default function GestionPartidasProveedorPage() {
             return;
         }
         setLoadingSync(true); setErrorSync(null);
-        console.log("PAGE: Guardando partidas:", partidasSeleccionadasCodigos);
         try {
             await syncProveedorPartidasFetch(idProveedor, partidasSeleccionadasCodigos);
             alert("Partidas guardadas.");
