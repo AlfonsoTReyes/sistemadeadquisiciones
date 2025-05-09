@@ -18,7 +18,6 @@ export const updateProveedor = async (updateData) => {
   //    // Podrías lanzar error o continuar y dejar que la API valide
   // }
 
-  console.log(`DEBUG Fetch: updateProveedor ID: ${updateData.id_proveedor} with data:`, updateData); // Log para ver si viene el array
   try {
       const response = await fetch(API_URL, {
           method: "PUT",
@@ -29,7 +28,6 @@ export const updateProveedor = async (updateData) => {
       // ... (manejo de errores y parseo JSON)
       const data = await response.json().catch(/* ... */);
       if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: Error al actualizar`); }
-      console.log(`DEBUG Fetch: updateProveedor successful for ID: ${updateData.id_proveedor}`);
       return data; // <-- ESTE 'data' YA CONTIENE EL ARRAY 'representantes' SI LA API LO DEVUELVE
   } catch(err) {
       console.error("Error during provider update fetch:", err);
@@ -49,13 +47,11 @@ export const getProveedorForUser = async (userId) => {
   const userIdNum = parseInt(userId, 10);
   if (!userId || isNaN(userIdNum)) { throw new Error("ID de usuario inválido."); }
   try {
-      console.log(`DEBUG Fetch: getProveedorForUser by User ID: ${userIdNum}`);
       const response = await fetch(`${API_URL}?id_usuario_proveedor=${userIdNum}`);
       // ... (manejo de 404 y errores / parseo JSON)
       if (response.status === 404) return null;
       const data = await response.json().catch(/* ... */);
       if (!response.ok) { throw new Error(data?.message || `Error ${response.status}: No se pudo obtener perfil.`); }
-      console.log(`DEBUG Fetch: Profile data received for user ID ${userIdNum}`);
       return data; // <-- ESTE 'data' YA CONTIENE EL ARRAY 'representantes' SI LA API LO DEVUELVE
   } catch (err) {
       console.error(`Error during getProveedorForUser fetch for ID ${userIdNum}:`, err);
@@ -75,7 +71,6 @@ export const solicitarRevision = async (idProveedor) => {
     if (isNaN(providerIdNum)) {
         throw new Error("ID de proveedor inválido para solicitar revisión.");
     }
-    console.log(`FETCH: solicitarRevision for ID: ${providerIdNum}`);
     try {
         const response = await fetch(API_URL, { // Llama al mismo endpoint base pero con PATCH
             method: "PATCH",
@@ -91,7 +86,6 @@ export const solicitarRevision = async (idProveedor) => {
          if (!data) {
              throw new Error("Respuesta inválida del servidor tras solicitar revisión.");
          }
-        console.log(`FETCH: solicitarRevision successful for ID: ${providerIdNum}`);
         return data; // Devuelve { id_proveedor, estatus_revision: 'PENDIENTE_REVISION' }
 
     } catch(err) {

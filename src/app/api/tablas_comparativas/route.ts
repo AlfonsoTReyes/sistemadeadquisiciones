@@ -9,7 +9,6 @@ import { CrearTablaComparativaInput } from '@/types/tablaComparativa'; // Ajusta
 // --- GET /api/tablas-comparativas ---
 // Obtiene una lista de todas las tablas comparativas (datos básicos).
 export async function GET(request: NextRequest) {
-    console.log('API: GET /api/tablas-comparativas called');
     try {
         // TODO: Implementar filtros y paginación si es necesario, leyendo query params de request.url
         const tablas = await getTablasComparativasLista();
@@ -27,11 +26,9 @@ export async function GET(request: NextRequest) {
 // --- POST /api/tablas-comparativas ---
 // Crea una nueva tabla comparativa.
 export async function POST(request: NextRequest) {
-    console.log('API: POST /api/tablas-comparativas called');
     try {
         // 1. Obtener los datos del cuerpo de la solicitud
         const body = await request.json();
-        console.log('API: Request body:', body);
 
         // 2. Validar los datos de entrada (Ejemplo básico)
         //    Se recomienda usar una librería como Zod para validación más robusta.

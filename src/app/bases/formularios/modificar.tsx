@@ -89,7 +89,6 @@ const ModificarBases: React.FC<ModificarBasesProps> = ({ idBases, idSolicitud, o
       setIsLoading(true);
       setError(null);
       try {
-        console.log("aaaa", idBases);
         // 1. Obtener Secretarías (para los desplegables)
         const secretariasData = await fetchSecretarias();
         if (secretariasData) {
