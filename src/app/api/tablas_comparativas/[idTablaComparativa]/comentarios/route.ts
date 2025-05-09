@@ -22,7 +22,6 @@ export async function POST(
     }
 
     const logPrefix = `API POST /tablas-comparativas/${idTablaComparativa}/comentarios:`;
-    console.log(logPrefix);
 
     const idTabla = parseInt(idTablaComparativa, 10);
     if (isNaN(idTabla)) {
@@ -31,7 +30,6 @@ export async function POST(
 
     try {
         const body = await request.json();
-        console.log(`${logPrefix} Request body:`, body);
 
         const inputData = body as AgregarComentarioInput;
         if (!inputData || typeof inputData !== 'object') {

@@ -70,12 +70,10 @@ const ProveedorContratoDetailPage: React.FC = () => {
         const loadProveedorId = async () => {
              if (!error) setIsLoading(true); // Poner en carga si no hubo error antes
              setError(null); // Limpiar errores
-             console.log(`DetailPage: Attempting to fetch provider profile for user ID: ${proveedorUserId}`);
              try {
                 const profile = await fetchProveedorByUserId(proveedorUserId as number);
                 if (profile && profile.id_proveedor != null) {
                     setProveedorIdVerificado(profile.id_proveedor); // Guarda el ID de PROVEEDOR correcto
-                    console.log(`DetailPage: Verified Provider ID obtained: ${profile.id_proveedor}`);
                 } else {
                     setError("Error: No se encontró un perfil de proveedor asociado a su usuario.");
                     setIsLoading(false);
@@ -105,7 +103,6 @@ const ProveedorContratoDetailPage: React.FC = () => {
             setAccesoPermitido(false); // Resetear
 
             // *** Mensaje de Log Corregido ***
-            console.log(`DetailPage: Cargando detalles contrato ${idContratoUrl} para proveedor verificado ${proveedorIdVerificado}`);
 
             try {
                 const data = await fetchContractDetails(idContratoUrl);
@@ -121,7 +118,6 @@ const ProveedorContratoDetailPage: React.FC = () => {
                     // Si la verificación pasa
                     setContrato(data);
                     setAccesoPermitido(true); // Permitir acceso
-                    console.log(`DetailPage: Acceso verificado para contrato ${idContratoUrl}`);
                 }
 
             } catch (err) {

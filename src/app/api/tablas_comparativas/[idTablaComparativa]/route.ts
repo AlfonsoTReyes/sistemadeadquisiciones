@@ -31,7 +31,6 @@ export async function GET(
     if (!idTablaComparativa) {
         return NextResponse.json({ message: 'No se pudo determinar el ID de la tabla desde la URL' }, { status: 400 });
     }
-    console.log(`API: GET /api/tablas-comparativas/${idTablaComparativa} (from pathname) called`);
 
     const id = parseInt(idTablaComparativa, 10);
     if (isNaN(id)) {
@@ -60,7 +59,6 @@ export async function PATCH(
     if (!idTablaComparativa) {
         return NextResponse.json({ message: 'No se pudo determinar el ID de la tabla desde la URL' }, { status: 400 });
     }
-    console.log(`API: PATCH /api/tablas-comparativas/${idTablaComparativa} (from pathname) called`);
 
     const id = parseInt(idTablaComparativa, 10);
     if (isNaN(id)) {
@@ -98,7 +96,6 @@ export async function DELETE(
     if (!idTablaComparativa) {
         return NextResponse.json({ message: 'No se pudo determinar el ID de la tabla desde la URL' }, { status: 400 });
     }
-    console.log(`API: DELETE /api/tablas-comparativas/${idTablaComparativa} (from pathname) called`);
 
     const id = parseInt(idTablaComparativa, 10);
     if (isNaN(id)) {

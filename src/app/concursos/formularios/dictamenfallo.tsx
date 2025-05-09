@@ -94,7 +94,6 @@ const ModalDictamen: React.FC<ModalDictamenProps> = ({ idConcurso, onClose, onSu
 
         setUsuarios(usuariosMapeados); // Guarda los datos mapeados en el estado
         setOferentes(Array.isArray(oferentesData) ? oferentesData : []); // Asegura que oferentes sea array
-        console.log(oferentesData);
 
       } catch (err) {
         console.error("Error cargando datos (usuarios/oferentes):", err);
@@ -212,9 +211,6 @@ const ModalDictamen: React.FC<ModalDictamenProps> = ({ idConcurso, onClose, onSu
          }
      });
 
-    console.log("Enviando Dictamen:", dictamenPayload);
-    console.log("Enviando Participantes:", participantesPayload);
-
     // --- Envío a la API ---
     try {
        // ** NECESITAS IMPLEMENTAR ESTE ENDPOINT EN TU BACKEND **
@@ -244,7 +240,6 @@ const ModalDictamen: React.FC<ModalDictamenProps> = ({ idConcurso, onClose, onSu
       }
 
       const nuevoDictamenCreado = await response.json(); // El backend debería devolver el dictamen creado
-      console.log("Respuesta API:", nuevoDictamenCreado);
 
       onSuccess(nuevoDictamenCreado); // Llama al callback de éxito con la respuesta
       onClose(); // Cierra el modal

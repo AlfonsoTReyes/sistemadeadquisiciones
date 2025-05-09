@@ -184,7 +184,6 @@ const generarPDFInvitacionCompleta = async (): Promise<void> => {
         let y = 0;
 
         // --- PÁGINA 1 ---
-        console.log("Generando Página 1...");
         y = addHeader(doc, 1, 0, INVITACION_NUM); // Total 0 como placeholder inicial
         // ... (contenido de la página 1) ...
         doc.setFont("helvetica", "bold");
@@ -215,7 +214,6 @@ const generarPDFInvitacionCompleta = async (): Promise<void> => {
 
         // ... (resto del código de generación de páginas) ...
         // --- PÁGINA 2 ---
-        console.log("Generando Página 2...");
         doc.addPage();
         y = addHeader(doc, doc.getNumberOfPages(), 0, INVITACION_NUM); // Usar el número de página actual
         doc.setFont("helvetica", "bold");
@@ -225,7 +223,6 @@ const generarPDFInvitacionCompleta = async (): Promise<void> => {
         // ... (resto del contenido de la página 2)
 
         // --- PÁGINA 3 ---
-        console.log("Generando Página 3...");
         doc.addPage();
         y = addHeader(doc, doc.getNumberOfPages(), 0, INVITACION_NUM);
         // ... (resto del contenido de la página 3)
@@ -234,7 +231,6 @@ const generarPDFInvitacionCompleta = async (): Promise<void> => {
 
 
         // --- Bucle Final para Corregir Encabezados/Pies ---
-        console.log("Corrigiendo encabezados y pies...");
         // CORREGIDO:
         const totalPagesFinal = doc.getNumberOfPages(); // O doc.internal.pages.length;
         if (totalPagesFinal !== TOTAL_PAGES_ESTIMATED) {
@@ -246,14 +242,11 @@ const generarPDFInvitacionCompleta = async (): Promise<void> => {
             addFooter(doc);
         }
 
-        console.log("Generando Blob...");
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
-        console.log("PDF generado.");
 
     } catch (error) {
-        console.error("❌ Error al generar el PDF completo:", error);
         alert("Ocurrió un error al generar el PDF completo.");
     }
 };

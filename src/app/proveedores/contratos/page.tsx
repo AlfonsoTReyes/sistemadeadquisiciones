@@ -112,13 +112,11 @@ const ProveedorContratosListPage: React.FC = () => {
             // Asegurarse que sigue cargando si llegamos aquí sin error previo
             if (!error) setIsLoading(true);
             setError(null); // Limpiar por si acaso
-            console.log(`ContractsPage: Attempting to fetch provider profile for user ID: ${proveedorUserId}`);
             try {
                 // Llama a la función fetch que usa el parámetro correcto (?id_usuario_proveedor=...)
                 const profile = await fetchProveedorByUserId(proveedorUserId);
                 if (profile && profile.id_proveedor != null) {
                     setProveedorId(profile.id_proveedor); // Guarda el ID del PROVEEDOR
-                    console.log("ContractsPage: Provider ID obtained:", profile.id_proveedor);
                 } else {
                     setError("Error: No se encontró un perfil de proveedor asociado a su usuario.");
                     setIsLoading(false);
@@ -145,12 +143,10 @@ const ProveedorContratosListPage: React.FC = () => {
         const loadContracts = async () => {
             if (!error) setIsLoading(true); // Asegurar estado de carga
             setError(null);
-            console.log(`ContractsPage: Fetching contracts for provider ID: ${proveedorId}`);
             try {
                 // Pasar el ID del proveedor obtenido a la función fetch
                 const data = await fetchContracts(proveedorId as number);
                 setContratos(data);
-                console.log(`ContractsPage: ${data.length} contracts loaded.`);
             } catch (err) {
                 console.error(`ContractsPage: Error fetching contracts for provider ID ${proveedorId}:`, err);
                 setError(`Error al cargar sus contratos: ${(err as Error).message}`);

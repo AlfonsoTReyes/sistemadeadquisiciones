@@ -8,7 +8,6 @@ import {
 } from '../../../../services/proveedorusuarioservice'; // Adjust path if needed
 
 export async function POST(req: NextRequest) {
-    console.log("DEBUG: Hit /api/proveedorusuario/signup endpoint");
 
     try {
         // Destructure new apellido fields
